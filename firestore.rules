@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function role() { return get(/databases/$(db)/documents/users/$(request.auth.uid)).data.role; }
+    function isManager() { return role() in ['owner', 'manager']; }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isManager());
+      allow write: if signedIn() && role() == 'owner';
+    }
+    match /menu_items/{id} {
+      allow read: if signedIn();
+      allow write: if signedIn() && isManager();
+    }
+    match /tables/{id} {
+      allow read: if signedIn();
+      allow write: if signedIn() && isManager();
+    }
+    match /orders/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && role() in ['owner', 'manager', 'cashier', 'waiter'];
+      allow update: if signedIn() && role() in ['owner', 'manager', 'cashier', 'waiter', 'kitchen'];
+      allow delete: if signedIn() && isManager();
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "824007960242",
+    "project_id": "rms-yow",
+    "storage_bucket": "rms-yow.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:824007960242:android:68ed31c3b1959404cc0bab",
+        "android_client_info": {
+          "package_name": "com.example.rms_yow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8iAFRP3LvxJnQShoxytna0KLdlcs63ys"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
