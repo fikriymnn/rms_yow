@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/features/shifts/shift_providers.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/format.dart';
@@ -46,18 +47,57 @@ class _PosPageState extends ConsumerState<PosPage> {
   void _setItems(List<OrderItem> items) =>
       setState(() => _order = _order.copyWith(items: items));
 
+  KitchenStatus _st(OrderItem it) =>
+      ref.read(itemStatusProvider).value?[it.id] ?? KitchenStatus.newItem;
+
+  Future<void> _note(int i) async {
+    final c = TextEditingController(text: _order.items[i].note);
+    final v = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Catatan'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'mis. tidak pedas'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, c.text.trim()),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+    if (v == null) return;
+    final items = [..._order.items];
+    items[i] = items[i].copyWith(note: v);
+    _setItems(items);
+  }
+
   void _add(MenuItem m) {
     final items = [..._order.items];
     final i = items.indexWhere(
       (e) =>
           e.menuItemId == m.id &&
-          e.kitchen == KitchenStatus.newItem &&
+          _st(e) == KitchenStatus.newItem &&
           e.note.isEmpty,
     );
     if (i >= 0) {
       items[i] = items[i].copyWith(qty: items[i].qty + 1);
     } else {
-      items.add(OrderItem(menuItemId: m.id, name: m.name, price: m.price));
+      items.add(
+        OrderItem(
+          id: const Uuid().v4(),
+          menuItemId: m.id,
+          name: m.name,
+          price: m.price,
+        ),
+      );
     }
     _setItems(items);
   }
@@ -65,12 +105,17 @@ class _PosPageState extends ConsumerState<PosPage> {
   void _inc(int i) {
     final items = [..._order.items];
     final it = items[i];
-    if (it.kitchen == KitchenStatus.newItem) {
+    if (_st(it) == KitchenStatus.newItem) {
       items[i] = it.copyWith(qty: it.qty + 1);
     } else {
-      // item sudah diproses dapur -> baris baru agar KDS tahu ada tambahan
+      // sudah diproses dapur -> baris baru agar muncul sebagai tiket tambahan
       items.add(
-        OrderItem(menuItemId: it.menuItemId, name: it.name, price: it.price),
+        OrderItem(
+          id: const Uuid().v4(),
+          menuItemId: it.menuItemId,
+          name: it.name,
+          price: it.price,
+        ),
       );
     }
     _setItems(items);
@@ -79,7 +124,7 @@ class _PosPageState extends ConsumerState<PosPage> {
   void _dec(int i) {
     final items = [..._order.items];
     final it = items[i];
-    if (it.kitchen != KitchenStatus.newItem) {
+    if (_st(it) != KitchenStatus.newItem) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Item sudah diproses dapur, tidak bisa dikurangi'),
@@ -103,12 +148,20 @@ class _PosPageState extends ConsumerState<PosPage> {
 
   Future<void> _pay() async {
     if (_order.items.isEmpty) return;
+    final shift = ref.read(currentShiftProvider);
+    if (shift == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Buka shift dulu di tab Kas')),
+      );
+      return;
+    }
     final r = await showDialog<({PayMethod method, int paid})>(
       context: context,
       builder: (_) => _PayDialog(total: _order.total),
     );
     if (r == null) return;
     final paid = _order.copyWith(
+      shiftId: shift.id,
       status: OrderStatus.paid,
       payMethod: r.method,
       paidAmount: r.paid,
@@ -120,6 +173,7 @@ class _PosPageState extends ConsumerState<PosPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(itemStatusProvider);
     final menu = ref.watch(menuItemsProvider).value ?? [];
     final wide = MediaQuery.sizeOf(context).width >= 800;
     final title = widget.table?.name ?? 'Takeaway';
@@ -228,6 +282,7 @@ class _PosPageState extends ConsumerState<PosPage> {
 
   Widget _cartPane() {
     final o = _order;
+    final canPay = ref.watch(appUserProvider).value?.canPay ?? false;
     return Column(
       children: [
         Expanded(
@@ -240,9 +295,11 @@ class _PosPageState extends ConsumerState<PosPage> {
                     final it = o.items[i];
                     return ListTile(
                       title: Text(it.name),
+                      onLongPress: () => _note(i),
                       subtitle: Text(
                         '${rupiah.format(it.price)} × ${it.qty} = ${rupiah.format(it.total)}'
-                        '${it.kitchen == KitchenStatus.newItem ? '' : '  • ${it.kitchen.name}'}',
+                        '${_st(it) == KitchenStatus.newItem ? '' : '  • ${_st(it).label}'}'
+                        '${it.note.isEmpty ? '' : '\nCatatan: ${it.note}'}',
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -285,7 +342,7 @@ class _PosPageState extends ConsumerState<PosPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: FilledButton(
-                      onPressed: o.items.isEmpty ? null : _pay,
+                      onPressed: (o.items.isEmpty || !canPay) ? null : _pay,
                       child: const Text('Bayar'),
                     ),
                   ),

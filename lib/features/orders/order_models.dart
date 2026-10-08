@@ -16,49 +16,49 @@ T _byName<T extends Enum>(List<T> values, Object? name, T fallback) =>
 
 class OrderItem {
   const OrderItem({
+    required this.id,
     required this.menuItemId,
     required this.name,
     required this.price,
     this.qty = 1,
     this.note = '',
-    this.kitchen = KitchenStatus.newItem,
   });
 
+  final String id;
   final String menuItemId;
   final String name;
   final int price;
   final int qty;
   final String note;
-  final KitchenStatus kitchen;
 
   int get total => price * qty;
 
-  OrderItem copyWith({int? qty, String? note, KitchenStatus? kitchen}) =>
-      OrderItem(
-        menuItemId: menuItemId,
-        name: name,
-        price: price,
-        qty: qty ?? this.qty,
-        note: note ?? this.note,
-        kitchen: kitchen ?? this.kitchen,
-      );
-
-  factory OrderItem.fromMap(Map<String, dynamic> m) => OrderItem(
-    menuItemId: m['menuItemId'] as String? ?? '',
-    name: m['name'] as String? ?? '',
-    price: (m['price'] as num?)?.toInt() ?? 0,
-    qty: (m['qty'] as num?)?.toInt() ?? 1,
-    note: m['note'] as String? ?? '',
-    kitchen: _byName(KitchenStatus.values, m['kitchen'], KitchenStatus.newItem),
+  OrderItem copyWith({int? qty, String? note}) => OrderItem(
+    id: id,
+    menuItemId: menuItemId,
+    name: name,
+    price: price,
+    qty: qty ?? this.qty,
+    note: note ?? this.note,
   );
 
+  factory OrderItem.fromMap(Map<String, dynamic> m, {String fallbackId = ''}) =>
+      OrderItem(
+        id: m['id'] as String? ?? fallbackId,
+        menuItemId: m['menuItemId'] as String? ?? '',
+        name: m['name'] as String? ?? '',
+        price: (m['price'] as num?)?.toInt() ?? 0,
+        qty: (m['qty'] as num?)?.toInt() ?? 1,
+        note: m['note'] as String? ?? '',
+      );
+
   Map<String, dynamic> toMap() => {
+    'id': id,
     'menuItemId': menuItemId,
     'name': name,
     'price': price,
     'qty': qty,
     'note': note,
-    'kitchen': kitchen.name,
   };
 }
 
@@ -76,6 +76,7 @@ class Order {
     this.paidAmount = 0,
     this.createdBy = '',
     this.paidAt,
+    this.shiftId,
   });
 
   final String id;
@@ -90,6 +91,7 @@ class Order {
   final int createdAt;
   final String createdBy;
   final int? paidAt;
+  final String? shiftId;
 
   int get subtotal => items.fold(0, (s, i) => s + i.total);
   int get _base => max(0, subtotal - discount);
@@ -104,6 +106,7 @@ class Order {
     PayMethod? payMethod,
     int? paidAmount,
     int? paidAt,
+    String? shiftId,
   }) => Order(
     id: id,
     number: number,
@@ -117,6 +120,7 @@ class Order {
     payMethod: payMethod ?? this.payMethod,
     paidAmount: paidAmount ?? this.paidAmount,
     paidAt: paidAt ?? this.paidAt,
+    shiftId: shiftId ?? this.shiftId,
   );
 
   factory Order.fromMap(Map<String, dynamic> m) => Order(
@@ -124,9 +128,13 @@ class Order {
     number: m['number'] as String? ?? '',
     type: _byName(OrderType.values, m['type'], OrderType.dineIn),
     tableId: m['tableId'] as String?,
-    items: (m['items'] as List? ?? [])
-        .map((e) => OrderItem.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList(),
+    items: [
+      for (final (i, e) in (m['items'] as List? ?? []).indexed)
+        OrderItem.fromMap(
+          Map<String, dynamic>.from(e as Map),
+          fallbackId: '${m['id']}-$i',
+        ),
+    ],
     status: _byName(OrderStatus.values, m['status'], OrderStatus.open),
     discount: (m['discount'] as num?)?.toInt() ?? 0,
     payMethod: m['payMethod'] == null
@@ -136,6 +144,7 @@ class Order {
     createdAt: (m['createdAt'] as num?)?.toInt() ?? 0,
     createdBy: m['createdBy'] as String? ?? '',
     paidAt: (m['paidAt'] as num?)?.toInt(),
+    shiftId: m['shiftId'] as String?,
   );
 
   Map<String, dynamic> toMap() => {
@@ -156,5 +165,15 @@ class Order {
     'tax': tax,
     'service': service,
     'total': total,
+    'shiftId': shiftId,
+  };
+}
+
+extension KitchenLabel on KitchenStatus {
+  String get label => switch (this) {
+    KitchenStatus.newItem => 'Baru',
+    KitchenStatus.preparing => 'Diproses',
+    KitchenStatus.ready => 'Siap',
+    KitchenStatus.served => 'Diantar',
   };
 }

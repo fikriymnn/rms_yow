@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/features/reports/reports_page.dart';
+import 'package:rms_yow/features/shifts/shift_page.dart';
 
 import 'core/sync/sync_controller.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_page.dart';
 import 'features/menu/menu_page.dart';
 import 'features/tables/tables_page.dart';
+import 'features/kds/kds_page.dart';
 
 /// Koleksi yang di-mirror ke lokal. Tambah di sini tiap modul baru.
-const syncedCollections = ['menu_items', 'tables', 'orders'];
+const syncedCollections = [
+  'menu_items',
+  'tables',
+  'orders',
+  'item_status',
+  'shifts',
+];
 
 class RmsApp extends ConsumerWidget {
   const RmsApp({super.key});
@@ -87,7 +96,21 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         AppRole.cashier,
         AppRole.waiter,
       }),
-      // TODO: KDS, Laporan
+      _Dest('Dapur', Icons.soup_kitchen, const KdsPage(), {
+        AppRole.owner,
+        AppRole.manager,
+        AppRole.kitchen,
+        AppRole.waiter,
+      }),
+      _Dest('Kas', Icons.point_of_sale, const ShiftPage(), {
+        AppRole.owner,
+        AppRole.manager,
+        AppRole.cashier,
+      }),
+      _Dest('Laporan', Icons.bar_chart, const ReportsPage(), {
+        AppRole.owner,
+        AppRole.manager,
+      }),
     ];
     final dests = all.where((d) => d.roles.contains(user.role)).toList();
     final wide = MediaQuery.sizeOf(context).width >= 800; // web / tablet

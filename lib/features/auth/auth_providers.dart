@@ -11,17 +11,24 @@ class AppUser {
   final AppRole role;
 
   bool get canManageMenu => role == AppRole.owner || role == AppRole.manager;
+  bool get canPay =>
+      role == AppRole.owner ||
+      role == AppRole.manager ||
+      role == AppRole.cashier;
 }
 
 final authStateProvider = StreamProvider<User?>(
-    (ref) => FirebaseAuth.instance.authStateChanges());
+  (ref) => FirebaseAuth.instance.authStateChanges(),
+);
 
 /// Profil + role dari `users/{uid}` (di-set oleh Owner / Admin SDK).
 final appUserProvider = FutureProvider<AppUser?>((ref) async {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return null;
-  final doc =
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .get();
   final data = doc.data();
   if (data == null) return null;
   return AppUser(
