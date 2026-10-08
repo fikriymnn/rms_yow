@@ -10,18 +10,28 @@ import '../orders/order_providers.dart';
 import 'shift.dart';
 import 'shift_providers.dart';
 
-({int cash, int other, int count}) shiftTotals(Shift s, List<Order> orders) {
+typedef ShiftTotals = ({
+  int cash,
+  int other,
+  int count,
+  Map<String, int> byMethod,
+});
+
+ShiftTotals shiftTotals(Shift s, List<Order> orders) {
   var cash = 0, other = 0, count = 0;
+  final by = <String, int>{};
   for (final o in orders) {
     if (o.shiftId != s.id || o.status != OrderStatus.paid) continue;
     count++;
+    final m = (o.payMethod ?? PayMethod.other).name;
+    by[m] = (by[m] ?? 0) + o.total;
     if (o.payMethod == PayMethod.cash) {
       cash += o.total; // kembalian sudah keluar dari laci, jadi pakai total
     } else {
       other += o.total;
     }
   }
-  return (cash: cash, other: other, count: count);
+  return (cash: cash, other: other, count: count, byMethod: by);
 }
 
 class ShiftPage extends ConsumerStatefulWidget {
@@ -53,11 +63,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
     _opening.clear();
   }
 
-  Future<void> _close(
-    Shift s,
-    int expected,
-    ({int cash, int other, int count}) t,
-  ) async {
+  Future<void> _close(Shift s, int expected, ShiftTotals t) async {
     final c = TextEditingController();
     final counted = await showDialog<int>(
       context: context,
@@ -111,7 +117,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             expectedCash: expected,
             cashSales: t.cash,
             otherSales: t.other,
-            orderCount: t.count,
+            salesByMethod: t.byMethod,
           ),
         );
   }
@@ -151,12 +157,13 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
   }
 
   Widget _historyTile(Shift s, List<Order> orders) {
-    // shift lama (ditutup sebelum update ini) belum punya snapshot -> hitung dari order
-    final t = s.cashSales != null
+    // shift lama (belum punya snapshot per metode) dihitung dari order
+    final ShiftTotals t = s.salesByMethod != null
         ? (
-            cash: s.cashSales!,
+            cash: s.cashSales ?? 0,
             other: s.otherSales ?? 0,
             count: s.orderCount ?? 0,
+            byMethod: s.salesByMethod!,
           )
         : shiftTotals(s, orders);
     return ExpansionTile(
@@ -170,6 +177,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
         _kv('Modal awal', rupiah.format(s.openingCash)),
         _kv('Penjualan tunai', rupiah.format(t.cash)),
         _kv('Penjualan non-tunai', rupiah.format(t.other)),
+        ..._methodRows(t.byMethod),
         _kv('Total penjualan', rupiah.format(t.cash + t.other), bold: true),
         _kv('Jumlah order', '${t.count}'),
         const Divider(),
@@ -223,6 +231,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             _kv('Modal awal', rupiah.format(s.openingCash)),
             _kv('Penjualan tunai', rupiah.format(t.cash)),
             _kv('Penjualan non-tunai', rupiah.format(t.other)),
+            ..._methodRows(t.byMethod),
             _kv('Jumlah order', '${t.count}'),
             const Divider(height: 24),
             _kv('Kas seharusnya', rupiah.format(expected), bold: true),
@@ -236,6 +245,15 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
       ),
     );
   }
+
+  List<Widget> _methodRows(Map<String, int> by) => [
+    for (final m in PayMethod.values)
+      if (m != PayMethod.cash && (by[m.name] ?? 0) > 0)
+        Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: _kv(m.name.toUpperCase(), rupiah.format(by[m.name]!)),
+        ),
+  ];
 
   Widget _kv(String k, String v, {bool bold = false}) {
     final st = TextStyle(fontWeight: bold ? FontWeight.bold : null);
