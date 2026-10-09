@@ -15,6 +15,7 @@ class AppUser {
       role == AppRole.owner ||
       role == AppRole.manager ||
       role == AppRole.cashier;
+  bool get isManager => role == AppRole.owner || role == AppRole.manager;
 }
 
 final authStateProvider = StreamProvider<User?>(

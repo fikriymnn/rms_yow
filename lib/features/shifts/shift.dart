@@ -15,6 +15,8 @@ class Shift {
     this.otherSales,
     this.orderCount,
     this.salesByMethod,
+    this.refundCash,
+    this.refundOther,
   });
 
   final String id;
@@ -30,6 +32,8 @@ class Shift {
   final int? otherSales;
   final int? orderCount;
   final Map<String, int>? salesByMethod;
+  final int? refundCash;
+  final int? refundOther;
 
   int? get difference => (closingCash == null || expectedCash == null)
       ? null
@@ -44,6 +48,8 @@ class Shift {
     int? otherSales,
     int? orderCount,
     Map<String, int>? salesByMethod,
+    int? refundCash,
+    int? refundOther,
   }) => Shift(
     id: id,
     cashierId: cashierId,
@@ -58,6 +64,8 @@ class Shift {
     otherSales: otherSales ?? this.otherSales,
     orderCount: orderCount ?? this.orderCount,
     salesByMethod: salesByMethod ?? this.salesByMethod,
+    refundCash: refundCash ?? this.refundCash,
+    refundOther: refundOther ?? this.refundOther,
   );
 
   factory Shift.fromMap(Map<String, dynamic> m) => Shift(
@@ -79,6 +87,8 @@ class Shift {
     salesByMethod: (m['salesByMethod'] as Map?)?.map(
       (k, v) => MapEntry(k as String, (v as num).toInt()),
     ),
+    refundCash: (m['refundCash'] as num?)?.toInt(),
+    refundOther: (m['refundOther'] as num?)?.toInt(),
   );
 
   Map<String, dynamic> toMap() => {
@@ -95,5 +105,7 @@ class Shift {
     'otherSales': otherSales,
     'orderCount': orderCount,
     'salesByMethod': salesByMethod,
+    'refundCash': refundCash,
+    'refundOther': refundOther,
   };
 }

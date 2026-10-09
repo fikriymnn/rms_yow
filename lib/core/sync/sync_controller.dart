@@ -16,8 +16,9 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 enum SyncState { idle, syncing, offline, error }
 
-final syncControllerProvider =
-    NotifierProvider<SyncController, SyncState>(SyncController.new);
+final syncControllerProvider = NotifierProvider<SyncController, SyncState>(
+  SyncController.new,
+);
 
 class SyncController extends Notifier<SyncState> {
   final _fs = FirebaseFirestore.instance;
@@ -51,10 +52,15 @@ class SyncController extends Notifier<SyncState> {
     if (!_online) state = SyncState.offline;
 
     for (final c in collections) {
-      _remoteSubs.add(_fs.collection(c).snapshots().listen(
-            (snap) => _pull(c, snap),
-            onError: (_) => state = SyncState.error,
-          ));
+      _remoteSubs.add(
+        _fs
+            .collection(c)
+            .snapshots()
+            .listen(
+              (snap) => _pull(c, snap),
+              onError: (_) => state = SyncState.error,
+            ),
+      );
     }
     await pushPending();
   }
@@ -75,20 +81,29 @@ class SyncController extends Notifier<SyncState> {
     try {
       final pending = await _db.dirtyDocs()
         ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+      var failed = false;
       for (final d in pending) {
-        final docRef = _fs.collection(d.collection).doc(d.id);
-        if (d.deleted) {
-          await docRef.delete().timeout(const Duration(seconds: 15));
-          await _db.purge(d.collection, d.id);
-        } else {
-          await docRef
-              .set(jsonDecode(d.json) as Map<String, dynamic>,
-                  SetOptions(merge: true))
-              .timeout(const Duration(seconds: 15));
-          await _db.markClean(d.collection, d.id, d.updatedAt);
+        try {
+          final docRef = _fs.collection(d.collection).doc(d.id);
+          if (d.deleted) {
+            await docRef.delete().timeout(const Duration(seconds: 15));
+            await _db.purge(d.collection, d.id);
+          } else {
+            await docRef
+                .set(
+                  jsonDecode(d.json) as Map<String, dynamic>,
+                  SetOptions(merge: true),
+                )
+                .timeout(const Duration(seconds: 15));
+            await _db.markClean(d.collection, d.id, d.updatedAt);
+          }
+        } on TimeoutException {
+          rethrow; // jaringan bermasalah, berhenti dan tandai offline
+        } catch (_) {
+          failed = true; // mis. ditolak rules: lanjut ke dokumen berikutnya
         }
       }
-      state = SyncState.idle;
+      state = failed ? SyncState.error : SyncState.idle;
     } on TimeoutException {
       state = SyncState.offline;
     } catch (_) {
@@ -110,14 +125,16 @@ class SyncController extends Notifier<SyncState> {
       final data = ch.doc.data() ?? {};
       final remoteTs = (data['updatedAt'] as num?)?.toInt() ?? 0;
       if (local != null && local.updatedAt > remoteTs) continue;
-      await _db.upsert(DocsCompanion(
-        collection: Value(c),
-        id: Value(ch.doc.id),
-        json: Value(jsonEncode(data)),
-        updatedAt: Value(remoteTs),
-        deleted: const Value(false),
-        dirty: const Value(false),
-      ));
+      await _db.upsert(
+        DocsCompanion(
+          collection: Value(c),
+          id: Value(ch.doc.id),
+          json: Value(jsonEncode(data)),
+          updatedAt: Value(remoteTs),
+          deleted: const Value(false),
+          dirty: const Value(false),
+        ),
+      );
     }
   }
 }

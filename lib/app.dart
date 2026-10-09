@@ -17,6 +17,7 @@ const syncedCollections = [
   'orders',
   'item_status',
   'shifts',
+  'audit_logs',
 ];
 
 class RmsApp extends ConsumerWidget {

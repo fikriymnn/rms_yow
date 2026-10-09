@@ -3,6 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/core/reason_dialog.dart';
+import 'package:rms_yow/features/audit/audit_log.dart';
+import 'package:rms_yow/features/audit/audit_providers.dart';
+import 'package:rms_yow/features/auth/auth_providers.dart';
+import 'package:rms_yow/features/shifts/shift_providers.dart';
 
 import '../../core/format.dart';
 import '../orders/order_models.dart';
@@ -37,6 +42,85 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     if (d != null) setState(() => _day = d);
   }
 
+  Future<void> _detail(Order o) async {
+    final isManager = ref.read(appUserProvider).value?.isManager ?? false;
+    final doRefund = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(o.number),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final it in o.items)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: Text('${it.qty}× ${it.name}')),
+                      Text(rupiah.format(it.total)),
+                    ],
+                  ),
+                ),
+              const Divider(),
+              Text('Total: ${rupiah.format(o.total)}'),
+              Text('Bayar: ${o.payMethod?.name.toUpperCase() ?? '-'}'),
+              if (o.status == OrderStatus.refunded)
+                Text('Refund: ${o.refundReason ?? '-'}'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup'),
+          ),
+          if (isManager && o.status == OrderStatus.paid)
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Refund'),
+            ),
+        ],
+      ),
+    );
+    if (doRefund == true && mounted) await _refund(o);
+  }
+
+  Future<void> _refund(Order o) async {
+    final shift = ref.read(currentShiftProvider);
+    if (shift == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Buka shift dulu di tab Kas untuk melakukan refund'),
+        ),
+      );
+      return;
+    }
+    final reason = await askReason(context, 'Refund ${o.number}');
+    if (reason == null) return;
+    await ref
+        .read(orderRepositoryProvider)
+        .save(
+          o.copyWith(
+            status: OrderStatus.refunded,
+            refundedAt: DateTime.now().millisecondsSinceEpoch,
+            refundShiftId: shift.id,
+            refundReason: reason,
+          ),
+        );
+    await ref
+        .read(auditRepositoryProvider)
+        .record(
+          AuditAction.refund,
+          reason: reason,
+          order: o,
+          detail: o.payMethod?.name.toUpperCase() ?? '',
+          amount: o.total,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     final orders = ref.watch(ordersProvider).value ?? <Order>[];
@@ -55,7 +139,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         orders
             .where(
               (o) =>
-                  o.status == OrderStatus.paid &&
+                  (o.status == OrderStatus.paid ||
+                      o.status == OrderStatus.refunded) &&
                   (o.paidAt ?? 0) >= start &&
                   (o.paidAt ?? 0) < end,
             )
@@ -68,6 +153,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     final tax = paid.fold<int>(0, (s, o) => s + o.tax);
     final svc = paid.fold<int>(0, (s, o) => s + o.service);
     final avg = paid.isEmpty ? 0 : (total / paid.length).round();
+    final refunds = orders
+        .where(
+          (o) =>
+              o.status == OrderStatus.refunded &&
+              (o.refundedAt ?? 0) >= start &&
+              (o.refundedAt ?? 0) < end,
+        )
+        .toList();
+    final refundTotal = refunds.fold<int>(0, (s, o) => s + o.total);
+    final net = total - refundTotal;
+    final logs = (ref.watch(auditLogsProvider).value ?? <AuditLog>[])
+        .where((l) => l.at >= start && l.at < end)
+        .toList();
 
     final byMethod = <PayMethod, int>{};
     final qty = <String, int>{};
@@ -108,7 +206,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              _stat('Penjualan', rupiah.format(total)),
+              _stat('Penjualan bersih', rupiah.format(net)),
               _stat('Jumlah order', '${paid.length}'),
               _stat('Rata-rata/order', rupiah.format(avg)),
             ],
@@ -125,7 +223,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           if (disc > 0) _row('Diskon', '-${rupiah.format(disc)}'),
           _row('Pajak', rupiah.format(tax)),
           if (svc > 0) _row('Service', rupiah.format(svc)),
-          _row('Total', rupiah.format(total), bold: true),
+          _row('Total penjualan', rupiah.format(total)),
+          if (refundTotal > 0) _row('Refund', '-${rupiah.format(refundTotal)}'),
+          _row('Penjualan bersih', rupiah.format(net), bold: true),
           if (byMethod.isNotEmpty) _section('Metode pembayaran'),
           for (final e in byMethod.entries)
             _row(e.key.name.toUpperCase(), rupiah.format(e.value)),
@@ -151,12 +251,33 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
+              onTap: () => _detail(o),
               title: Text(o.number),
               subtitle: Text(
                 '${_timeFmt.format(DateTime.fromMillisecondsSinceEpoch(o.paidAt ?? 0))}'
-                ' • ${o.payMethod?.name.toUpperCase() ?? '-'}',
+                ' • ${o.payMethod?.name.toUpperCase() ?? '-'}'
+                '${o.status == OrderStatus.refunded ? ' • REFUND' : ''}',
               ),
-              trailing: Text(rupiah.format(o.total)),
+              trailing: Text(
+                rupiah.format(o.total),
+                style: TextStyle(
+                  decoration: o.status == OrderStatus.refunded
+                      ? TextDecoration.lineThrough
+                      : null,
+                ),
+              ),
+            ),
+          if (logs.isNotEmpty) _section('Void, refund & diskon'),
+          for (final l in logs)
+            ListTile(
+              dense: true,
+              isThreeLine: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text('${l.action.label} • ${rupiah.format(l.amount)}'),
+              subtitle: Text(
+                '${_timeFmt.format(DateTime.fromMillisecondsSinceEpoch(l.at))} • ${l.userName} • ${l.orderNumber}\n'
+                '${l.detail.isEmpty ? '' : '${l.detail} • '}${l.reason}',
+              ),
             ),
         ],
       ),

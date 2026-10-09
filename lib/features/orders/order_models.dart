@@ -5,7 +5,7 @@ const kServicePercent = 0;
 
 enum OrderType { dineIn, takeaway }
 
-enum OrderStatus { open, paid, voided }
+enum OrderStatus { open, paid, voided, refunded }
 
 enum KitchenStatus { newItem, preparing, ready, served }
 
@@ -77,6 +77,9 @@ class Order {
     this.createdBy = '',
     this.paidAt,
     this.shiftId,
+    this.refundedAt,
+    this.refundShiftId,
+    this.refundReason,
   });
 
   final String id;
@@ -92,6 +95,9 @@ class Order {
   final String createdBy;
   final int? paidAt;
   final String? shiftId;
+  final int? refundedAt;
+  final String? refundShiftId;
+  final String? refundReason;
 
   int get subtotal => items.fold(0, (s, i) => s + i.total);
   int get _base => max(0, subtotal - discount);
@@ -107,6 +113,9 @@ class Order {
     int? paidAmount,
     int? paidAt,
     String? shiftId,
+    int? refundedAt,
+    String? refundShiftId,
+    String? refundReason,
   }) => Order(
     id: id,
     number: number,
@@ -121,6 +130,9 @@ class Order {
     paidAmount: paidAmount ?? this.paidAmount,
     paidAt: paidAt ?? this.paidAt,
     shiftId: shiftId ?? this.shiftId,
+    refundedAt: refundedAt ?? this.refundedAt,
+    refundShiftId: refundShiftId ?? this.refundShiftId,
+    refundReason: refundReason ?? this.refundReason,
   );
 
   factory Order.fromMap(Map<String, dynamic> m) => Order(
@@ -145,6 +157,9 @@ class Order {
     createdBy: m['createdBy'] as String? ?? '',
     paidAt: (m['paidAt'] as num?)?.toInt(),
     shiftId: m['shiftId'] as String?,
+    refundedAt: (m['refundedAt'] as num?)?.toInt(),
+    refundShiftId: m['refundShiftId'] as String?,
+    refundReason: m['refundReason'] as String?,
   );
 
   Map<String, dynamic> toMap() => {
@@ -166,6 +181,9 @@ class Order {
     'service': service,
     'total': total,
     'shiftId': shiftId,
+    'refundedAt': refundedAt,
+    'refundShiftId': refundShiftId,
+    'refundReason': refundReason,
   };
 }
 

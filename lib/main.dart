@@ -12,7 +12,8 @@ Future<void> main() async {
     // options: DefaultFirebaseOptions.currentPlatform,
   );
   // Offline ditangani oleh Drift (local-first), bukan cache Firestore.
-  FirebaseFirestore.instance.settings =
-      const Settings(persistenceEnabled: false);
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: false,
+  );
   runApp(const ProviderScope(child: RmsApp()));
 }

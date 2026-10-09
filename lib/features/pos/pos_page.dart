@@ -3,6 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/core/reason_dialog.dart';
+import 'package:rms_yow/features/audit/audit_log.dart';
+import 'package:rms_yow/features/audit/audit_providers.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
 import 'package:uuid/uuid.dart';
 
@@ -26,6 +29,136 @@ class PosPage extends ConsumerStatefulWidget {
 class _PosPageState extends ConsumerState<PosPage> {
   late Order _order;
   String _category = 'Semua';
+
+  late final Set<String> _savedIds = {
+    for (final i in widget.order?.items ?? <OrderItem>[]) i.id,
+  };
+  final _audits =
+      <({AuditAction action, String reason, String detail, int amount})>[];
+
+  bool get _isManager => ref.read(appUserProvider).value?.isManager ?? false;
+
+  Future<void> _flushAudits() async {
+    final repo = ref.read(auditRepositoryProvider);
+    for (final a in _audits) {
+      await repo.record(
+        a.action,
+        reason: a.reason,
+        order: _order,
+        detail: a.detail,
+        amount: a.amount,
+      );
+    }
+    _audits.clear();
+  }
+
+  List<Widget> _actions() => [
+    if (widget.order != null)
+      IconButton(
+        tooltip: 'Batalkan order',
+        icon: const Icon(Icons.delete_outline),
+        onPressed: _cancel,
+      ),
+  ];
+
+  Future<void> _cancel() async {
+    final o = widget.order;
+    if (o == null) return;
+    final processed = o.items.any((e) => _st(e) != KitchenStatus.newItem);
+    if (processed && !_isManager) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sebagian item sudah diproses dapur, butuh manager'),
+        ),
+      );
+      return;
+    }
+    final reason = await askReason(context, 'Batalkan order ${o.number}');
+    if (reason == null) return;
+    _audits.clear();
+    _audits.add((
+      action: AuditAction.cancelOrder,
+      reason: reason,
+      detail: '${o.items.length} item',
+      amount: o.total,
+    ));
+    _order = o.copyWith(status: OrderStatus.voided);
+    await ref.read(orderRepositoryProvider).save(_order);
+    await _flushAudits();
+    if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _discount() async {
+    final sub = _order.subtotal;
+    final c = TextEditingController();
+    var pct = false;
+    final v = await showDialog<int>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final n = int.tryParse(c.text) ?? 0;
+          final amount = (pct ? (sub * n / 100).round() : n)
+              .clamp(0, sub)
+              .toInt();
+          return AlertDialog(
+            title: const Text('Diskon manual'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Rp')),
+                    ButtonSegment(value: true, label: Text('%')),
+                  ],
+                  selected: {pct},
+                  onSelectionChanged: (s) => setS(() => pct = s.first),
+                ),
+                TextField(
+                  controller: c,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: pct ? 'Persen' : 'Nominal (Rp)',
+                  ),
+                  onChanged: (_) => setS(() {}),
+                ),
+                const SizedBox(height: 8),
+                Text('Potongan: ${rupiah.format(amount)}'),
+              ],
+            ),
+            actions: [
+              if (_order.discount > 0)
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, 0),
+                  child: const Text('Hapus diskon'),
+                ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Batal'),
+              ),
+              FilledButton(
+                onPressed: amount > 0 ? () => Navigator.pop(ctx, amount) : null,
+                child: const Text('Terapkan'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (v == null || !mounted) return;
+    final reason = await askReason(
+      context,
+      v == 0 ? 'Alasan hapus diskon' : 'Alasan diskon',
+    );
+    if (reason == null) return;
+    setState(() => _order = _order.copyWith(discount: v));
+    _audits.add((
+      action: AuditAction.discount,
+      reason: reason,
+      detail: v == 0 ? 'Diskon dihapus' : 'Diskon ${rupiah.format(v)}',
+      amount: v,
+    ));
+  }
 
   @override
   void initState() {
@@ -121,21 +254,34 @@ class _PosPageState extends ConsumerState<PosPage> {
     _setItems(items);
   }
 
-  void _dec(int i) {
-    final items = [..._order.items];
-    final it = items[i];
-    if (_st(it) != KitchenStatus.newItem) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Item sudah diproses dapur, tidak bisa dikurangi'),
-        ),
-      );
-      return;
+  Future<void> _dec(int i) async {
+    final it = _order.items[i];
+    if (_savedIds.contains(it.id)) {
+      // item sudah pernah disimpan/dikirim ke dapur -> wajib alasan + audit
+      if (_st(it) != KitchenStatus.newItem && !_isManager) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Item sudah diproses dapur, butuh manager'),
+          ),
+        );
+        return;
+      }
+      final reason = await askReason(context, 'Void ${it.name}');
+      if (reason == null) return;
+      _audits.add((
+        action: AuditAction.voidItem,
+        reason: reason,
+        detail: '${it.name} ×1',
+        amount: it.price,
+      ));
     }
-    if (it.qty > 1) {
-      items[i] = it.copyWith(qty: it.qty - 1);
+    final items = [..._order.items];
+    final k = items.indexWhere((e) => e.id == it.id);
+    if (k < 0) return;
+    if (items[k].qty > 1) {
+      items[k] = items[k].copyWith(qty: items[k].qty - 1);
     } else {
-      items.removeAt(i);
+      items.removeAt(k);
     }
     _setItems(items);
   }
@@ -143,6 +289,7 @@ class _PosPageState extends ConsumerState<PosPage> {
   Future<void> _save() async {
     if (_order.items.isEmpty) return;
     await ref.read(orderRepositoryProvider).save(_order);
+    await _flushAudits();
     if (mounted) Navigator.pop(context);
   }
 
@@ -168,6 +315,7 @@ class _PosPageState extends ConsumerState<PosPage> {
       paidAt: DateTime.now().millisecondsSinceEpoch,
     );
     await ref.read(orderRepositoryProvider).save(paid);
+    await _flushAudits();
     if (mounted) Navigator.pop(context);
   }
 
@@ -181,7 +329,7 @@ class _PosPageState extends ConsumerState<PosPage> {
 
     if (wide) {
       return Scaffold(
-        appBar: AppBar(title: Text(title)),
+        appBar: AppBar(title: Text(title), actions: _actions()),
         body: Row(
           children: [
             Expanded(flex: 3, child: _menuPane(menu)),
@@ -196,6 +344,7 @@ class _PosPageState extends ConsumerState<PosPage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(title),
+          actions: _actions(),
           bottom: TabBar(
             tabs: [
               const Tab(text: 'Menu'),
@@ -283,6 +432,7 @@ class _PosPageState extends ConsumerState<PosPage> {
   Widget _cartPane() {
     final o = _order;
     final canPay = ref.watch(appUserProvider).value?.canPay ?? false;
+    final isManager = ref.watch(appUserProvider).value?.isManager ?? false;
     return Column(
       children: [
         Expanded(
@@ -331,6 +481,15 @@ class _PosPageState extends ConsumerState<PosPage> {
                 _line('Service $kServicePercent%', o.service),
               _line('Total', o.total, bold: true),
               const SizedBox(height: 10),
+              if (isManager && o.items.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _discount,
+                    icon: const Icon(Icons.sell_outlined, size: 18),
+                    label: Text(o.discount > 0 ? 'Ubah diskon' : 'Diskon'),
+                  ),
+                ),
               Row(
                 children: [
                   Expanded(

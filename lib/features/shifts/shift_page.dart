@@ -15,23 +15,44 @@ typedef ShiftTotals = ({
   int other,
   int count,
   Map<String, int> byMethod,
+  int refundCash,
+  int refundOther,
 });
 
 ShiftTotals shiftTotals(Shift s, List<Order> orders) {
-  var cash = 0, other = 0, count = 0;
+  var cash = 0, other = 0, count = 0, refundCash = 0, refundOther = 0;
   final by = <String, int>{};
   for (final o in orders) {
-    if (o.shiftId != s.id || o.status != OrderStatus.paid) continue;
-    count++;
-    final m = (o.payMethod ?? PayMethod.other).name;
-    by[m] = (by[m] ?? 0) + o.total;
-    if (o.payMethod == PayMethod.cash) {
-      cash += o.total; // kembalian sudah keluar dari laci, jadi pakai total
-    } else {
-      other += o.total;
+    final sold =
+        o.shiftId == s.id &&
+        (o.status == OrderStatus.paid || o.status == OrderStatus.refunded);
+    if (sold) {
+      count++;
+      final m = (o.payMethod ?? PayMethod.other).name;
+      by[m] = (by[m] ?? 0) + o.total;
+      if (o.payMethod == PayMethod.cash) {
+        cash += o.total;
+      } else {
+        other += o.total;
+      }
+    }
+    // refund dicatat di shift tempat refund dilakukan
+    if (o.status == OrderStatus.refunded && o.refundShiftId == s.id) {
+      if (o.payMethod == PayMethod.cash) {
+        refundCash += o.total;
+      } else {
+        refundOther += o.total;
+      }
     }
   }
-  return (cash: cash, other: other, count: count, byMethod: by);
+  return (
+    cash: cash,
+    other: other,
+    count: count,
+    byMethod: by,
+    refundCash: refundCash,
+    refundOther: refundOther,
+  );
 }
 
 class ShiftPage extends ConsumerStatefulWidget {
@@ -118,6 +139,8 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             cashSales: t.cash,
             otherSales: t.other,
             salesByMethod: t.byMethod,
+            refundCash: t.refundCash,
+            refundOther: t.refundOther,
           ),
         );
   }
@@ -164,6 +187,8 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             other: s.otherSales ?? 0,
             count: s.orderCount ?? 0,
             byMethod: s.salesByMethod!,
+            refundCash: s.refundCash ?? 0,
+            refundOther: s.refundOther ?? 0,
           )
         : shiftTotals(s, orders);
     return ExpansionTile(
@@ -179,6 +204,8 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
         _kv('Penjualan non-tunai', rupiah.format(t.other)),
         ..._methodRows(t.byMethod),
         _kv('Total penjualan', rupiah.format(t.cash + t.other), bold: true),
+        if (t.refundCash + t.refundOther > 0)
+          _kv('Refund', '-${rupiah.format(t.refundCash + t.refundOther)}'),
         _kv('Jumlah order', '${t.count}'),
         const Divider(),
         _kv('Kas seharusnya', rupiah.format(s.expectedCash ?? 0)),
@@ -215,7 +242,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
 
   Widget _activeCard(Shift s, List<Order> orders) {
     final t = shiftTotals(s, orders);
-    final expected = s.openingCash + t.cash;
+    final expected = s.openingCash + t.cash - t.refundCash;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -232,6 +259,8 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             _kv('Penjualan tunai', rupiah.format(t.cash)),
             _kv('Penjualan non-tunai', rupiah.format(t.other)),
             ..._methodRows(t.byMethod),
+            if (t.refundCash + t.refundOther > 0)
+              _kv('Refund', '-${rupiah.format(t.refundCash + t.refundOther)}'),
             _kv('Jumlah order', '${t.count}'),
             const Divider(height: 24),
             _kv('Kas seharusnya', rupiah.format(expected), bold: true),
