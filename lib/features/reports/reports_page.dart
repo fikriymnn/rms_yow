@@ -7,7 +7,11 @@ import 'package:rms_yow/core/reason_dialog.dart';
 import 'package:rms_yow/features/audit/audit_log.dart';
 import 'package:rms_yow/features/audit/audit_providers.dart';
 import 'package:rms_yow/features/auth/auth_providers.dart';
+import 'package:rms_yow/features/printing/printer_service.dart';
+import 'package:rms_yow/features/printing/printer_settings.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
+import 'package:rms_yow/features/tables/dining_table.dart';
+import 'package:rms_yow/features/tables/table_providers.dart';
 
 import '../../core/format.dart';
 import '../orders/order_models.dart';
@@ -44,7 +48,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   Future<void> _detail(Order o) async {
     final isManager = ref.read(appUserProvider).value?.isManager ?? false;
-    final doRefund = await showDialog<bool>(
+    final action = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(o.number),
@@ -77,15 +81,39 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Tutup'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'print'),
+            child: const Text('Cetak struk'),
+          ),
           if (isManager && o.status == OrderStatus.paid)
             FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () => Navigator.pop(ctx, 'refund'),
               child: const Text('Refund'),
             ),
         ],
       ),
     );
-    if (doRefund == true && mounted) await _refund(o);
+    if (!mounted) return;
+    if (action == 'refund') await _refund(o);
+    if (action == 'print') await _printReceipt(o);
+  }
+
+  Future<void> _printReceipt(Order o) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final cfg =
+        ref.read(printerSettingsProvider).value ?? const PrinterSettings();
+    final tables = ref.read(tablesProvider).value ?? <DiningTable>[];
+    final t = tables.where((e) => e.id == o.tableId).firstOrNull;
+    try {
+      await printOrderReceipt(
+        settings: cfg,
+        order: o,
+        tableName: t?.name,
+        copy: true,
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Gagal cetak: $e')));
+    }
   }
 
   Future<void> _refund(Order o) async {

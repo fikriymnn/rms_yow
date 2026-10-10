@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/features/inventory/inventory_page.dart';
 import 'package:rms_yow/features/reports/reports_page.dart';
 import 'package:rms_yow/features/shifts/shift_page.dart';
 
 import 'core/sync/sync_controller.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_page.dart';
+import 'features/finance/finance_page.dart';
 import 'features/menu/menu_page.dart';
 import 'features/tables/tables_page.dart';
 import 'features/kds/kds_page.dart';
@@ -18,6 +20,10 @@ const syncedCollections = [
   'item_status',
   'shifts',
   'audit_logs',
+  'ingredients',
+  'recipes',
+  'stock_moves',
+  'expenses',
 ];
 
 class RmsApp extends ConsumerWidget {
@@ -112,6 +118,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         AppRole.owner,
         AppRole.manager,
       }),
+      _Dest('Stok', Icons.inventory_2_outlined, const InventoryPage(), {
+        AppRole.owner,
+        AppRole.manager,
+        AppRole.warehouse,
+      }),
+      _Dest(
+        'Keuangan',
+        Icons.account_balance_wallet_outlined,
+        const FinancePage(),
+        {AppRole.owner, AppRole.manager},
+      ),
     ];
     final dests = all.where((d) => d.roles.contains(user.role)).toList();
     final wide = MediaQuery.sizeOf(context).width >= 800; // web / tablet
@@ -148,14 +165,58 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       ),
       bottomNavigationBar: (wide || dests.length < 2)
           ? null
-          : NavigationBar(
-              selectedIndex: _index,
-              onDestinationSelected: (i) => setState(() => _index = i),
-              destinations: [
-                for (final d in dests)
-                  NavigationDestination(icon: Icon(d.icon), label: d.label),
+          : _bottomBar(dests),
+    );
+  }
+
+  Widget _bottomBar(List<_Dest> dests) {
+    const maxBar = 5;
+    if (dests.length <= maxBar) {
+      return NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: [
+          for (final d in dests)
+            NavigationDestination(icon: Icon(d.icon), label: d.label),
+        ],
+      );
+    }
+    final shown = dests.take(maxBar - 1).toList();
+    final more = dests.skip(maxBar - 1).toList();
+    return NavigationBar(
+      selectedIndex: _index < shown.length ? _index : shown.length,
+      onDestinationSelected: (i) async {
+        if (i < shown.length) {
+          setState(() => _index = i);
+          return;
+        }
+        final picked = await showModalBottomSheet<int>(
+          context: context,
+          builder: (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var k = 0; k < more.length; k++)
+                  ListTile(
+                    leading: Icon(more[k].icon),
+                    title: Text(more[k].label),
+                    selected: _index == shown.length + k,
+                    onTap: () => Navigator.pop(ctx, shown.length + k),
+                  ),
               ],
             ),
+          ),
+        );
+        if (picked != null) setState(() => _index = picked);
+      },
+      destinations: [
+        for (final d in shown)
+          NavigationDestination(icon: Icon(d.icon), label: d.label),
+        const NavigationDestination(
+          icon: Icon(Icons.more_horiz),
+          label: 'Lainnya',
+        ),
+      ],
     );
   }
 }

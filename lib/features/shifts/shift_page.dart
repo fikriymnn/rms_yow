@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/features/printing/printer_settings_page.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/format.dart';
 import '../auth/auth_providers.dart';
+import '../finance/expense.dart';
+import '../finance/expense_tab.dart';
+import '../finance/finance_providers.dart';
 import '../orders/order_models.dart';
 import '../orders/order_providers.dart';
 import 'shift.dart';
@@ -55,6 +59,10 @@ ShiftTotals shiftTotals(Shift s, List<Order> orders) {
   );
 }
 
+int shiftCashExpense(Shift s, List<Expense> ex) => ex
+    .where((e) => e.fromDrawer && e.shiftId == s.id)
+    .fold<int>(0, (a, e) => a + e.amount);
+
 class ShiftPage extends ConsumerStatefulWidget {
   const ShiftPage({super.key});
   @override
@@ -84,7 +92,12 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
     _opening.clear();
   }
 
-  Future<void> _close(Shift s, int expected, ShiftTotals t) async {
+  Future<void> _close(
+    Shift s,
+    int expected,
+    ShiftTotals t,
+    int cashExpense,
+  ) async {
     final c = TextEditingController();
     final counted = await showDialog<int>(
       context: context,
@@ -141,6 +154,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             salesByMethod: t.byMethod,
             refundCash: t.refundCash,
             refundOther: t.refundOther,
+            cashExpense: cashExpense,
           ),
         );
   }
@@ -161,7 +175,19 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kas & Shift')),
+      appBar: AppBar(
+        title: const Text('Kas & Shift'),
+        actions: [
+          IconButton(
+            tooltip: 'Printer & struk',
+            icon: const Icon(Icons.print_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PrinterSettingsPage()),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -206,6 +232,8 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
         _kv('Total penjualan', rupiah.format(t.cash + t.other), bold: true),
         if (t.refundCash + t.refundOther > 0)
           _kv('Refund', '-${rupiah.format(t.refundCash + t.refundOther)}'),
+        if ((s.cashExpense ?? 0) > 0)
+          _kv('Pengeluaran kas', '-${rupiah.format(s.cashExpense!)}'),
         _kv('Jumlah order', '${t.count}'),
         const Divider(),
         _kv('Kas seharusnya', rupiah.format(s.expectedCash ?? 0)),
@@ -242,7 +270,11 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
 
   Widget _activeCard(Shift s, List<Order> orders) {
     final t = shiftTotals(s, orders);
-    final expected = s.openingCash + t.cash - t.refundCash;
+    final out = shiftCashExpense(
+      s,
+      ref.watch(expensesProvider).value ?? <Expense>[],
+    );
+    final expected = s.openingCash + t.cash - t.refundCash - out;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -262,11 +294,19 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             if (t.refundCash + t.refundOther > 0)
               _kv('Refund', '-${rupiah.format(t.refundCash + t.refundOther)}'),
             _kv('Jumlah order', '${t.count}'),
+            if (out > 0) _kv('Pengeluaran kas', '-${rupiah.format(out)}'),
             const Divider(height: 24),
             _kv('Kas seharusnya', rupiah.format(expected), bold: true),
             const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () =>
+                  showExpenseDialog(context, ref, drawerOnly: true),
+              icon: const Icon(Icons.payments_outlined),
+              label: const Text('Catat pengeluaran kas'),
+            ),
+            const SizedBox(height: 8),
             FilledButton.tonal(
-              onPressed: () => _close(s, expected, t),
+              onPressed: () => _close(s, expected, t, out),
               child: const Text('Tutup shift'),
             ),
           ],

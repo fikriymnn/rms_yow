@@ -6,11 +6,14 @@ import 'package:intl/intl.dart';
 import 'package:rms_yow/core/reason_dialog.dart';
 import 'package:rms_yow/features/audit/audit_log.dart';
 import 'package:rms_yow/features/audit/audit_providers.dart';
+import 'package:rms_yow/features/printing/printer_service.dart';
+import 'package:rms_yow/features/printing/printer_settings.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/format.dart';
 import '../auth/auth_providers.dart';
+import '../inventory/inventory_providers.dart';
 import '../menu/menu_item.dart';
 import '../menu/menu_providers.dart';
 import '../orders/order_models.dart';
@@ -290,23 +293,41 @@ class _PosPageState extends ConsumerState<PosPage> {
     if (_order.items.isEmpty) return;
     await ref.read(orderRepositoryProvider).save(_order);
     await _flushAudits();
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Order disimpan')));
+    Navigator.pop(context);
   }
 
+  bool _paying = false;
+
   Future<void> _pay() async {
-    if (_order.items.isEmpty) return;
+    if (_paying || _order.items.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final nav = Navigator.of(context);
+    void say(String m, {int sec = 4}) {
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(m),
+          duration: Duration(seconds: sec),
+        ),
+      );
+    }
+
     final shift = ref.read(currentShiftProvider);
     if (shift == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Buka shift dulu di tab Kas')),
-      );
+      say('Buka shift dulu di tab Kas');
       return;
     }
     final r = await showDialog<({PayMethod method, int paid})>(
       context: context,
       builder: (_) => _PayDialog(total: _order.total),
     );
-    if (r == null) return;
+    if (r == null || !mounted) return;
+
+    _paying = true;
     final paid = _order.copyWith(
       shiftId: shift.id,
       status: OrderStatus.paid,
@@ -314,9 +335,51 @@ class _PosPageState extends ConsumerState<PosPage> {
       paidAmount: r.paid,
       paidAt: DateTime.now().millisecondsSinceEpoch,
     );
-    await ref.read(orderRepositoryProvider).save(paid);
-    await _flushAudits();
-    if (mounted) Navigator.pop(context);
+    try {
+      await ref.read(orderRepositoryProvider).save(paid);
+      await _flushAudits();
+    } catch (e, st) {
+      debugPrint('Pembayaran gagal: $e\n$st');
+      _paying = false;
+      say('Pembayaran gagal disimpan: $e', sec: 8);
+      return;
+    }
+
+    // potong stok sesuai resep; kegagalan di sini tidak boleh menggagalkan pembayaran
+    try {
+      await ref.read(stockRepositoryProvider).deductForOrder(paid);
+    } catch (e, st) {
+      logStockError(e, st);
+    }
+
+    // ambil semua yang dibutuhkan SEBELUM halaman ditutup (ref tidak aman sesudahnya)
+    final cfg = ref.read(printerSettingsProvider).value;
+    final tableName = widget.table?.name;
+    final cashier = ref.read(appUserProvider).value?.name;
+    final change = r.method == PayMethod.cash ? r.paid - paid.total : 0;
+
+    nav.pop();
+    say(
+      change > 0
+          ? 'Pembayaran berhasil • Kembalian ${rupiah.format(change)}'
+          : 'Pembayaran berhasil',
+    );
+
+    if (cfg != null && cfg.autoPrint) {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      say('Mencetak struk...', sec: 30);
+      try {
+        await printOrderReceipt(
+          settings: cfg,
+          order: paid,
+          tableName: tableName,
+          cashier: cashier,
+        ).timeout(const Duration(seconds: 20));
+        say('Struk tercetak', sec: 3);
+      } catch (e) {
+        say('Struk gagal dicetak: $e', sec: 8);
+      }
+    }
   }
 
   @override
@@ -538,12 +601,23 @@ class _PayDialog extends StatefulWidget {
 
 class _PayDialogState extends State<_PayDialog> {
   PayMethod _method = PayMethod.cash;
-  final _cash = TextEditingController();
+  late final TextEditingController _cash = TextEditingController(
+    text: '${widget.total}',
+  );
 
   int get _paid => _method == PayMethod.cash
       ? (int.tryParse(_cash.text) ?? 0)
       : widget.total;
   bool get _ok => _paid >= widget.total;
+
+  List<int> get _quick {
+    final t = widget.total;
+    final s = <int>{t};
+    for (final step in [5000, 10000, 50000, 100000]) {
+      s.add(((t + step - 1) ~/ step) * step);
+    }
+    return (s.toList()..sort()).take(4).toList();
+  }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -572,7 +646,26 @@ class _PayDialogState extends State<_PayDialog> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 8),
-          Text('Kembalian: ${rupiah.format(max(0, _paid - widget.total))}'),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final v in _quick)
+                ActionChip(
+                  label: Text(
+                    v == widget.total ? 'Uang pas' : rupiah.format(v),
+                  ),
+                  onPressed: () => setState(() => _cash.text = '$v'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_ok)
+            Text('Kembalian: ${rupiah.format(max(0, _paid - widget.total))}')
+          else
+            Text(
+              'Uang kurang ${rupiah.format(widget.total - _paid)}',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
         ],
       ],
     ),

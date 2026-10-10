@@ -2,7 +2,8 @@ enum AuditAction {
   voidItem('Void item'),
   cancelOrder('Batal order'),
   refund('Refund'),
-  discount('Diskon manual');
+  discount('Diskon manual'),
+  expenseDelete('Hapus biaya');
 
   const AuditAction(this.label);
   final String label;
