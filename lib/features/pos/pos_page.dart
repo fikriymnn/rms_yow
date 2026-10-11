@@ -316,7 +316,7 @@ class _PosPageState extends ConsumerState<PosPage> {
       );
     }
 
-    final shift = ref.read(currentShiftProvider);
+    final shift = await resolveCurrentShift(ref);
     if (shift == null) {
       say('Buka shift dulu di tab Kas');
       return;

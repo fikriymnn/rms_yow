@@ -35,3 +35,10 @@ final currentShiftProvider = Provider<Shift?>((ref) {
       .where((s) => s.status == ShiftStatus.open && s.cashierId == uid)
       .firstOrNull;
 });
+
+/// Tunggu data user & shift termuat (aman dipanggil tepat setelah restart).
+Future<Shift?> resolveCurrentShift(WidgetRef ref) async {
+  await ref.read(appUserProvider.future);
+  await ref.read(shiftsProvider.future);
+  return ref.read(currentShiftProvider);
+}

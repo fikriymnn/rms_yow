@@ -117,7 +117,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   }
 
   Future<void> _refund(Order o) async {
-    final shift = ref.read(currentShiftProvider);
+    final shift = await resolveCurrentShift(ref);
     if (shift == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

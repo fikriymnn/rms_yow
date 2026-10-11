@@ -7,7 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/format.dart';
 import '../auth/auth_providers.dart';
 import '../finance/expense.dart';
-import '../finance/expense_tab.dart';
+import '../finance/expenses_tab.dart';
 import '../finance/finance_providers.dart';
 import '../orders/order_models.dart';
 import '../orders/order_providers.dart';

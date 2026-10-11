@@ -18,7 +18,7 @@ Future<void> showExpenseDialog(
   WidgetRef ref, {
   bool drawerOnly = false,
 }) async {
-  final shift = ref.read(currentShiftProvider);
+  final shift = await resolveCurrentShift(ref);
   final user = ref.read(appUserProvider).value;
   var category = kExpenseCategories.first;
   var date = DateTime.now();

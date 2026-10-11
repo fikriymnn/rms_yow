@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../purchasing/purchasing_page.dart';
 import 'ingredients_tab.dart';
 import 'recipes_tab.dart';
 import 'stock_tab.dart';
@@ -13,6 +14,16 @@ class InventoryPage extends StatelessWidget {
     child: Scaffold(
       appBar: AppBar(
         title: const Text('Inventory'),
+        actions: [
+          IconButton(
+            tooltip: 'Pembelian',
+            icon: const Icon(Icons.local_shipping_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PurchasingPage()),
+            ),
+          ),
+        ],
         bottom: const TabBar(
           tabs: [
             Tab(text: 'Stok'),

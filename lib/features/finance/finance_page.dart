@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:rms_yow/features/finance/expense_tab.dart';
+import 'package:rms_yow/features/finance/expenses_tab.dart';
 
+import '../export/export_tab.dart';
 import 'profit_loss_tab.dart';
 
 class FinancePage extends StatelessWidget {
@@ -8,7 +9,7 @@ class FinancePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DefaultTabController(
-    length: 2,
+    length: 3,
     child: Scaffold(
       appBar: AppBar(
         title: const Text('Keuangan'),
@@ -16,10 +17,13 @@ class FinancePage extends StatelessWidget {
           tabs: [
             Tab(text: 'Laba rugi'),
             Tab(text: 'Biaya'),
+            Tab(text: 'Ekspor'),
           ],
         ),
       ),
-      body: const TabBarView(children: [ProfitLossTab(), ExpensesTab()]),
+      body: const TabBarView(
+        children: [ProfitLossTab(), ExpensesTab(), ExportTab()],
+      ),
     ),
   );
 }

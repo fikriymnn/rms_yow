@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
+import 'package:rms_yow/features/audit/audit_providers.dart';
+import 'package:rms_yow/features/finance/finance_providers.dart';
 import 'package:rms_yow/features/inventory/inventory_page.dart';
+import 'package:rms_yow/features/inventory/inventory_providers.dart'
+    show ingredientsProvider, recipesProvider, stockMovesProvider;
+import 'package:rms_yow/features/menu/menu_providers.dart';
+import 'package:rms_yow/features/orders/order_providers.dart';
+import 'package:rms_yow/features/printing/printer_settings.dart';
+import 'package:rms_yow/features/purchasing/purchasing_providers.dart';
 import 'package:rms_yow/features/reports/reports_page.dart';
 import 'package:rms_yow/features/shifts/shift_page.dart';
+import 'package:rms_yow/features/shifts/shift_providers.dart';
+import 'package:rms_yow/features/tables/table_providers.dart';
 
 import 'core/sync/sync_controller.dart';
 import 'features/auth/auth_providers.dart';
@@ -24,6 +35,10 @@ const syncedCollections = [
   'recipes',
   'stock_moves',
   'expenses',
+  'suppliers',
+  'purchase_orders',
+  'goods_receipts',
+  'supplier_payments',
 ];
 
 class RmsApp extends ConsumerWidget {
@@ -66,6 +81,28 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   void initState() {
     super.initState();
+    // Muat data inti sejak awal, jangan menunggu tab dibuka.
+    for (final p in <ProviderListenable<Object?>>[
+      appUserProvider,
+      shiftsProvider,
+      currentShiftProvider,
+      printerSettingsProvider,
+      menuItemsProvider,
+      tablesProvider,
+      ordersProvider,
+      itemStatusProvider,
+      auditLogsProvider,
+      ingredientsProvider,
+      recipesProvider,
+      stockMovesProvider,
+      expensesProvider,
+      suppliersProvider,
+      purchaseOrdersProvider,
+      receiptsProvider,
+      supplierPaymentsProvider,
+    ]) {
+      ref.listenManual(p, (_, __) {});
+    }
     Future.microtask(
       () => ref.read(syncControllerProvider.notifier).start(syncedCollections),
     );

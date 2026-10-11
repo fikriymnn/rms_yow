@@ -49,11 +49,12 @@ class StockRepository extends LocalFirstRepository<StockMove> {
     required double qty,
     double? unitCost,
     String note = '',
+    String? id,
   }) {
     final u = ref.read(appUserProvider).value;
     return save(
       StockMove(
-        id: const Uuid().v4(),
+        id: id ?? const Uuid().v4(),
         ingredientId: ingredientId,
         type: type,
         qty: qty,
