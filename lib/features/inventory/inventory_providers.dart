@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/core/db/app_database.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/sync/local_first_repository.dart';
@@ -131,35 +134,74 @@ final recipesProvider = StreamProvider<Map<String, Recipe>>(
       .map((l) => {for (final r in l) r.id: r}),
 );
 
-final stockMovesProvider = StreamProvider<List<StockMove>>(
+typedef StockAgg = ({double total, double pQty, double pCost});
+
+/// ingredientId -> total stok & agregat pembelian (dihitung SQL).
+final stockAggProvider = StreamProvider<Map<String, StockAgg>>(
   (ref) => ref
-      .watch(stockRepositoryProvider)
-      .watchAll()
-      .map((l) => l..sort((a, b) => b.at.compareTo(a.at))),
+      .watch(databaseProvider)
+      .watchStockAgg()
+      .map(
+        (rows) => {
+          for (final r in rows)
+            if (r.data['ing'] != null)
+              r.data['ing'] as String: (
+                total: (r.data['total'] as num?)?.toDouble() ?? 0,
+                pQty: (r.data['pqty'] as num?)?.toDouble() ?? 0,
+                pCost: (r.data['pcost'] as num?)?.toDouble() ?? 0,
+              ),
+        },
+      ),
 );
 
 /// ingredientId -> stok saat ini (jumlah semua mutasi)
 final stockLevelsProvider = Provider<Map<String, double>>((ref) {
-  final m = <String, double>{};
-  for (final e in ref.watch(stockMovesProvider).value ?? <StockMove>[]) {
-    m[e.ingredientId] = (m[e.ingredientId] ?? 0) + e.qty;
-  }
-  return m;
+  final agg = ref.watch(stockAggProvider).value ?? <String, StockAgg>{};
+  return {for (final e in agg.entries) e.key: e.value.total};
 });
 
 /// ingredientId -> harga beli rata-rata tertimbang per satuan dasar
 final avgCostProvider = Provider<Map<String, double>>((ref) {
-  final qty = <String, double>{};
-  final cost = <String, double>{};
-  for (final e in ref.watch(stockMovesProvider).value ?? <StockMove>[]) {
-    if (e.type != StockMoveType.purchase || e.unitCost == null || e.qty <= 0) {
-      continue;
-    }
-    qty[e.ingredientId] = (qty[e.ingredientId] ?? 0) + e.qty;
-    cost[e.ingredientId] = (cost[e.ingredientId] ?? 0) + e.qty * e.unitCost!;
-  }
-  return {for (final k in qty.keys) k: cost[k]! / qty[k]!};
+  final agg = ref.watch(stockAggProvider).value ?? <String, StockAgg>{};
+  return {
+    for (final e in agg.entries)
+      if (e.value.pQty > 0) e.key: e.value.pCost / e.value.pQty,
+  };
 });
+
+final stockVersionProvider = StreamProvider<int>(
+  (ref) => ref.watch(databaseProvider).watchStockVersion(),
+);
+
+Future<List<StockMove>> loadStockMoves(
+  AppDatabase db, {
+  String? ingredientId,
+  int? start,
+  int? end,
+  int? limit,
+}) async {
+  final rows = await db.stockMoveRows(
+    ingredientId: ingredientId,
+    start: start,
+    end: end,
+    limit: limit,
+  );
+  return [
+    for (final r in rows)
+      StockMove.fromMap(jsonDecode(r.json) as Map<String, dynamic>),
+  ];
+}
+
+/// Mutasi stok dalam rentang waktu (untuk laba rugi), dimuat via SQL.
+final movesInRangeProvider = FutureProvider.autoDispose
+    .family<List<StockMove>, ({int start, int end})>((ref, r) async {
+      ref.watch(stockVersionProvider); // muat ulang saat ada mutasi baru
+      return loadStockMoves(
+        ref.read(databaseProvider),
+        start: r.start,
+        end: r.end,
+      );
+    });
 
 /// menuItemId -> HPP per porsi
 final hppProvider = Provider<Map<String, double>>((ref) {

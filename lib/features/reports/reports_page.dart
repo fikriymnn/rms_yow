@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/core/data_window.dart';
 import 'package:rms_yow/core/reason_dialog.dart';
 import 'package:rms_yow/features/audit/audit_log.dart';
 import 'package:rms_yow/features/audit/audit_providers.dart';
@@ -230,6 +231,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          WindowNotice(rangeStart: _day),
           Wrap(
             spacing: 12,
             runSpacing: 12,

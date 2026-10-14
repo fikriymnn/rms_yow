@@ -21,9 +21,11 @@ import '../orders/order_providers.dart';
 import '../tables/dining_table.dart';
 
 class PosPage extends ConsumerStatefulWidget {
-  const PosPage({super.key, this.table, this.order});
+  const PosPage({super.key, this.table, this.order, this.onOrderSaved});
   final DiningTable? table; // null = takeaway
   final Order? order; // null = order baru
+  final VoidCallback?
+  onOrderSaved; // dipanggil setelah pesanan tersimpan/dibayar
 
   @override
   ConsumerState<PosPage> createState() => _PosPageState();
@@ -292,6 +294,7 @@ class _PosPageState extends ConsumerState<PosPage> {
   Future<void> _save() async {
     if (_order.items.isEmpty) return;
     await ref.read(orderRepositoryProvider).save(_order);
+    widget.onOrderSaved?.call();
     await _flushAudits();
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -344,6 +347,7 @@ class _PosPageState extends ConsumerState<PosPage> {
       say('Pembayaran gagal disimpan: $e', sec: 8);
       return;
     }
+    widget.onOrderSaved?.call();
 
     // potong stok sesuai resep; kegagalan di sini tidak boleh menggagalkan pembayaran
     try {
@@ -537,6 +541,18 @@ class _PosPageState extends ConsumerState<PosPage> {
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
+              if (ref.watch(currentShiftProvider) == null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    'Belum ada shift aktif. Pesanan tetap bisa disimpan; '
+                    'buka shift di tab Kas sebelum membayar.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
               _line('Subtotal', o.subtotal),
               if (o.discount > 0) _line('Diskon', -o.discount),
               if (kTaxPercent > 0) _line('Pajak $kTaxPercent%', o.tax),

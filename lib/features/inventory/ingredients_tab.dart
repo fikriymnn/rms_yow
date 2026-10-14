@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/core/sync/sync_controller.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/form_dialog.dart';
@@ -92,10 +93,9 @@ class IngredientsTab extends ConsumerWidget {
     WidgetRef ref,
     Ingredient i,
   ) async {
+    final hasMoves = await ref.read(databaseProvider).ingredientHasMoves(i.id);
     final used =
-        (ref.read(stockMovesProvider).value ?? <StockMove>[]).any(
-          (m) => m.ingredientId == i.id,
-        ) ||
+        hasMoves ||
         (ref.read(recipesProvider).value ?? <String, Recipe>{}).values.any(
           (r) => r.lines.any((l) => l.ingredientId == i.id),
         );

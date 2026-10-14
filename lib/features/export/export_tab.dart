@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/core/data_window.dart';
+import 'package:rms_yow/core/sync/sync_controller.dart';
 import 'package:rms_yow/features/tables/table_providers.dart';
 
 import '../finance/finance_providers.dart';
@@ -37,26 +39,35 @@ class _ExportTabState extends ConsumerState<ExportTab> {
   String get _stamp =>
       '${_stampFmt.format(_range.start)}_${_stampFmt.format(_range.end)}';
 
-  ExportData _data() => ExportData(
-    orders: ref.read(ordersProvider).value ?? <Order>[],
-    moves: ref.read(stockMovesProvider).value ?? <StockMove>[],
-    expenses: ref.read(expensesProvider).value ?? <Expense>[],
-    ingredients: {
-      for (final i in ref.read(ingredientsProvider).value ?? <Ingredient>[])
-        i.id: i,
-    },
-    tables: {
-      for (final t in ref.read(tablesProvider).value ?? <DiningTable>[])
-        t.id: t.name,
-    },
-    avgCost: ref.read(avgCostProvider),
-    start: _range.start.millisecondsSinceEpoch,
-    end: DateTime(
+  Future<ExportData> _data() async {
+    final start = _range.start.millisecondsSinceEpoch;
+    final end = DateTime(
       _range.end.year,
       _range.end.month,
       _range.end.day + 1,
-    ).millisecondsSinceEpoch,
-  );
+    ).millisecondsSinceEpoch;
+    final moves = await loadStockMoves(
+      ref.read(databaseProvider),
+      start: start,
+      end: end,
+    );
+    return ExportData(
+      orders: ref.read(ordersProvider).value ?? <Order>[],
+      moves: moves,
+      expenses: ref.read(expensesProvider).value ?? <Expense>[],
+      ingredients: {
+        for (final i in ref.read(ingredientsProvider).value ?? <Ingredient>[])
+          i.id: i,
+      },
+      tables: {
+        for (final t in ref.read(tablesProvider).value ?? <DiningTable>[])
+          t.id: t.name,
+      },
+      avgCost: ref.read(avgCostProvider),
+      start: start,
+      end: end,
+    );
+  }
 
   void _toast(String m) {
     if (!mounted) return;
@@ -79,7 +90,7 @@ class _ExportTabState extends ConsumerState<ExportTab> {
     String name,
     List<List<Object?>> Function(ExportData) build,
   ) => _run(() async {
-    final rows = build(_data());
+    final rows = build(await _data());
     if (rows.length <= 1) {
       _toast('Tidak ada data pada periode ini');
       return;
@@ -92,7 +103,7 @@ class _ExportTabState extends ConsumerState<ExportTab> {
   });
 
   Future<void> _pdf() => _run(() async {
-    final bytes = await buildSummaryPdf(_data(), _period);
+    final bytes = await buildSummaryPdf(await _data(), _period);
     await shareBytes('rms_ringkasan_$_stamp.pdf', 'application/pdf', bytes);
   });
 
@@ -118,6 +129,7 @@ class _ExportTabState extends ConsumerState<ExportTab> {
         ),
         const SizedBox(height: 8),
         Text(_period, style: th.bodySmall),
+        WindowNotice(rangeStart: _range.start),
         if (_busy)
           const Padding(
             padding: EdgeInsets.only(top: 8),

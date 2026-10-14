@@ -3,7 +3,8 @@ enum AuditAction {
   cancelOrder('Batal order'),
   refund('Refund'),
   discount('Diskon manual'),
-  expenseDelete('Hapus biaya');
+  expenseDelete('Hapus biaya'),
+  attendanceEdit('Koreksi absensi');
 
   const AuditAction(this.label);
   final String label;

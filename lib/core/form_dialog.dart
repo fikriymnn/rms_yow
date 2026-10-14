@@ -9,6 +9,7 @@ Future<List<String>?> formDialog(
   Set<int> numeric = const {},
   String okLabel = 'Simpan',
   String? hint,
+  Set<int> obscure = const {},
 }) {
   final cs = [
     for (var i = 0; i < labels.length; i++)
@@ -35,6 +36,7 @@ Future<List<String>?> formDialog(
                     ? const TextInputType.numberWithOptions(decimal: true)
                     : null,
                 decoration: InputDecoration(labelText: labels[i]),
+                obscureText: obscure.contains(i),
               ),
           ],
         ),

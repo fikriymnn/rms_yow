@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/core/sync/sync_controller.dart';
 
 import '../../core/form_dialog.dart';
 import '../../core/format.dart';
@@ -200,13 +201,15 @@ Future<void> _opname(BuildContext context, WidgetRef ref, Ingredient i) async {
   _toast(context, 'Selisih ${qtyText(diff)} ${i.unit} dicatat');
 }
 
-Future<void> _history(BuildContext context, WidgetRef ref, Ingredient i) {
+Future<void> _history(BuildContext context, WidgetRef ref, Ingredient i) async {
   final fmt = DateFormat('d MMM HH:mm');
-  final moves = (ref.read(stockMovesProvider).value ?? <StockMove>[])
-      .where((m) => m.ingredientId == i.id)
-      .take(40)
-      .toList();
-  return showModalBottomSheet<void>(
+  final moves = await loadStockMoves(
+    ref.read(databaseProvider),
+    ingredientId: i.id,
+    limit: 40,
+  );
+  if (!context.mounted) return;
+  await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (ctx) => DraggableScrollableSheet(

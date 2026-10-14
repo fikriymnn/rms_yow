@@ -4,7 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/app_database.dart';
-import '../../core/sync/sync_controller.dart';
+import '../../core/db/meta_db.dart';
 
 enum PrinterType { none, bluetooth, lan }
 
@@ -111,7 +111,7 @@ class PrinterSettingsNotifier extends AsyncNotifier<PrinterSettings> {
   @override
   Future<PrinterSettings> build() async {
     final row = await ref
-        .read(databaseProvider)
+        .read(metaDbProvider)
         .find('device_settings', 'printer');
     if (row == null) return const PrinterSettings();
     return PrinterSettings.fromMap(
@@ -121,7 +121,7 @@ class PrinterSettingsNotifier extends AsyncNotifier<PrinterSettings> {
 
   Future<void> save(PrinterSettings s) async {
     await ref
-        .read(databaseProvider)
+        .read(metaDbProvider)
         .upsert(
           DocsCompanion(
             collection: const Value('device_settings'),

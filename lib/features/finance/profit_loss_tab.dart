@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/core/data_window.dart';
 
 import '../../core/format.dart';
 import '../inventory/inventory_models.dart';
@@ -86,7 +87,16 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
   @override
   Widget build(BuildContext context) {
     final orders = ref.watch(ordersProvider).value ?? <Order>[];
-    final moves = ref.watch(stockMovesProvider).value ?? <StockMove>[];
+    final start = _range.start.millisecondsSinceEpoch;
+    final end = DateTime(
+      _range.end.year,
+      _range.end.month,
+      _range.end.day + 1,
+    ).millisecondsSinceEpoch;
+    final movesAsync = ref.watch(
+      movesInRangeProvider((start: start, end: end)),
+    );
+    final moves = movesAsync.value ?? <StockMove>[];
     final avg = ref.watch(avgCostProvider);
     final expenses = ref.watch(expensesProvider).value ?? <Expense>[];
 
@@ -95,12 +105,8 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
       moves: moves,
       avgCost: avg,
       expenses: expenses,
-      start: _range.start.millisecondsSinceEpoch,
-      end: DateTime(
-        _range.end.year,
-        _range.end.month,
-        _range.end.day + 1,
-      ).millisecondsSinceEpoch,
+      start: start,
+      end: end,
     );
     final opex = p.opex.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -111,6 +117,8 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (movesAsync.isLoading) const LinearProgressIndicator(),
+        WindowNotice(rangeStart: _range.start),
         Wrap(
           spacing: 8,
           children: [

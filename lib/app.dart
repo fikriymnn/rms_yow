@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:rms_yow/features/attendance/attendance_page.dart';
+import 'package:rms_yow/features/attendance/attendance_providers.dart';
 import 'package:rms_yow/features/audit/audit_providers.dart';
 import 'package:rms_yow/features/finance/finance_providers.dart';
 import 'package:rms_yow/features/inventory/inventory_page.dart';
 import 'package:rms_yow/features/inventory/inventory_providers.dart'
-    show ingredientsProvider, recipesProvider, stockMovesProvider;
+    show
+        ingredientsProvider,
+        recipesProvider,
+        stockMovesProvider,
+        stockAggProvider;
 import 'package:rms_yow/features/menu/menu_providers.dart';
 import 'package:rms_yow/features/orders/order_providers.dart';
 import 'package:rms_yow/features/printing/printer_settings.dart';
 import 'package:rms_yow/features/purchasing/purchasing_providers.dart';
 import 'package:rms_yow/features/reports/reports_page.dart';
+import 'package:rms_yow/features/reservations/reservation_providers.dart';
 import 'package:rms_yow/features/shifts/shift_page.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
 import 'package:rms_yow/features/tables/table_providers.dart';
@@ -22,40 +29,32 @@ import 'features/finance/finance_page.dart';
 import 'features/menu/menu_page.dart';
 import 'features/tables/tables_page.dart';
 import 'features/kds/kds_page.dart';
+import 'features/auth/account_page.dart';
+import 'features/auth/outlet_picker_page.dart';
 
 /// Koleksi yang di-mirror ke lokal. Tambah di sini tiap modul baru.
-const syncedCollections = [
-  'menu_items',
-  'tables',
-  'orders',
-  'item_status',
-  'shifts',
-  'audit_logs',
-  'ingredients',
-  'recipes',
-  'stock_moves',
-  'expenses',
-  'suppliers',
-  'purchase_orders',
-  'goods_receipts',
-  'supplier_payments',
-];
 
 class RmsApp extends ConsumerWidget {
   const RmsApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authStateProvider);
+    final session = ref.watch(sessionProvider);
+    final outlet = ref.watch(activeOutletProvider);
     return MaterialApp(
       title: 'RMS',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: Colors.deepOrange, useMaterial3: true),
-      home: auth.when(
+      home: session.when(
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
         error: (e, _) => Scaffold(body: Center(child: Text('$e'))),
-        data: (user) => user == null ? const LoginPage() : const HomeShell(),
+        data: (s) {
+          if (s == null) return const LoginPage();
+          if (outlet == null)
+            return const OutletPickerPage(); // owner belum memilih outlet
+          return const HomeShell();
+        },
       ),
     );
   }
@@ -94,18 +93,24 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       auditLogsProvider,
       ingredientsProvider,
       recipesProvider,
-      stockMovesProvider,
+      stockAggProvider,
       expensesProvider,
       suppliersProvider,
       purchaseOrdersProvider,
       receiptsProvider,
       supplierPaymentsProvider,
+      reservationsProvider,
+      employeesProvider,
+      attendanceProvider,
     ]) {
       ref.listenManual(p, (_, __) {});
     }
-    Future.microtask(
-      () => ref.read(syncControllerProvider.notifier).start(syncedCollections),
-    );
+    ref.listenManual<String?>(activeOutletIdProvider, (prev, next) {
+      if (next != null && next != prev) {
+        ref.read(syncControllerProvider.notifier).start();
+      }
+    });
+    Future.microtask(() => ref.read(syncControllerProvider.notifier).start());
   }
 
   @override
@@ -166,6 +171,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         const FinancePage(),
         {AppRole.owner, AppRole.manager},
       ),
+      _Dest('Absensi', Icons.access_time, const AttendancePage(), {
+        ...AppRole.values,
+      }),
+      _Dest('Akun', Icons.person_outline, const AccountPage(), {
+        ...AppRole.values,
+      }),
     ];
     final dests = all.where((d) => d.roles.contains(user.role)).toList();
     final wide = MediaQuery.sizeOf(context).width >= 800; // web / tablet
