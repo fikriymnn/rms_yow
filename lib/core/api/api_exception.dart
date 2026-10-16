@@ -1,3 +1,8 @@
+import 'package:dio/dio.dart' show DioException;
+
+String errorText(Object e) =>
+    e is DioException ? 'Tidak ada koneksi ke server' : e.toString();
+
 class ApiException implements Exception {
   ApiException(this.status, this.message);
   final int? status;

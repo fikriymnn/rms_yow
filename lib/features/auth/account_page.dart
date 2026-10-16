@@ -6,6 +6,8 @@ import '../../core/form_dialog.dart';
 import '../../core/sync/sync_controller.dart';
 import 'auth_providers.dart';
 import 'outlet_picker_page.dart';
+import '../admin/outlets_admin_page.dart';
+import '../admin/users_admin_page.dart';
 
 class AccountPage extends ConsumerWidget {
   const AccountPage({super.key});
@@ -139,6 +141,24 @@ class AccountPage extends ConsumerWidget {
               children: [
                 for (final r in rejected) ListTile(dense: true, title: Text(r)),
               ],
+            ),
+          if (u.role == AppRole.owner)
+            ListTile(
+              leading: const Icon(Icons.store_mall_directory_outlined),
+              title: const Text('Kelola outlet'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const OutletsAdminPage()),
+              ),
+            ),
+          if (u.isManager)
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text('Kelola pengguna'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UsersAdminPage()),
+              ),
             ),
           ListTile(
             leading: const Icon(Icons.lock_outline),

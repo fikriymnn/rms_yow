@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/features/auth/auth_providers.dart';
 
 import '../../core/form_dialog.dart';
 import '../../core/format.dart';
@@ -66,14 +67,17 @@ class RecipeEditorPage extends ConsumerWidget {
     };
     final avg = ref.watch(avgCostProvider);
     final hpp = ref.watch(hppProvider)[menu.id] ?? 0;
+    final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
 
     return Scaffold(
       appBar: AppBar(title: Text('Resep ${menu.name}')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _add(context, ref, recipe, ings.values.toList()),
-        icon: const Icon(Icons.add),
-        label: const Text('Bahan'),
-      ),
+      floatingActionButton: isOwner
+          ? FloatingActionButton.extended(
+              onPressed: () => _add(context, ref, recipe, ings.values.toList()),
+              icon: const Icon(Icons.add),
+              label: const Text('Bahan'),
+            )
+          : null,
       body: Column(
         children: [
           Card(
@@ -109,21 +113,26 @@ class RecipeEditorPage extends ConsumerWidget {
                                 '${qtyText(l.qty)} ${ing?.unit ?? ''} • ${rupiah.format(cost.round())}'
                                 '${avg[l.ingredientId] == null ? ' (belum ada harga beli)' : ''}',
                               ),
-                              onTap: () =>
-                                  _editQty(context, ref, recipe, l, ing),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.close),
-                                onPressed: () => _save(
-                                  ref,
-                                  Recipe(
-                                    id: recipe.id,
-                                    lines: [
-                                      for (final x in recipe.lines)
-                                        if (x.ingredientId != l.ingredientId) x,
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              onTap: isOwner
+                                  ? () => _editQty(context, ref, recipe, l, ing)
+                                  : null,
+                              trailing: !isOwner
+                                  ? null
+                                  : IconButton(
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () => _save(
+                                        ref,
+                                        Recipe(
+                                          id: recipe.id,
+                                          lines: [
+                                            for (final x in recipe.lines)
+                                              if (x.ingredientId !=
+                                                  l.ingredientId)
+                                                x,
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                             );
                           },
                         ),

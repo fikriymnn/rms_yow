@@ -42,12 +42,15 @@ class SuppliersTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(suppliersProvider).value ?? <Supplier>[];
     final bal = ref.watch(supplierBalanceProvider);
+    final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _edit(context, ref, null),
-        icon: const Icon(Icons.add),
-        label: const Text('Supplier'),
-      ),
+      floatingActionButton: isOwner
+          ? FloatingActionButton.extended(
+              onPressed: () => _edit(context, ref, null),
+              icon: const Icon(Icons.add),
+              label: const Text('Supplier'),
+            )
+          : null,
       body: list.isEmpty
           ? const Center(child: Text('Belum ada supplier'))
           : ListView(
@@ -66,8 +69,10 @@ class SuppliersTab extends ConsumerWidget {
                             ),
                           )
                         : null,
-                    onTap: () => _edit(context, ref, s),
-                    onLongPress: () => _delete(context, ref, s),
+                    onTap: isOwner ? () => _edit(context, ref, s) : null,
+                    onLongPress: isOwner
+                        ? () => _delete(context, ref, s)
+                        : null,
                   ),
               ],
             ),

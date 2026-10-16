@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rms_yow/core/sync/sync_controller.dart';
+import 'package:rms_yow/features/auth/auth_providers.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/form_dialog.dart';
@@ -14,12 +15,15 @@ class IngredientsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ings = ref.watch(ingredientsProvider).value ?? <Ingredient>[];
+    final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _edit(context, ref, null),
-        icon: const Icon(Icons.add),
-        label: const Text('Bahan'),
-      ),
+      floatingActionButton: isOwner
+          ? FloatingActionButton.extended(
+              onPressed: () => _edit(context, ref, null),
+              icon: const Icon(Icons.add),
+              label: const Text('Bahan'),
+            )
+          : null,
       body: ings.isEmpty
           ? const Center(child: Text('Belum ada bahan'))
           : ListView(
@@ -31,8 +35,10 @@ class IngredientsTab extends ConsumerWidget {
                       'Satuan ${i.unit}'
                       '${i.buyUnit.isEmpty ? '' : ' • beli per ${i.buyUnit} (= ${qtyText(i.buyFactor)} ${i.unit})'}',
                     ),
-                    onTap: () => _edit(context, ref, i),
-                    onLongPress: () => _delete(context, ref, i),
+                    onTap: isOwner ? () => _edit(context, ref, i) : null,
+                    onLongPress: isOwner
+                        ? () => _delete(context, ref, i)
+                        : null,
                   ),
               ],
             ),
