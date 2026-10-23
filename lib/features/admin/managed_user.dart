@@ -10,6 +10,7 @@ const staffRoles = [
 String roleLabel(AppRole r) => switch (r) {
   AppRole.owner => 'Owner',
   AppRole.manager => 'Manager',
+  AppRole.head_chef => 'Head Chef',
   AppRole.cashier => 'Kasir',
   AppRole.waiter => 'Waiter',
   AppRole.kitchen => 'Dapur',
@@ -60,7 +61,7 @@ bool canManageUser(AppUser actor, ManagedUser t) {
 }
 
 List<AppRole> creatableRoles(AppUser actor) => switch (actor.role) {
-  AppRole.owner => [AppRole.manager, ...staffRoles],
+  AppRole.owner => [AppRole.manager, AppRole.head_chef, ...staffRoles],
   AppRole.manager => staffRoles,
   _ => const [],
 };

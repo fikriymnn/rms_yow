@@ -331,12 +331,15 @@ class _PosPageState extends ConsumerState<PosPage> {
     if (r == null || !mounted) return;
 
     _paying = true;
+    final me = ref.read(appUserProvider).value;
     final paid = _order.copyWith(
       shiftId: shift.id,
       status: OrderStatus.paid,
       payMethod: r.method,
       paidAmount: r.paid,
       paidAt: DateTime.now().millisecondsSinceEpoch,
+      paidBy: me?.uid,
+      paidByName: me?.name,
     );
     try {
       await ref.read(orderRepositoryProvider).save(paid);
@@ -349,12 +352,12 @@ class _PosPageState extends ConsumerState<PosPage> {
     }
     widget.onOrderSaved?.call();
 
-    // potong stok sesuai resep; kegagalan di sini tidak boleh menggagalkan pembayaran
-    try {
-      await ref.read(stockRepositoryProvider).deductForOrder(paid);
-    } catch (e, st) {
-      logStockError(e, st);
-    }
+    // // potong stok sesuai resep; kegagalan di sini tidak boleh menggagalkan pembayaran
+    // try {
+    //   await ref.read(stockRepositoryProvider).deductForOrder(paid);
+    // } catch (e, st) {
+    //   logStockError(e, st);
+    // }
 
     // ambil semua yang dibutuhkan SEBELUM halaman ditutup (ref tidak aman sesudahnya)
     final cfg = ref.read(printerSettingsProvider).value;

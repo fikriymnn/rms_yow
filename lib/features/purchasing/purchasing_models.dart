@@ -88,9 +88,11 @@ List<PoLine> _lines(Object? v) => [
 
 enum PoStatus {
   draft('Draft'),
+  pending('Menunggu persetujuan'), // diatur server
   ordered('Dipesan'),
   closed('Selesai'),
-  cancelled('Dibatalkan');
+  cancelled('Dibatalkan'),
+  rejected('Ditolak'); // diatur server
 
   const PoStatus(this.label);
   final String label;
@@ -106,6 +108,8 @@ class PurchaseOrder {
     this.status = PoStatus.draft,
     this.lines = const [],
     this.note = '',
+    this.createdBy = '',
+    this.createdByName = '',
   });
 
   final String id;
@@ -116,6 +120,8 @@ class PurchaseOrder {
   final PoStatus status;
   final List<PoLine> lines;
   final String note;
+  final String createdBy;
+  final String createdByName;
 
   int get total => lines.fold(0, (s, l) => s + l.total);
 
@@ -128,6 +134,8 @@ class PurchaseOrder {
     status: status ?? this.status,
     lines: lines,
     note: note,
+    createdBy: createdBy,
+    createdByName: createdByName,
   );
 
   factory PurchaseOrder.fromMap(Map<String, dynamic> m) => PurchaseOrder(
@@ -142,6 +150,8 @@ class PurchaseOrder {
     ),
     lines: _lines(m['lines']),
     note: m['note'] as String? ?? '',
+    createdBy: m['createdBy'] as String? ?? '',
+    createdByName: m['createdByName'] as String? ?? '',
   );
 
   Map<String, dynamic> toMap() => {
@@ -154,6 +164,8 @@ class PurchaseOrder {
     'lines': [for (final l in lines) l.toMap()],
     'note': note,
     'total': total,
+    'createdBy': createdBy,
+    'createdByName': createdByName,
   };
 }
 

@@ -12,6 +12,7 @@ import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../data_window.dart';
 import '../db/app_database.dart';
+import '../../features/attendance/attendance_queue.dart';
 
 /// Satu database lokal per outlet (data tiap outlet tidak bercampur di perangkat).
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -62,6 +63,7 @@ class SyncController extends Notifier<SyncState> {
           .millisecondsSinceEpoch;
       await db.pruneOlderThan(e.key, cut);
     }
+    await _applyEntitlements(db);
     _connSub = Connectivity().onConnectivityChanged.listen((r) {
       if (r.contains(ConnectivityResult.none)) {
         state = SyncState.offline;
@@ -98,6 +100,7 @@ class SyncController extends Notifier<SyncState> {
         if (staleSeq != null) {
           await _pull(db, outlet, from: staleSeq - 1, saveCursor: false);
         }
+        await ref.read(attendanceQueueProvider).flush();
         state = SyncState.idle;
       } while (_again);
     } on DioException {
@@ -108,6 +111,19 @@ class SyncController extends Notifier<SyncState> {
       state = SyncState.error;
     } finally {
       _busy = false;
+    }
+  }
+
+  /// Selaraskan data lokal dengan hak akses role saat ini (daftar dari server).
+  Future<void> _applyEntitlements(AppDatabase db) async {
+    try {
+      final res = await _api.get('/sync/collections') as Map<String, dynamic>;
+      final read = {for (final c in res['read'] as List<dynamic>) '$c'};
+      final write = {for (final c in res['write'] as List<dynamic>) '$c'};
+      await db.purgeUnreadable(read);
+      await db.purgeUnpushable(write);
+    } catch (_) {
+      // offline: dicoba lagi saat aplikasi dibuka berikutnya
     }
   }
 

@@ -27,13 +27,16 @@ final shiftsProvider = StreamProvider<List<Shift>>(
       .map((l) => l..sort((a, b) => b.openedAt.compareTo(a.openedAt))),
 );
 
-/// Shift yang sedang terbuka milik user yang login.
+/// Shift (laci kas) yang sedang terbuka di outlet ini. Satu laci per outlet, dipakai bersama
+/// oleh semua yang boleh menerima pembayaran. Jika ada dobel (dibuka bersamaan saat offline),
+/// yang tertua dipakai.
 final currentShiftProvider = Provider<Shift?>((ref) {
-  final uid = ref.watch(appUserProvider).value?.uid;
-  final list = ref.watch(shiftsProvider).value ?? <Shift>[];
-  return list
-      .where((s) => s.status == ShiftStatus.open && s.cashierId == uid)
-      .firstOrNull;
+  final open = (ref.watch(shiftsProvider).value ?? <Shift>[])
+      .where((s) => s.status == ShiftStatus.open)
+      .toList();
+  return open.isEmpty
+      ? null
+      : open.last; // daftar urut terbaru -> terakhir = tertua
 });
 
 /// Tunggu data user & shift termuat (aman dipanggil tepat setelah restart).

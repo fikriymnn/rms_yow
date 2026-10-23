@@ -60,6 +60,7 @@ List<List<Object?>> ordersRows(ExportData d) => [
     'Dibayar',
     'Tanggal refund',
     'Alasan refund',
+    'Kasir',
   ],
   for (final o in d.soldOrders)
     [
@@ -77,6 +78,7 @@ List<List<Object?>> ordersRows(ExportData d) => [
       o.paidAmount,
       _t(o.refundedAt ?? 0),
       o.refundReason ?? '',
+      o.paidByName ?? '',
     ],
 ];
 

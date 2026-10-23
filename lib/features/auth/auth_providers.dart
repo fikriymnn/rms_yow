@@ -4,8 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/db/meta_db.dart';
+import '../notifications/notification_service.dart';
 
-enum AppRole { owner, manager, cashier, waiter, kitchen, warehouse }
+enum AppRole {
+  owner,
+  manager,
+  // ignore: constant_identifier_names
+  head_chef,
+  cashier,
+  waiter,
+  kitchen,
+  warehouse,
+}
 
 class AppUser {
   const AppUser({
@@ -14,12 +24,14 @@ class AppUser {
     required this.role,
     this.username = '',
     this.outletId,
+    this.mustChangePassword = false,
   });
   final String uid;
   final String name;
   final AppRole role;
   final String username;
   final String? outletId;
+  final bool mustChangePassword;
 
   bool get canManageMenu => role == AppRole.owner || role == AppRole.manager;
   bool get canPay =>
@@ -37,6 +49,7 @@ class AppUser {
       orElse: () => AppRole.waiter,
     ),
     outletId: m['outlet_id'] as String?,
+    mustChangePassword: m['must_change_password'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -45,6 +58,7 @@ class AppUser {
     'name': name,
     'role': role.name,
     'outlet_id': outletId,
+    'must_change_password': mustChangePassword,
   };
 }
 
@@ -208,6 +222,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
 
   Future<void> logout() async {
     final s = state.value;
+    await ref.read(notificationServiceProvider).unregister();
     if (s != null) {
       try {
         await Dio(

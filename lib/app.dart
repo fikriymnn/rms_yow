@@ -1,17 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
-import 'package:rms_yow/features/attendance/attendance_page.dart';
-import 'package:rms_yow/features/attendance/attendance_providers.dart';
+import 'package:rms_yow/features/attendance/clock_page.dart';
 import 'package:rms_yow/features/audit/audit_providers.dart';
+import 'package:rms_yow/features/auth/force_password_page.dart';
 import 'package:rms_yow/features/finance/finance_providers.dart';
 import 'package:rms_yow/features/inventory/inventory_page.dart';
 import 'package:rms_yow/features/inventory/inventory_providers.dart'
-    show
-        ingredientsProvider,
-        recipesProvider,
-        stockMovesProvider,
-        stockAggProvider;
+    show ingredientsProvider, recipesProvider, stockAggProvider;
 import 'package:rms_yow/features/menu/menu_providers.dart';
 import 'package:rms_yow/features/orders/order_providers.dart';
 import 'package:rms_yow/features/printing/printer_settings.dart';
@@ -21,7 +18,6 @@ import 'package:rms_yow/features/reservations/reservation_providers.dart';
 import 'package:rms_yow/features/shifts/shift_page.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
 import 'package:rms_yow/features/tables/table_providers.dart';
-
 import 'core/sync/sync_controller.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_page.dart';
@@ -31,6 +27,14 @@ import 'features/tables/tables_page.dart';
 import 'features/kds/kds_page.dart';
 import 'features/auth/account_page.dart';
 import 'features/auth/outlet_picker_page.dart';
+import 'features/proposals/proposal_providers.dart';
+import 'features/proposals/proposals_page.dart';
+import 'features/approvals/approval_providers.dart';
+import 'features/approvals/approvals_page.dart';
+import 'features/notifications/notification_providers.dart';
+import 'features/notifications/notification_router.dart';
+import 'features/notifications/notification_service.dart';
+import 'features/notifications/notifications_page.dart';
 
 /// Koleksi yang di-mirror ke lokal. Tambah di sini tiap modul baru.
 
@@ -51,6 +55,7 @@ class RmsApp extends ConsumerWidget {
         error: (e, _) => Scaffold(body: Center(child: Text('$e'))),
         data: (s) {
           if (s == null) return const LoginPage();
+          if (s.user.mustChangePassword) return const ForcePasswordPage();
           if (outlet == null)
             return const OutletPickerPage(); // owner belum memilih outlet
           return const HomeShell();
@@ -100,8 +105,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       receiptsProvider,
       supplierPaymentsProvider,
       reservationsProvider,
-      employeesProvider,
-      attendanceProvider,
+      proposalsProvider,
     ]) {
       ref.listenManual(p, (_, __) {});
     }
@@ -110,11 +114,24 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ref.read(syncControllerProvider.notifier).start();
       }
     });
-    Future.microtask(() => ref.read(syncControllerProvider.notifier).start());
+    Future.microtask(() => ref.read(notificationServiceProvider).start());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _consumeTap(ref.read(notificationTapProvider)),
+    );
+  }
+
+  void _consumeTap(NotificationTap? tap) {
+    if (tap == null || !mounted) return;
+    ref.read(notificationTapProvider.notifier).set(null);
+    openNotificationTarget(context, tap);
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<NotificationTap?>(
+      notificationTapProvider,
+      (_, tap) => _consumeTap(tap),
+    );
     final userAsync = ref.watch(appUserProvider);
     final sync = ref.watch(syncControllerProvider);
     if (userAsync.isLoading) {
@@ -141,6 +158,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       }),
       _Dest('Menu', Icons.restaurant_menu, const MenuPage(), {
         AppRole.owner,
+        AppRole.head_chef,
         AppRole.manager,
         AppRole.cashier,
         AppRole.waiter,
@@ -148,6 +166,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       _Dest('Dapur', Icons.soup_kitchen, const KdsPage(), {
         AppRole.owner,
         AppRole.manager,
+        AppRole.head_chef,
         AppRole.kitchen,
         AppRole.waiter,
       }),
@@ -162,6 +181,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       }),
       _Dest('Stok', Icons.inventory_2_outlined, const InventoryPage(), {
         AppRole.owner,
+        AppRole.head_chef,
         AppRole.manager,
         AppRole.warehouse,
       }),
@@ -171,8 +191,31 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         const FinancePage(),
         {AppRole.owner, AppRole.manager},
       ),
-      _Dest('Absensi', Icons.access_time, const AttendancePage(), {
-        ...AppRole.values,
+      if (!kIsWeb)
+        _Dest('Absensi', Icons.fingerprint, const ClockPage(), {
+          AppRole.manager,
+          AppRole.head_chef,
+          AppRole.cashier,
+          AppRole.waiter,
+          AppRole.kitchen,
+          AppRole.warehouse,
+        }),
+      _Dest('Usulan', Icons.lightbulb_outline, const ProposalsPage(), {
+        AppRole.owner,
+        AppRole.head_chef,
+      }),
+      _Dest('Persetujuan', Icons.task_alt, const ApprovalsPage(), {
+        AppRole.owner,
+        AppRole.manager,
+        AppRole.head_chef,
+        AppRole.warehouse,
+      }),
+      _Dest('Notifikasi', Icons.notifications_none, const NotificationsPage(), {
+        AppRole.owner,
+        AppRole.manager,
+        AppRole.head_chef,
+        AppRole.kitchen,
+        AppRole.warehouse,
       }),
       _Dest('Akun', Icons.person_outline, const AccountPage(), {
         ...AppRole.values,
@@ -203,7 +246,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               destinations: [
                 for (final d in dests)
                   NavigationRailDestination(
-                    icon: Icon(d.icon),
+                    icon: _icon(d),
                     label: Text(d.label),
                   ),
               ],
@@ -225,7 +268,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: [
           for (final d in dests)
-            NavigationDestination(icon: Icon(d.icon), label: d.label),
+            NavigationDestination(icon: _icon(d), label: d.label),
         ],
       );
     }
@@ -259,12 +302,22 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       },
       destinations: [
         for (final d in shown)
-          NavigationDestination(icon: Icon(d.icon), label: d.label),
+          NavigationDestination(icon: _icon(d), label: d.label),
         const NavigationDestination(
           icon: Icon(Icons.more_horiz),
           label: 'Lainnya',
         ),
       ],
     );
+  }
+
+  Widget _icon(_Dest d) {
+    var n = 0;
+    if (d.label == 'Usulan') n = ref.watch(pendingProposalsCountProvider);
+    if (d.label == 'Persetujuan')
+      n = ref.watch(approvalCountsProvider).value?.inbox ?? 0;
+    if (d.label == 'Notifikasi')
+      n = ref.watch(unreadNotificationsProvider).value ?? 0;
+    return n > 0 ? Badge(label: Text('$n'), child: Icon(d.icon)) : Icon(d.icon);
   }
 }

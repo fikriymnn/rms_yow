@@ -203,18 +203,6 @@ Future<void> receiveGoods(
   );
   await ref.read(receiptRepositoryProvider).save(gr);
 
-  final stock = ref.read(stockRepositoryProvider);
-  for (final l in received) {
-    await stock.record(
-      id: 'rcv_${gr.id}_${l.ingredientId}',
-      ingredientId: l.ingredientId,
-      type: StockMoveType.purchase,
-      qty: l.qty * l.factor,
-      unitCost: l.unitPrice / l.factor,
-      note: '${gr.number} • ${po.supplierName}',
-    );
-  }
-
   if (paidNow > 0) {
     await recordSupplierPayment(
       ref,

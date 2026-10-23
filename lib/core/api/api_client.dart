@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,25 +45,37 @@ class ApiClient {
     String path,
     Map<String, dynamic>? query,
     Object? data,
+    ResponseType? responseType,
   ) => _dioFor(s.baseUrl).request<dynamic>(
     path,
     queryParameters: query,
     data: data,
     options: Options(
       method: method,
+      responseType: responseType,
       headers: {'Authorization': 'Bearer ${s.accessToken}'},
     ),
   );
 
   /// Jaringan putus -> DioException (dianggap offline). Status >= 400 -> ApiException.
+  /// [dataBuilder] dipakai untuk FormData: dibuat ulang tiap percobaan (tidak bisa dikirim dua kali).
   Future<dynamic> request(
     String method,
     String path, {
     Map<String, dynamic>? query,
     Object? data,
+    Object? Function()? dataBuilder,
+    ResponseType? responseType,
   }) async {
     var s = _session();
-    var res = await _call(s, method, path, query, data);
+    var res = await _call(
+      s,
+      method,
+      path,
+      query,
+      dataBuilder?.call() ?? data,
+      responseType,
+    );
     if (res.statusCode == 401) {
       final r = await _refresh();
       if (r == _Refresh.unreachable) {
@@ -75,11 +88,23 @@ class ApiClient {
         throw ApiException(401, 'Sesi berakhir, silakan login ulang');
       }
       s = _session();
-      res = await _call(s, method, path, query, data);
+      res = await _call(
+        s,
+        method,
+        path,
+        query,
+        dataBuilder?.call() ?? data,
+        responseType,
+      );
     }
     final code = res.statusCode ?? 0;
     if (code >= 400) throw ApiException(code, apiDetail(res.data, code));
     return res.data;
+  }
+
+  Future<Uint8List> getBytes(String path) async {
+    final data = await request('GET', path, responseType: ResponseType.bytes);
+    return Uint8List.fromList((data as List).cast<int>());
   }
 
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>

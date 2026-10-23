@@ -140,4 +140,43 @@ class AppDatabase extends _$AppDatabase {
     updates: {docs},
     updateKind: UpdateKind.delete,
   );
+
+  Stream<List<Doc>> watchMetaPrefix(String prefix) =>
+      (select(docs)..where(
+            (t) =>
+                t.collection.equals('device_settings') & t.id.like('$prefix%'),
+          ))
+          .watch();
+
+  Future<List<Doc>> metaPrefixRows(String prefix) =>
+      (select(docs)..where(
+            (t) =>
+                t.collection.equals('device_settings') & t.id.like('$prefix%'),
+          ))
+          .get();
+
+  /// Hapus dokumen (yang sudah tersinkron) dari koleksi yang tidak boleh dibaca role ini.
+  Future<int> purgeUnreadable(Set<String> readable) {
+    final keep = readable.isEmpty ? {'__none__'} : readable;
+    return customUpdate(
+      "DELETE FROM docs WHERE collection != 'device_settings' AND dirty = 0 "
+      "AND collection NOT IN (${List.filled(keep.length, '?').join(',')})",
+      variables: [for (final c in keep) Variable.withString(c)],
+      updates: {docs},
+      updateKind: UpdateKind.delete,
+    );
+  }
+
+  /// Hapus perubahan belum terkirim pada koleksi yang tidak boleh ditulis role ini
+  /// (tidak akan pernah diterima server).
+  Future<int> purgeUnpushable(Set<String> writable) {
+    final keep = writable.isEmpty ? {'__none__'} : writable;
+    return customUpdate(
+      "DELETE FROM docs WHERE collection != 'device_settings' AND dirty = 1 "
+      "AND collection NOT IN (${List.filled(keep.length, '?').join(',')})",
+      variables: [for (final c in keep) Variable.withString(c)],
+      updates: {docs},
+      updateKind: UpdateKind.delete,
+    );
+  }
 }

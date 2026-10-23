@@ -10,29 +10,38 @@ import '../shifts/shift_providers.dart';
 import 'po_pages.dart';
 import 'purchasing_models.dart';
 import 'purchasing_providers.dart';
+import '../../core/api/api_exception.dart';
+import '../approvals/approval_providers.dart';
 
-class PurchasingPage extends StatelessWidget {
+class PurchasingPage extends ConsumerWidget {
   const PurchasingPage({super.key});
 
   @override
-  Widget build(BuildContext context) => DefaultTabController(
-    length: 3,
-    child: Scaffold(
-      appBar: AppBar(
-        title: const Text('Pembelian'),
-        bottom: const TabBar(
-          tabs: [
-            Tab(text: 'PO'),
-            Tab(text: 'Supplier'),
-            Tab(text: 'Hutang'),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showDebt = ref.watch(appUserProvider).value?.isManager ?? false;
+    return DefaultTabController(
+      length: showDebt ? 3 : 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Pembelian'),
+          bottom: TabBar(
+            tabs: [
+              const Tab(text: 'PO'),
+              const Tab(text: 'Supplier'),
+              if (showDebt) const Tab(text: 'Hutang'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            const PoTab(),
+            const SuppliersTab(),
+            if (showDebt) const PayablesTab(),
           ],
         ),
       ),
-      body: const TabBarView(
-        children: [PoTab(), SuppliersTab(), PayablesTab()],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class SuppliersTab extends ConsumerWidget {
@@ -43,12 +52,23 @@ class SuppliersTab extends ConsumerWidget {
     final list = ref.watch(suppliersProvider).value ?? <Supplier>[];
     final bal = ref.watch(supplierBalanceProvider);
     final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
+    final role = ref.watch(appUserProvider).value?.role;
+    final canRequest =
+        role == AppRole.warehouse ||
+        role == AppRole.manager ||
+        role == AppRole.head_chef;
     return Scaffold(
       floatingActionButton: isOwner
           ? FloatingActionButton.extended(
               onPressed: () => _edit(context, ref, null),
               icon: const Icon(Icons.add),
               label: const Text('Supplier'),
+            )
+          : canRequest
+          ? FloatingActionButton.extended(
+              onPressed: () => _request(context, ref, null),
+              icon: const Icon(Icons.add),
+              label: const Text('Ajukan supplier'),
             )
           : null,
       body: list.isEmpty
@@ -61,7 +81,10 @@ class SuppliersTab extends ConsumerWidget {
                     subtitle: Text(
                       [s.phone, s.note].where((e) => e.isNotEmpty).join(' • '),
                     ),
-                    trailing: (bal[s.id] ?? 0) > 0
+                    trailing:
+                        ((ref.watch(appUserProvider).value?.isManager ??
+                                false) &&
+                            (bal[s.id] ?? 0) > 0)
                         ? Text(
                             'Hutang ${rupiah.format(bal[s.id])}',
                             style: TextStyle(
@@ -69,7 +92,11 @@ class SuppliersTab extends ConsumerWidget {
                             ),
                           )
                         : null,
-                    onTap: isOwner ? () => _edit(context, ref, s) : null,
+                    onTap: isOwner
+                        ? () => _edit(context, ref, s)
+                        : canRequest
+                        ? () => _request(context, ref, s)
+                        : null,
                     onLongPress: isOwner
                         ? () => _delete(context, ref, s)
                         : null,
@@ -137,6 +164,38 @@ class SuppliersTab extends ConsumerWidget {
       ),
     );
     if (ok == true) await ref.read(supplierRepositoryProvider).remove(s.id);
+  }
+
+  Future<void> _request(
+    BuildContext context,
+    WidgetRef ref,
+    Supplier? s,
+  ) async {
+    final r = await formDialog(
+      context,
+      s == null ? 'Ajukan supplier baru' : 'Ajukan perubahan: ${s.name}',
+      ['Nama', 'Telepon', 'Catatan'],
+      initial: [s?.name ?? '', s?.phone ?? '', s?.note ?? ''],
+      okLabel: 'Ajukan',
+      hint: 'Supplier aktif setelah disetujui.',
+    );
+    if (r == null || r[0].isEmpty || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await submitSupplier(
+        ref,
+        action: s == null ? 'create' : 'update',
+        supplierId: s?.id,
+        name: r[0],
+        phone: r[1],
+        note: r[2],
+      );
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Diajukan untuk persetujuan')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(errorText(e))));
+    }
   }
 }
 

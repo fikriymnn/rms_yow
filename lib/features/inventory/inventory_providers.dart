@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rms_yow/core/db/app_database.dart';
 import 'package:uuid/uuid.dart';
@@ -8,7 +7,6 @@ import 'package:uuid/uuid.dart';
 import '../../core/sync/local_first_repository.dart';
 import '../../core/sync/sync_controller.dart';
 import '../auth/auth_providers.dart';
-import '../orders/order_models.dart';
 import 'inventory_models.dart';
 
 class IngredientRepository extends LocalFirstRepository<Ingredient> {
@@ -67,40 +65,6 @@ class StockRepository extends LocalFirstRepository<StockMove> {
         userName: u?.name ?? '',
       ),
     );
-  }
-
-  /// Potong stok sesuai resep saat order dibayar. Idempotent (id deterministik).
-  Future<void> deductForOrder(Order o) async {
-    final recipes = {
-      for (final r in await ref.read(recipeRepositoryProvider).watchAll().first)
-        r.id: r,
-    };
-    final used = <String, double>{};
-    for (final it in o.items) {
-      final r = recipes[it.menuItemId];
-      if (r == null) continue;
-      for (final l in r.lines) {
-        used[l.ingredientId] = (used[l.ingredientId] ?? 0) + l.qty * it.qty;
-      }
-    }
-    final db = ref.read(databaseProvider);
-    final user = ref.read(appUserProvider).value;
-    for (final e in used.entries) {
-      final id = 'sale_${o.id}_${e.key}';
-      if (await db.find('stock_moves', id) != null) continue;
-      await save(
-        StockMove(
-          id: id,
-          ingredientId: e.key,
-          type: StockMoveType.sale,
-          qty: -e.value,
-          at: o.paidAt ?? DateTime.now().millisecondsSinceEpoch,
-          orderId: o.id,
-          note: o.number,
-          userName: user?.name ?? '',
-        ),
-      );
-    }
   }
 }
 
@@ -215,6 +179,3 @@ final hppProvider = Provider<Map<String, double>>((ref) {
       ),
   };
 });
-
-void logStockError(Object e, StackTrace st) =>
-    debugPrint('Pemotongan stok gagal: $e\n$st');

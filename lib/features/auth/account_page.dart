@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/features/attendance/attendance_admin_page.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/form_dialog.dart';
@@ -158,6 +159,15 @@ class AccountPage extends ConsumerWidget {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const UsersAdminPage()),
+              ),
+            ),
+          if (u.isManager)
+            ListTile(
+              leading: const Icon(Icons.fact_check_outlined),
+              title: const Text('Tinjauan absensi'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AttendanceAdminPage()),
               ),
             ),
           ListTile(

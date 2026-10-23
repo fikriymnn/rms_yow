@@ -80,6 +80,8 @@ class Order {
     this.refundedAt,
     this.refundShiftId,
     this.refundReason,
+    this.paidBy,
+    this.paidByName,
   });
 
   final String id;
@@ -98,6 +100,8 @@ class Order {
   final int? refundedAt;
   final String? refundShiftId;
   final String? refundReason;
+  final String? paidBy;
+  final String? paidByName;
 
   int get subtotal => items.fold(0, (s, i) => s + i.total);
   int get _base => max(0, subtotal - discount);
@@ -116,6 +120,8 @@ class Order {
     int? refundedAt,
     String? refundShiftId,
     String? refundReason,
+    String? paidBy,
+    String? paidByName,
   }) => Order(
     id: id,
     number: number,
@@ -133,6 +139,8 @@ class Order {
     refundedAt: refundedAt ?? this.refundedAt,
     refundShiftId: refundShiftId ?? this.refundShiftId,
     refundReason: refundReason ?? this.refundReason,
+    paidBy: paidBy ?? this.paidBy,
+    paidByName: paidByName ?? this.paidByName,
   );
 
   factory Order.fromMap(Map<String, dynamic> m) => Order(
@@ -160,6 +168,8 @@ class Order {
     refundedAt: (m['refundedAt'] as num?)?.toInt(),
     refundShiftId: m['refundShiftId'] as String?,
     refundReason: m['refundReason'] as String?,
+    paidBy: m['paidBy'] as String?,
+    paidByName: m['paidByName'] as String?,
   );
 
   Map<String, dynamic> toMap() => {
@@ -184,6 +194,8 @@ class Order {
     'refundedAt': refundedAt,
     'refundShiftId': refundShiftId,
     'refundReason': refundReason,
+    'paidBy': paidBy,
+    'paidByName': paidByName,
   };
 }
 

@@ -191,6 +191,17 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (shifts.where((s) => s.status == ShiftStatus.open).length > 1)
+            Card(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Ada lebih dari satu shift terbuka di outlet ini (kemungkinan '
+                  'dibuka bersamaan saat offline). Tutup satu per satu, mulai dari yang tertua.',
+                ),
+              ),
+            ),
           if (shift == null) _openCard() else _activeCard(shift, orders),
           const SizedBox(height: 24),
           Text('Riwayat shift', style: Theme.of(context).textTheme.titleMedium),
@@ -269,6 +280,8 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
   );
 
   Widget _activeCard(Shift s, List<Order> orders) {
+    final me = ref.watch(appUserProvider).value;
+    final canClose = (me?.isManager ?? false) || s.cashierId == me?.uid;
     final t = shiftTotals(s, orders);
     final out = shiftCashExpense(
       s,
@@ -306,9 +319,17 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             ),
             const SizedBox(height: 8),
             FilledButton.tonal(
-              onPressed: () => _close(s, expected, t, out),
+              onPressed: canClose ? () => _close(s, expected, t, out) : null,
               child: const Text('Tutup shift'),
             ),
+            if (!canClose)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Hanya ${s.cashierName} (pembuka shift) atau manager yang dapat menutup shift ini.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
           ],
         ),
       ),

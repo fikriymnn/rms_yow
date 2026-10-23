@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:rms_yow/core/sync/sync_controller.dart';
+import 'package:rms_yow/features/auth/auth_providers.dart';
 
 import '../../core/form_dialog.dart';
 import '../../core/format.dart';
@@ -15,6 +16,8 @@ class StockTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ings = ref.watch(ingredientsProvider).value ?? <Ingredient>[];
     final levels = ref.watch(stockLevelsProvider);
+    final role = ref.watch(appUserProvider).value?.role;
+    final canOps = role != AppRole.head_chef;
     bool low(Ingredient i) =>
         i.minStock > 0 && (levels[i.id] ?? 0) <= i.minStock;
 
@@ -57,7 +60,9 @@ class StockTab extends ConsumerWidget {
                 color: low(i) ? err : null,
               ),
             ),
-            onTap: () => _menu(context, ref, i),
+            onTap: canOps
+                ? () => _menu(context, ref, i)
+                : () => _history(context, ref, i),
           ),
       ],
     );
@@ -70,6 +75,7 @@ void _toast(BuildContext c, String m) {
 }
 
 Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
+  final isOwner = ref.read(appUserProvider).value?.role == AppRole.owner;
   final a = await showModalBottomSheet<String>(
     context: context,
     builder: (ctx) => SafeArea(
@@ -77,11 +83,19 @@ Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(title: Text(i.name), subtitle: const Text('Pilih aksi')),
-          ListTile(
-            leading: const Icon(Icons.add_box_outlined),
-            title: const Text('Stok masuk (pembelian)'),
-            onTap: () => Navigator.pop(ctx, 'in'),
-          ),
+          if (isOwner)
+            ListTile(
+              leading: const Icon(Icons.add_box_outlined),
+              title: const Text('Stok masuk manual (tanpa PO)'),
+              onTap: () => Navigator.pop(ctx, 'in'),
+            )
+          else
+            const ListTile(
+              leading: Icon(Icons.info_outline),
+              title: Text(
+                'Pembelian bahan dilakukan lewat PO (menu Pembelian)',
+              ),
+            ),
           ListTile(
             leading: const Icon(Icons.delete_outline),
             title: const Text('Waste / rusak'),

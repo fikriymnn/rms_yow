@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/features/attendance/location_service.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
@@ -40,7 +41,11 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
     ];
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   void _toast(String m) {
     if (!mounted) return;
@@ -74,6 +79,28 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                 TextField(
                   controller: addr,
                   decoration: const InputDecoration(labelText: 'Alamat'),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.my_location, size: 18),
+                    label: const Text('Pakai lokasi saya'),
+                    onPressed: () async {
+                      try {
+                        await ensureLocationReady();
+                        final f = await currentFix();
+                        setS(() {
+                          lat.text = f.lat.toStringAsFixed(6);
+                          lng.text = f.lng.toStringAsFixed(6);
+                        });
+                        _toast(
+                          'Akurasi ±${f.accuracy.round()} m. Lakukan di tengah outlet.',
+                        );
+                      } catch (e) {
+                        _toast('$e');
+                      }
+                    },
+                  ),
                 ),
                 Row(
                   children: [

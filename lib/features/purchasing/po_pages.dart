@@ -13,6 +13,8 @@ import '../inventory/inventory_providers.dart';
 import '../shifts/shift_providers.dart';
 import 'purchasing_models.dart';
 import 'purchasing_providers.dart';
+import '../../core/api/api_exception.dart';
+import '../approvals/approval_providers.dart';
 
 String poStatusText(PurchaseOrder po, Map<String, double>? received) =>
     (po.status == PoStatus.ordered && received != null && received.isNotEmpty)
@@ -150,12 +152,14 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
     setState(() => _lines[i] = l.copyWith(qty: q, unitPrice: p.round()));
   }
 
-  Future<void> _save({required bool order}) async {
+  Future<bool> _save({required bool order, bool pop = true}) async {
+    final me = ref.read(appUserProvider).value;
+    if (me == null) return false;
     final suppliers = ref.read(suppliersProvider).value ?? <Supplier>[];
     final sup = suppliers.where((s) => s.id == _supplierId).firstOrNull;
     if (sup == null || _lines.isEmpty) {
       _toast('Pilih supplier dan tambahkan minimal satu bahan');
-      return;
+      return false;
     }
     await ref
         .read(poRepositoryProvider)
@@ -170,13 +174,36 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
             status: order ? PoStatus.ordered : PoStatus.draft,
             lines: _lines,
             note: _note.text.trim(),
+            createdBy: (widget.po?.createdBy.isNotEmpty ?? false)
+                ? widget.po!.createdBy
+                : me.uid,
+            createdByName: (widget.po?.createdBy.isNotEmpty ?? false)
+                ? widget.po!.createdByName
+                : me.name,
           ),
         );
-    if (mounted) Navigator.pop(context);
+    if (pop && mounted) Navigator.pop(context);
+    return true;
+  }
+
+  Future<void> _submit() async {
+    if (!await _save(order: false, pop: false)) return;
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await submitPurchaseOrder(ref, _id);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('PO diajukan untuk persetujuan')),
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(errorText(e))));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
     final suppliers = ref.watch(suppliersProvider).value ?? <Supplier>[];
     final total = _lines.fold<int>(0, (s, l) => s + l.total);
 
@@ -256,12 +283,21 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () => _save(order: true),
-                  child: const Text('Pesan'),
+                  onPressed: () => isOwner ? _save(order: true) : _submit(),
+                  child: Text(isOwner ? 'Pesan' : 'Ajukan'),
                 ),
               ),
             ],
           ),
+          if (!isOwner)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Pengajuan persetujuan (manager atau head chef, lalu owner) aktif di pembaruan berikutnya. '
+                'Untuk sekarang simpan sebagai draft.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
         ],
       ),
     );
@@ -291,8 +327,28 @@ class PoDetailPage extends ConsumerWidget {
       ) ??
       false;
 
+  Future<void> _submit(
+    BuildContext context,
+    WidgetRef ref,
+    PurchaseOrder po,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await submitPurchaseOrder(ref, po.id);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('PO diajukan untuk persetujuan')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(errorText(e))));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final role = ref.watch(appUserProvider).value?.role;
+    final isOwner = role == AppRole.owner;
+    final canReceive =
+        isOwner || role == AppRole.manager || role == AppRole.warehouse;
     final po = (ref.watch(purchaseOrdersProvider).value ?? <PurchaseOrder>[])
         .where((p) => p.id == poId)
         .firstOrNull;
@@ -325,6 +381,18 @@ class PoDetailPage extends ConsumerWidget {
         children: [
           kv('Supplier', po.supplierName),
           kv('Status', poStatusText(po, received)),
+          if (po.status == PoStatus.pending)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text('Menunggu persetujuan. Pantau di tab Persetujuan.'),
+            ),
+          if (po.status == PoStatus.rejected)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Ditolak. Alasannya ada di Persetujuan → Pengajuan saya. Buat PO baru bila perlu.',
+              ),
+            ),
           kv(
             'Tanggal',
             fmt.format(DateTime.fromMillisecondsSinceEpoch(po.createdAt)),
@@ -372,18 +440,25 @@ class PoDetailPage extends ConsumerWidget {
                   ),
                   child: const Text('Edit'),
                 ),
-                FilledButton(
-                  onPressed: () =>
-                      repo.save(po.copyWith(status: PoStatus.ordered)),
-                  child: const Text('Pesan'),
-                ),
+                if (isOwner)
+                  FilledButton(
+                    onPressed: () =>
+                        repo.save(po.copyWith(status: PoStatus.ordered)),
+                    child: const Text('Pesan'),
+                  ),
+                if (!isOwner)
+                  FilledButton(
+                    onPressed: () => _submit(context, ref, po),
+                    child: const Text('Ajukan'),
+                  ),
               ],
               if (po.status == PoStatus.ordered) ...[
-                FilledButton(
-                  onPressed: () =>
-                      showReceiveDialog(context, ref, po, received),
-                  child: const Text('Terima barang'),
-                ),
+                if (canReceive)
+                  FilledButton(
+                    onPressed: () =>
+                        showReceiveDialog(context, ref, po, received),
+                    child: const Text('Terima barang'),
+                  ),
                 OutlinedButton(
                   onPressed: () async {
                     if (await _confirm(
@@ -436,6 +511,7 @@ Future<void> showReceiveDialog(
   final invoice = TextEditingController();
   final paid = TextEditingController(text: '0');
   var fromDrawer = false;
+  final canPay = user?.isManager ?? false;
 
   int lineTotal(int i) =>
       ((parseNum(qty[i].text) ?? 0) * (int.tryParse(price[i].text) ?? 0))
@@ -517,36 +593,38 @@ Future<void> showReceiveDialog(
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                TextField(
-                  controller: paid,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Dibayar sekarang (Rp)',
+                if (canPay) ...[
+                  TextField(
+                    controller: paid,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Dibayar sekarang (Rp)',
+                    ),
+                    onChanged: (_) => setS(() {}),
                   ),
-                  onChanged: (_) => setS(() {}),
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Dibayar dari kas laci'),
-                  subtitle: Text(
-                    canDrawer
-                        ? 'Mengurangi kas shift berjalan'
-                        : 'Butuh shift aktif milik Anda',
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Dibayar dari kas laci'),
+                    subtitle: Text(
+                      canDrawer
+                          ? 'Mengurangi kas shift berjalan'
+                          : 'Butuh shift aktif milik Anda',
+                    ),
+                    value: fromDrawer,
+                    onChanged: (canDrawer && paidNow > 0)
+                        ? (v) => setS(() => fromDrawer = v)
+                        : null,
                   ),
-                  value: fromDrawer,
-                  onChanged: (canDrawer && paidNow > 0)
-                      ? (v) => setS(() => fromDrawer = v)
-                      : null,
-                ),
-                if (paidNow > total)
-                  Text(
-                    'Pembayaran melebihi total',
-                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-                  )
-                else if (total > paidNow)
-                  Text(
-                    'Sisa menjadi hutang: ${rupiah.format(total - paidNow)}',
-                  ),
+                  if (paidNow > total)
+                    Text(
+                      'Pembayaran melebihi total',
+                      style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                    )
+                  else if (total > paidNow)
+                    Text(
+                      'Sisa menjadi hutang: ${rupiah.format(total - paidNow)}',
+                    ),
+                ],
               ],
             ),
           ),

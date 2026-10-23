@@ -15,7 +15,10 @@ class IngredientsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ings = ref.watch(ingredientsProvider).value ?? <Ingredient>[];
-    final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
+    final role = ref.watch(appUserProvider).value?.role;
+    final isOwner =
+        role == AppRole.owner ||
+        role == AppRole.head_chef; // yang boleh mengubah bahan
     return Scaffold(
       floatingActionButton: isOwner
           ? FloatingActionButton.extended(

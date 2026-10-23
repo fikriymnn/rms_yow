@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rms_yow/features/auth/auth_providers.dart';
+import 'package:rms_yow/features/inventory/recipe_history.dart';
 
 import '../../core/form_dialog.dart';
 import '../../core/format.dart';
@@ -67,10 +68,23 @@ class RecipeEditorPage extends ConsumerWidget {
     };
     final avg = ref.watch(avgCostProvider);
     final hpp = ref.watch(hppProvider)[menu.id] ?? 0;
-    final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
+    final role = ref.watch(appUserProvider).value?.role;
+    final isOwner =
+        role == AppRole.owner ||
+        role == AppRole.head_chef; // yang boleh mengubah resep
 
     return Scaffold(
-      appBar: AppBar(title: Text('Resep ${menu.name}')),
+      appBar: AppBar(
+        title: Text('Resep ${menu.name}'),
+        actions: [
+          IconButton(
+            tooltip: 'Riwayat resep',
+            icon: const Icon(Icons.history),
+            onPressed: () =>
+                showRecipeHistory(context, ref, menu.id, menu.name),
+          ),
+        ],
+      ),
       floatingActionButton: isOwner
           ? FloatingActionButton.extended(
               onPressed: () => _add(context, ref, recipe, ings.values.toList()),

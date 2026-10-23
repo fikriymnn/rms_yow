@@ -47,7 +47,11 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
     return _Data(users, outlets);
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   void _toast(String m) {
     if (!mounted) return;

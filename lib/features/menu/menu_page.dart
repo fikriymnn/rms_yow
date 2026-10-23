@@ -18,7 +18,10 @@ class MenuPage extends ConsumerWidget {
     final role = ref.watch(appUserProvider).value?.role;
     final isOwner = role == AppRole.owner;
     final canToggle =
-        isOwner || role == AppRole.manager || role == AppRole.cashier;
+        isOwner ||
+        role == AppRole.manager ||
+        role == AppRole.cashier ||
+        role == AppRole.head_chef;
     final repo = ref.read(menuRepositoryProvider);
     final availRepo = ref.read(availabilityRepositoryProvider);
 
@@ -41,9 +44,11 @@ class MenuPage extends ConsumerWidget {
                 width: double.infinity,
                 color: Theme.of(context).colorScheme.secondaryContainer,
                 padding: const EdgeInsets.all(10),
-                child: const Text(
-                  'Menu dikelola owner. Anda bisa menandai item habis/tersedia di outlet ini.',
-                  style: TextStyle(fontSize: 12),
+                child: Text(
+                  role == AppRole.head_chef
+                      ? 'Menu aktif hanya diubah owner. Untuk menu baru atau perubahan harga, ajukan lewat tab Usulan. Anda bisa menandai item habis/tersedia (86) di outlet ini.'
+                      : 'Menu dikelola owner. Anda bisa menandai item habis/tersedia di outlet ini.',
+                  style: const TextStyle(fontSize: 12),
                 ),
               ),
             Expanded(

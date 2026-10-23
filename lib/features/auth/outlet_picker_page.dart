@@ -49,7 +49,9 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                 Text('Gagal memuat outlet: ${snap.error}'),
                 const SizedBox(height: 12),
                 FilledButton(
-                  onPressed: () => setState(() => _future = _load()),
+                  onPressed: () => setState(() {
+                    _future = _load();
+                  }),
                   child: const Text('Coba lagi'),
                 ),
               ],
