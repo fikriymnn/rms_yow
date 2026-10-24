@@ -63,7 +63,7 @@ class SyncController extends Notifier<SyncState> {
           .millisecondsSinceEpoch;
       await db.pruneOlderThan(e.key, cut);
     }
-    await _applyEntitlements(db);
+
     _connSub = Connectivity().onConnectivityChanged.listen((r) {
       if (r.contains(ConnectivityResult.none)) {
         state = SyncState.offline;
@@ -71,7 +71,14 @@ class SyncController extends Notifier<SyncState> {
         syncNow();
       }
     });
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) => syncNow());
+    final role = ref.read(appUserProvider).value?.role;
+    final fast =
+        role == AppRole.kitchen ||
+        role == AppRole.head_chef; // dapur: pesanan harus cepat
+    _timer = Timer.periodic(Duration(seconds: fast ? 2 : 5), (_) => syncNow());
+    unawaited(
+      _applyEntitlements(db),
+    ); // tidak boleh menunda pencacah bila jaringan lambat
     await syncNow();
   }
 
@@ -243,4 +250,13 @@ class SyncController extends Notifier<SyncState> {
           dirty: const Value(false),
         ),
       );
+
+  /// Sinkron segera; bila gagal (koneksi basi sesudah aplikasi dibangunkan), coba sekali lagi.
+  Future<void> syncSoon() async {
+    await syncNow();
+    if (state == SyncState.offline || state == SyncState.error) {
+      await Future<void>.delayed(const Duration(seconds: 1));
+      await syncNow();
+    }
+  }
 }

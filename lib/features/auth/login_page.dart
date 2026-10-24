@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/shell/auth_layout.dart';
 
 import '../../core/db/meta_db.dart';
 import 'auth_providers.dart';
@@ -47,60 +48,51 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'RMS Login',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _server,
-                keyboardType: TextInputType.url,
-                decoration: const InputDecoration(
-                  labelText: 'Alamat server',
-                  hintText: 'http://192.168.1.10:8000',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _user,
-                autocorrect: false,
-                decoration: const InputDecoration(labelText: 'Username'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _pass,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
-                onSubmitted: (_) => _loading ? null : _login(),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loading ? null : _login,
-                  child: Text(_loading ? 'Memproses...' : 'Masuk'),
-                ),
-              ),
-            ],
+  Widget build(BuildContext context) => AuthLayout(
+    title: 'Restaurant Management System',
+    subtitle: 'by Kovalen Teknologi',
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('RMS Login', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 24),
+        TextField(
+          controller: _server,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            labelText: 'Alamat server',
+            hintText: 'http://192.168.1.10:8000',
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _user,
+          autocorrect: false,
+          decoration: const InputDecoration(labelText: 'Username'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _pass,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Password'),
+          onSubmitted: (_) => _loading ? null : _login(),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _error!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _loading ? null : _login,
+            child: Text(_loading ? 'Memproses...' : 'Masuk'),
+          ),
+        ),
+      ],
     ),
   );
 }

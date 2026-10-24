@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rms_yow/shell/auth_layout.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
@@ -66,71 +67,50 @@ class _ForcePasswordPageState extends ConsumerState<ForcePasswordPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Buat password baru'),
-      automaticallyImplyLeading: false,
-      actions: [
-        TextButton(
-          onPressed: () => ref.read(sessionProvider.notifier).logout(),
-          child: const Text('Keluar'),
+  Widget build(BuildContext context) => AuthLayout(
+    title: 'Buat password baru',
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Password Anda dibuat oleh admin. Demi keamanan, buat password baru '
+          'yang hanya Anda yang tahu sebelum memakai aplikasi.',
         ),
-      ],
-    ),
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Password Anda dibuat oleh admin. Demi keamanan, buat password baru '
-                'yang hanya Anda yang tahu sebelum memakai aplikasi.',
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _old,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password sementara',
-                ),
-              ),
-              TextField(
-                controller: _new,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password baru (min. 8 karakter)',
-                ),
-              ),
-              TextField(
-                controller: _again,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Ulangi password baru',
-                ),
-                onSubmitted: (_) => _busy ? null : _submit(),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _busy ? null : _submit,
-                  child: Text(_busy ? 'Memproses...' : 'Simpan'),
-                ),
-              ),
-            ],
+        const SizedBox(height: 16),
+        TextField(
+          controller: _old,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Password sementara'),
+        ),
+        TextField(
+          controller: _new,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Password baru (min. 8 karakter)',
           ),
         ),
-      ),
+        TextField(
+          controller: _again,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Ulangi password baru'),
+          onSubmitted: (_) => _busy ? null : _submit(),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _error!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _busy ? null : _submit,
+            child: Text(_busy ? 'Memproses...' : 'Simpan'),
+          ),
+        ),
+      ],
     ),
   );
 }

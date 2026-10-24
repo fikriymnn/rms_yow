@@ -20,7 +20,16 @@ class Docs extends Table {
 
 @DriftDatabase(tables: [Docs])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([String name = 'rms']) : super(driftDatabase(name: name));
+  AppDatabase([String name = 'rms'])
+    : super(
+        driftDatabase(
+          name: name,
+          web: DriftWebOptions(
+            sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+            driftWorker: Uri.parse('drift_worker.js'),
+          ),
+        ),
+      );
 
   Stream<int> watchDirtyCount() => customSelect(
     'SELECT COUNT(*) AS c FROM docs WHERE dirty = 1',

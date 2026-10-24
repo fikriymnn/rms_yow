@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rms_yow/features/attendance/attendance_admin_page.dart';
+import 'package:rms_yow/features/attendance/consent.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/form_dialog.dart';
@@ -169,6 +171,25 @@ class AccountPage extends ConsumerWidget {
                 context,
                 MaterialPageRoute(builder: (_) => const AttendanceAdminPage()),
               ),
+            ),
+          if (!kIsWeb &&
+              ref.watch(appUserProvider).value?.role != AppRole.owner)
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Cabut persetujuan data absensi'),
+              subtitle: const Text(
+                'Hapus foto wajah dan koordinat lokasi Anda',
+              ),
+              onTap: () async {
+                final n = await revokeConsent(context, ref);
+                if (n != null && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Persetujuan dicabut. $n foto dihapus.'),
+                    ),
+                  );
+                }
+              },
             ),
           ListTile(
             leading: const Icon(Icons.lock_outline),

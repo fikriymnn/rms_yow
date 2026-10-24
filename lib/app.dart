@@ -6,6 +6,7 @@ import 'package:rms_yow/features/attendance/clock_page.dart';
 import 'package:rms_yow/features/audit/audit_providers.dart';
 import 'package:rms_yow/features/auth/force_password_page.dart';
 import 'package:rms_yow/features/finance/finance_providers.dart';
+import 'package:rms_yow/features/home/home_page.dart';
 import 'package:rms_yow/features/inventory/inventory_page.dart';
 import 'package:rms_yow/features/inventory/inventory_providers.dart'
     show ingredientsProvider, recipesProvider, stockAggProvider;
@@ -35,6 +36,9 @@ import 'features/notifications/notification_providers.dart';
 import 'features/notifications/notification_router.dart';
 import 'features/notifications/notification_service.dart';
 import 'features/notifications/notifications_page.dart';
+import 'features/notifications/mark_read_on_open.dart';
+import 'core/theme/app_theme.dart';
+import 'shell/app_shell.dart';
 
 /// Koleksi yang di-mirror ke lokal. Tambah di sini tiap modul baru.
 
@@ -48,7 +52,8 @@ class RmsApp extends ConsumerWidget {
     return MaterialApp(
       title: 'RMS',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: Colors.deepOrange, useMaterial3: true),
+      theme: AppTheme.light(),
+      themeMode: ThemeMode.light,
       home: session.when(
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -66,11 +71,20 @@ class RmsApp extends ConsumerWidget {
 }
 
 class _Dest {
-  const _Dest(this.label, this.icon, this.page, this.roles);
+  const _Dest(
+    this.label,
+    this.icon,
+    this.page,
+    this.roles, {
+    required this.group,
+    this.rank = 50,
+  });
   final String label;
   final IconData icon;
   final Widget page;
   final Set<AppRole> roles;
+  final String group;
+  final int rank; // prioritas di bilah bawah HP
 }
 
 class HomeShell extends ConsumerStatefulWidget {
@@ -79,7 +93,8 @@ class HomeShell extends ConsumerStatefulWidget {
   ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends ConsumerState<HomeShell> {
+class _HomeShellState extends ConsumerState<HomeShell>
+    with WidgetsBindingObserver {
   int _index = 0;
 
   @override
@@ -109,12 +124,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ]) {
       ref.listenManual(p, (_, __) {});
     }
+    WidgetsBinding.instance.addObserver(this);
     ref.listenManual<String?>(activeOutletIdProvider, (prev, next) {
       if (next != null && next != prev) {
         ref.read(syncControllerProvider.notifier).start();
       }
     });
-    Future.microtask(() => ref.read(notificationServiceProvider).start());
+    Future.microtask(() {
+      ref.read(syncControllerProvider.notifier).start();
+      ref.read(notificationServiceProvider).start();
+    });
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _consumeTap(ref.read(notificationTapProvider)),
     );
@@ -126,23 +145,35 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     openNotificationTarget(context, tap);
   }
 
+  void _select(int i) {
+    setState(() => _index = i);
+    ref
+        .read(syncControllerProvider.notifier)
+        .syncNow(); // membuka tab = data terbaru
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(syncControllerProvider.notifier).syncSoon();
+      ref.invalidate(approvalCountsProvider);
+      ref.read(unreadNotificationsProvider.notifier).refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<NotificationTap?>(
       notificationTapProvider,
       (_, tap) => _consumeTap(tap),
     );
-    final userAsync = ref.watch(appUserProvider);
-    final sync = ref.watch(syncControllerProvider);
-    if (userAsync.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    if (userAsync.hasError) {
-      return Scaffold(
-        body: Center(child: Text('Gagal memuat akun: ${userAsync.error}')),
-      );
-    }
-    final user = userAsync.value;
+    final user = ref.watch(appUserProvider).value;
     if (user == null) {
       return const Scaffold(
         body: Center(child: Text('Akun belum punya role. Hubungi owner.')),
@@ -150,174 +181,172 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     }
 
     final all = <_Dest>[
-      _Dest('Meja', Icons.table_restaurant, const TablesPage(), {
-        AppRole.owner,
-        AppRole.manager,
-        AppRole.cashier,
-        AppRole.waiter,
-      }),
-      _Dest('Menu', Icons.restaurant_menu, const MenuPage(), {
-        AppRole.owner,
-        AppRole.head_chef,
-        AppRole.manager,
-        AppRole.cashier,
-        AppRole.waiter,
-      }),
-      _Dest('Dapur', Icons.soup_kitchen, const KdsPage(), {
-        AppRole.owner,
-        AppRole.manager,
-        AppRole.head_chef,
-        AppRole.kitchen,
-        AppRole.waiter,
-      }),
-      _Dest('Kas', Icons.point_of_sale, const ShiftPage(), {
-        AppRole.owner,
-        AppRole.manager,
-        AppRole.cashier,
-      }),
-      _Dest('Laporan', Icons.bar_chart, const ReportsPage(), {
-        AppRole.owner,
-        AppRole.manager,
-      }),
-      _Dest('Stok', Icons.inventory_2_outlined, const InventoryPage(), {
-        AppRole.owner,
-        AppRole.head_chef,
-        AppRole.manager,
-        AppRole.warehouse,
-      }),
+      _Dest(
+        'Dashboard',
+        Icons.space_dashboard_outlined,
+        const HomePage(),
+        {AppRole.owner, AppRole.manager, AppRole.head_chef},
+        group: 'Operasional',
+        rank: 5,
+      ),
+      _Dest(
+        'Meja',
+        Icons.table_restaurant_outlined,
+        const TablesPage(),
+        {AppRole.owner, AppRole.manager, AppRole.cashier, AppRole.waiter},
+        group: 'Operasional',
+        rank: 10,
+      ),
+      _Dest(
+        'Menu',
+        Icons.restaurant_menu,
+        const MenuPage(),
+        {
+          AppRole.owner,
+          AppRole.manager,
+          AppRole.head_chef,
+          AppRole.cashier,
+          AppRole.waiter,
+        },
+        group: 'Operasional',
+        rank: 13,
+      ),
+      _Dest(
+        'Dapur',
+        Icons.soup_kitchen_outlined,
+        const KdsPage(),
+        {
+          AppRole.owner,
+          AppRole.manager,
+          AppRole.head_chef,
+          AppRole.kitchen,
+          AppRole.waiter,
+        },
+        group: 'Operasional',
+        rank: 11,
+      ),
+      _Dest(
+        'Kas',
+        Icons.point_of_sale,
+        const ShiftPage(),
+        {AppRole.owner, AppRole.manager, AppRole.cashier},
+        group: 'Operasional',
+        rank: 12,
+      ),
+      _Dest(
+        'Laporan',
+        Icons.bar_chart_rounded,
+        const ReportsPage(),
+        {AppRole.owner, AppRole.manager},
+        group: 'Manajemen',
+        rank: 16,
+      ),
       _Dest(
         'Keuangan',
         Icons.account_balance_wallet_outlined,
         const FinancePage(),
         {AppRole.owner, AppRole.manager},
+        group: 'Manajemen',
+        rank: 17,
+      ),
+      _Dest(
+        'Stok',
+        Icons.inventory_2_outlined,
+        const InventoryPage(),
+        {AppRole.owner, AppRole.manager, AppRole.head_chef, AppRole.warehouse},
+        group: 'Manajemen',
+        rank: 14,
+      ),
+      _Dest(
+        'Persetujuan',
+        Icons.task_alt,
+        const ApprovalsPage(),
+        {AppRole.owner, AppRole.manager, AppRole.head_chef, AppRole.warehouse},
+        group: 'Manajemen',
+        rank: 15,
+      ),
+      _Dest(
+        'Usulan',
+        Icons.lightbulb_outline,
+        const ProposalsPage(),
+        {AppRole.owner, AppRole.head_chef},
+        group: 'Manajemen',
+        rank: 18,
       ),
       if (!kIsWeb)
-        _Dest('Absensi', Icons.fingerprint, const ClockPage(), {
+        _Dest(
+          'Absensi',
+          Icons.fingerprint,
+          const ClockPage(),
+          {
+            AppRole.manager,
+            AppRole.head_chef,
+            AppRole.cashier,
+            AppRole.waiter,
+            AppRole.kitchen,
+            AppRole.warehouse,
+          },
+          group: 'Tim',
+          rank: 20,
+        ),
+      _Dest(
+        'Notifikasi',
+        Icons.notifications_none_rounded,
+        const NotificationsPage(),
+        {
+          AppRole.owner,
           AppRole.manager,
           AppRole.head_chef,
-          AppRole.cashier,
-          AppRole.waiter,
           AppRole.kitchen,
           AppRole.warehouse,
-        }),
-      _Dest('Usulan', Icons.lightbulb_outline, const ProposalsPage(), {
-        AppRole.owner,
-        AppRole.head_chef,
-      }),
-      _Dest('Persetujuan', Icons.task_alt, const ApprovalsPage(), {
-        AppRole.owner,
-        AppRole.manager,
-        AppRole.head_chef,
-        AppRole.warehouse,
-      }),
-      _Dest('Notifikasi', Icons.notifications_none, const NotificationsPage(), {
-        AppRole.owner,
-        AppRole.manager,
-        AppRole.head_chef,
-        AppRole.kitchen,
-        AppRole.warehouse,
-      }),
-      _Dest('Akun', Icons.person_outline, const AccountPage(), {
-        ...AppRole.values,
-      }),
+        },
+        group: 'Akun',
+        rank: 30,
+      ),
+      _Dest(
+        'Akun',
+        Icons.person_outline_rounded,
+        const AccountPage(),
+        {...AppRole.values},
+        group: 'Akun',
+        rank: 25,
+      ),
     ];
     final dests = all.where((d) => d.roles.contains(user.role)).toList();
-    final wide = MediaQuery.sizeOf(context).width >= 800; // web / tablet
+    if (_index >= dests.length) _index = 0;
 
-    final badge = Chip(
-      avatar: Icon(switch (sync) {
-        SyncState.idle => Icons.cloud_done,
-        SyncState.syncing => Icons.sync,
-        SyncState.offline => Icons.cloud_off,
-        SyncState.error => Icons.error_outline,
-      }, size: 18),
-      label: Text(sync.name),
-    );
-
-    return Scaffold(
-      body: Row(
-        children: [
-          if (wide && dests.length >= 2)
-            NavigationRail(
-              selectedIndex: _index,
-              onDestinationSelected: (i) => setState(() => _index = i),
-              labelType: NavigationRailLabelType.all,
-              trailing: Padding(padding: const EdgeInsets.all(8), child: badge),
-              destinations: [
-                for (final d in dests)
-                  NavigationRailDestination(
-                    icon: _icon(d),
-                    label: Text(d.label),
-                  ),
-              ],
-            ),
-          Expanded(child: dests[_index].page),
-        ],
-      ),
-      bottomNavigationBar: (wide || dests.length < 2)
-          ? null
-          : _bottomBar(dests),
-    );
-  }
-
-  Widget _bottomBar(List<_Dest> dests) {
-    const maxBar = 5;
-    if (dests.length <= maxBar) {
-      return NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
-          for (final d in dests)
-            NavigationDestination(icon: _icon(d), label: d.label),
-        ],
-      );
-    }
-    final shown = dests.take(maxBar - 1).toList();
-    final more = dests.skip(maxBar - 1).toList();
-    return NavigationBar(
-      selectedIndex: _index < shown.length ? _index : shown.length,
-      onDestinationSelected: (i) async {
-        if (i < shown.length) {
-          setState(() => _index = i);
-          return;
-        }
-        final picked = await showModalBottomSheet<int>(
-          context: context,
-          builder: (ctx) => SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var k = 0; k < more.length; k++)
-                  ListTile(
-                    leading: Icon(more[k].icon),
-                    title: Text(more[k].label),
-                    selected: _index == shown.length + k,
-                    onTap: () => Navigator.pop(ctx, shown.length + k),
-                  ),
-              ],
-            ),
+    return AppShell(
+      selectedIndex: _index,
+      onSelect: _select,
+      items: [
+        for (final d in dests)
+          ShellItem(
+            label: d.label,
+            icon: d.icon,
+            group: d.group,
+            rank: d.rank,
+            badge: _count(d),
           ),
-        );
-        if (picked != null) setState(() => _index = picked);
-      },
-      destinations: [
-        for (final d in shown)
-          NavigationDestination(icon: _icon(d), label: d.label),
-        const NavigationDestination(
-          icon: Icon(Icons.more_horiz),
-          label: 'Lainnya',
-        ),
       ],
+      child: _pageOf(dests[_index]),
     );
   }
 
-  Widget _icon(_Dest d) {
-    var n = 0;
-    if (d.label == 'Usulan') n = ref.watch(pendingProposalsCountProvider);
-    if (d.label == 'Persetujuan')
-      n = ref.watch(approvalCountsProvider).value?.inbox ?? 0;
-    if (d.label == 'Notifikasi')
-      n = ref.watch(unreadNotificationsProvider).value ?? 0;
-    return n > 0 ? Badge(label: Text('$n'), child: Icon(d.icon)) : Icon(d.icon);
-  }
+  int _count(_Dest d) => switch (d.label) {
+    'Usulan' => ref.watch(pendingProposalsCountProvider),
+    'Persetujuan' => ref.watch(approvalCountsProvider).value?.inbox ?? 0,
+    'Notifikasi' => ref.watch(unreadNotificationsProvider),
+    _ => 0,
+  };
+
+  /// Membuka tab = datanya dianggap dilihat. Key mencegah state terbawa antar tab.
+  Widget _pageOf(_Dest d) => KeyedSubtree(
+    key: ValueKey(d.label),
+    child: switch (d.label) {
+      'Dapur' => MarkReadOnOpen(type: 'order', child: d.page),
+      'Persetujuan' => MarkReadOnOpen(type: 'approval', child: d.page),
+      'Usulan' => MarkReadOnOpen(type: 'proposal', child: d.page),
+      _ => d.page,
+    },
+  );
 }

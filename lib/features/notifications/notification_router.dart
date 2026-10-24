@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../approvals/approval_detail_page.dart';
 import '../kds/kds_page.dart';
 import '../proposals/proposal_detail_page.dart';
+import 'mark_read_on_open.dart';
 
 class NotificationTap {
   const NotificationTap(this.type, this.id);
@@ -27,7 +28,7 @@ void openNotificationTarget(BuildContext context, NotificationTap tap) {
   final Widget? page = switch (tap.type) {
     'approval' => ApprovalDetailPage(approvalId: tap.id),
     'proposal' => ProposalDetailPage(proposalId: tap.id),
-    'order' => const KdsPage(),
+    'order' => const MarkReadOnOpen(type: 'order', child: KdsPage()),
     _ => null,
   };
   if (page == null) return;

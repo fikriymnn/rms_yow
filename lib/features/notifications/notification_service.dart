@@ -101,18 +101,21 @@ class NotificationService {
 
   void _tap(String? type, String? id) {
     if (type == null || id == null || id.isEmpty) return;
+    unawaited(
+      _ref.read(syncControllerProvider.notifier).syncSoon(),
+    ); // data terbaru sebelum layar dibuka
     _ref.read(notificationTapProvider.notifier).set(NotificationTap(type, id));
   }
 
   /// Aplikasi sedang terbuka: sistem tidak menampilkan notifikasi, jadi kita yang menampilkannya.
   Future<void> _onForeground(RemoteMessage m) async {
     final type = m.data['type'] ?? '';
-    if (type == 'order') {
-      unawaited(
-        _ref.read(syncControllerProvider.notifier).syncNow(),
-      ); // pesanan muncul seketika
-    }
-    _ref.invalidate(unreadNotificationsProvider);
+    unawaited(
+      _ref.read(syncControllerProvider.notifier).syncSoon(),
+    ); // data baru langsung muncul
+    _ref.read(unreadNotificationsProvider.notifier)
+      ..bump()
+      ..refresh();
     _ref.invalidate(approvalCountsProvider);
     final n = m.notification;
     if (n == null) return;

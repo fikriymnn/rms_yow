@@ -1,14 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:rms_yow/core/theme/app_colors.dart';
+import 'package:rms_yow/core/ui/ui_kit.dart';
 
 import '../../core/api/api_exception.dart';
 import 'notification_providers.dart';
 import 'notification_router.dart';
 
-class NotificationsPage extends ConsumerWidget {
+class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
+
+  @override
+  ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends ConsumerState<NotificationsPage> {
+  final _unreadAtOpen = <String>{}; // yang belum dibaca saat halaman dibuka
+
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual<AsyncValue<List<AppNotification>>>(
+      notificationsListProvider,
+      (_, next) {
+        final fresh = [
+          for (final n in next.value ?? <AppNotification>[])
+            if (!n.read) n.id,
+        ];
+        if (fresh.isEmpty) return;
+        _unreadAtOpen.addAll(fresh); // tetap ditebalkan selama halaman terbuka
+        markNotificationsRead(ref, all: true); // dibuka = otomatis dibaca
+      },
+      fireImmediately: true,
+    );
+  }
 
   IconData _icon(String type) => switch (type) {
     'order' => Icons.soup_kitchen_outlined,
@@ -17,20 +45,11 @@ class NotificationsPage extends ConsumerWidget {
   };
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final async = ref.watch(notificationsListProvider);
     final fmt = DateFormat('d MMM HH:mm');
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifikasi'),
-        actions: [
-          IconButton(
-            tooltip: 'Tandai semua dibaca',
-            icon: const Icon(Icons.done_all),
-            onPressed: () => markNotificationsRead(ref, all: true),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Notifikasi')),
       body: Column(
         children: [
           const _PermissionBanner(),
@@ -52,7 +71,8 @@ class NotificationsPage extends ConsumerWidget {
                 ),
                 data: (list) => list.isEmpty
                     ? ListView(
-                        children: const [
+                        padding: const EdgeInsets.only(top: 12, bottom: 12),
+                        children: [
                           Padding(
                             padding: EdgeInsets.all(32),
                             child: Center(child: Text('Belum ada notifikasi')),
@@ -62,38 +82,102 @@ class NotificationsPage extends ConsumerWidget {
                     : ListView(
                         children: [
                           for (final n in list)
-                            ListTile(
-                              isThreeLine: true,
-                              leading: Icon(_icon(n.type)),
-                              title: Text(
-                                n.title,
-                                style: TextStyle(
-                                  fontWeight: n.read
-                                      ? FontWeight.normal
-                                      : FontWeight.bold,
-                                ),
-                              ),
-                              subtitle: Text(
-                                '${n.body}\n${fmt.format(DateTime.fromMillisecondsSinceEpoch(n.createdAt))}',
-                              ),
-                              trailing: n.read
-                                  ? null
-                                  : Icon(
-                                      Icons.circle,
-                                      size: 10,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                              onTap: () async {
-                                await markNotificationsRead(ref, ids: [n.id]);
-                                if (context.mounted) {
-                                  openNotificationTarget(
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                              child: Material(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(14),
+                                clipBehavior: Clip.antiAlias,
+                                child: InkWell(
+                                  onTap: () => openNotificationTarget(
                                     context,
                                     NotificationTap(n.type, n.refId),
-                                  );
-                                }
-                              },
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: _unreadAtOpen.contains(n.id)
+                                            ? AppColors.primary
+                                            : AppColors.border,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(9),
+                                          decoration: BoxDecoration(
+                                            color: toneColors(
+                                              n.type == 'order'
+                                                  ? Tone.warning
+                                                  : Tone.info,
+                                            ).bg,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            _icon(n.type),
+                                            size: 20,
+                                            color: toneColors(
+                                              n.type == 'order'
+                                                  ? Tone.warning
+                                                  : Tone.info,
+                                            ).fg,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                n.title,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                n.body,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 13,
+                                                  color: AppColors.muted,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                fmt.format(
+                                                  DateTime.fromMillisecondsSinceEpoch(
+                                                    n.createdAt,
+                                                  ),
+                                                ),
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 11.5,
+                                                  color: const Color(
+                                                    0xFF9CA3AF,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (_unreadAtOpen.contains(n.id))
+                                          const Icon(
+                                            Icons.circle,
+                                            size: 10,
+                                            color: AppColors.rose,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                         ],
                       ),

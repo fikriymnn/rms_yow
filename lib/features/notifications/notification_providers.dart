@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
@@ -35,30 +37,63 @@ class AppNotification {
   }
 }
 
-/// Jumlah belum dibaca (penanda di navigasi), disegarkan tiap 30 detik.
-final unreadNotificationsProvider = StreamProvider<int>((ref) async* {
-  if (ref.watch(sessionProvider).value == null) {
-    yield 0;
-    return;
+/// Jumlah belum dibaca. Disegarkan tiap 10 detik, saat ada notifikasi, dan saat aplikasi aktif kembali.
+class UnreadNotifier extends Notifier<int> {
+  Timer? _poll;
+  Timer? _debounce;
+  int _gen = 0;
+  bool _disposed = false;
+
+  @override
+  int build() {
+    _disposed = false;
+    final session = ref.watch(sessionProvider).value;
+    ref.onDispose(() {
+      _disposed = true;
+      _poll?.cancel();
+      _debounce?.cancel();
+    });
+    if (session == null) return 0;
+    _poll = Timer.periodic(const Duration(seconds: 10), (_) => _load());
+    Future.microtask(_load);
+    return 0;
   }
-  var last = 0;
-  while (true) {
+
+  Future<void> _load() async {
+    final gen = ++_gen;
     try {
       final m =
           await ref.read(apiClientProvider).get('/notifications/unread-count')
               as Map<String, dynamic>;
-      last = (m['count'] as num).toInt();
+      if (!_disposed && gen == _gen)
+        state = (m['count'] as num).toInt(); // jawaban usang dibuang
     } catch (_) {
       /* offline: pakai angka terakhir */
     }
-    yield last;
-    await Future<void>.delayed(const Duration(seconds: 30));
   }
-});
+
+  /// Beberapa pemanggilan beruntun digabung menjadi satu permintaan.
+  void refresh() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), _load);
+  }
+
+  /// Notifikasi baru masuk: tampilkan segera, lalu server mengoreksi.
+  void bump() {
+    _gen++; // permintaan yang sedang berjalan sudah usang
+    state = state + 1;
+  }
+}
+
+final unreadNotificationsProvider = NotifierProvider<UnreadNotifier, int>(
+  UnreadNotifier.new,
+);
 
 final notificationsListProvider =
     FutureProvider.autoDispose<List<AppNotification>>((ref) async {
-      ref.watch(unreadNotificationsProvider);
+      ref.watch(
+        unreadNotificationsProvider,
+      ); // jumlah berubah -> daftar dimuat ulang
       final data =
           await ref
                   .read(apiClientProvider)
@@ -70,14 +105,29 @@ final notificationsListProvider =
       ];
     });
 
-Future<void> markNotificationsRead(
+/// Tandai dibaca. Gagal (offline) diam-diam: akan dicoba lagi saat layar dibuka berikutnya.
+Future<bool> markNotificationsRead(
   WidgetRef ref, {
   List<String> ids = const [],
   bool all = false,
+  String? refType,
+  String? refId,
 }) async {
-  await ref
-      .read(apiClientProvider)
-      .post('/notifications/read', data: {'ids': ids, 'all': all});
-  ref.invalidate(notificationsListProvider);
-  ref.invalidate(unreadNotificationsProvider);
+  try {
+    await ref
+        .read(apiClientProvider)
+        .post(
+          '/notifications/read',
+          data: {'ids': ids, 'all': all, 'ref_type': refType, 'ref_id': refId},
+        );
+  } catch (_) {
+    return false;
+  }
+  try {
+    ref.invalidate(notificationsListProvider);
+    ref.read(unreadNotificationsProvider.notifier).refresh();
+  } catch (_) {
+    /* halaman sudah ditutup */
+  }
+  return true;
 }

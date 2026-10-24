@@ -144,4 +144,11 @@ class AttendanceQueue {
     if (sent > 0) _ref.read(attendanceMeProvider.notifier).refresh();
     return sent;
   }
+
+  /// Hapus seluruh antrean di perangkat ini (berisi foto): dipakai saat persetujuan dicabut.
+  Future<void> clearAll() async {
+    for (final r in await _db.metaPrefixRows('attq_')) {
+      await _db.purge('device_settings', r.id);
+    }
+  }
 }

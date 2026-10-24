@@ -84,3 +84,51 @@ Future<bool> ensureConsent(BuildContext context, WidgetRef ref) async {
     return false;
   }
 }
+
+/// Cabut persetujuan (hak subjek data). Mengembalikan jumlah foto yang dihapus di server,
+/// atau null bila dibatalkan atau gagal.
+Future<int?> revokeConsent(BuildContext context, WidgetRef ref) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Cabut persetujuan data absensi?'),
+      content: const Text(
+        'Yang terjadi:\n\n'
+        '• Foto wajah Anda dan koordinat lokasi pada catatan absensi dihapus permanen.\n'
+        '• Foto yang masih mengantre di HP ini juga dihapus.\n'
+        '• Catatan jam masuk dan pulang tetap ada.\n'
+        '• Anda tidak bisa absen sampai menyetujui lagi.\n\n'
+        'Tindakan ini tidak bisa dibatalkan.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(ctx).colorScheme.error,
+          ),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Cabut dan hapus'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return null;
+  try {
+    final m =
+        await ref.read(apiClientProvider).post('/attendance/consent/revoke')
+            as Map<String, dynamic>;
+    await ref.read(attendanceQueueProvider).clearAll();
+    await ref.read(attendanceMeProvider.notifier).refresh();
+    return (m['photos_deleted'] as num).toInt();
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorText(e))));
+    }
+    return null;
+  }
+}
