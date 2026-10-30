@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/format.dart';
 import '../../core/reason_dialog.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_extra.dart';
+import '../../core/ui/ui_kit.dart';
 import '../audit/audit_log.dart';
 import '../audit/audit_providers.dart';
 import '../auth/auth_providers.dart';
@@ -26,6 +30,7 @@ Future<void> showExpenseDialog(
   final amount = TextEditingController();
   final note = TextEditingController();
 
+  if (!context.mounted) return;
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -36,74 +41,95 @@ Future<void> showExpenseDialog(
         final valid = amt > 0 && (!fromDrawer || canDrawer);
         return AlertDialog(
           title: Text(drawerOnly ? 'Pengeluaran kas laci' : 'Catat biaya'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: category,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Kategori'),
-                  items: [
-                    for (final c in kExpenseCategories)
-                      DropdownMenuItem(value: c, child: Text(c)),
-                  ],
-                  onChanged: (v) => setS(() => category = v ?? category),
-                ),
-                TextField(
-                  controller: amount,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Jumlah (Rp)'),
-                  onChanged: (_) => setS(() {}),
-                ),
-                TextField(
-                  controller: note,
-                  decoration: const InputDecoration(labelText: 'Catatan'),
-                ),
-                if (!drawerOnly) ...[
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Tanggal'),
-                    subtitle: Text(DateFormat('d MMM yyyy').format(date)),
-                    trailing: const Icon(Icons.edit_calendar),
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: ctx,
-                        initialDate: date,
-                        firstDate: DateTime(2024),
-                        lastDate: DateTime.now(),
-                      );
-                      if (d != null) {
-                        setS(() {
-                          date = d;
-                          if (!DateUtils.isSameDay(d, DateTime.now())) {
-                            fromDrawer = false;
-                          }
-                        });
-                      }
-                    },
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: category,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Kategori'),
+                    items: [
+                      for (final c in kExpenseCategories)
+                        DropdownMenuItem(value: c, child: Text(c)),
+                    ],
+                    onChanged: (v) => setS(() => category = v ?? category),
                   ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Dibayar dari kas laci'),
-                    subtitle: Text(
-                      shift == null
-                          ? 'Tidak ada shift aktif'
-                          : 'Mengurangi kas shift berjalan',
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: amount,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Jumlah (Rp)',
+                      prefixText: 'Rp ',
                     ),
-                    value: fromDrawer,
-                    onChanged: canDrawer
-                        ? (v) => setS(() => fromDrawer = v)
-                        : null,
+                    onChanged: (_) => setS(() {}),
                   ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: note,
+                    decoration: const InputDecoration(labelText: 'Catatan'),
+                  ),
+                  if (!drawerOnly) ...[
+                    const SizedBox(height: 4),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Tanggal'),
+                      subtitle: Text(DateFormat('d MMM yyyy').format(date)),
+                      trailing: const Icon(Icons.edit_calendar),
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: ctx,
+                          initialDate: date,
+                          firstDate: DateTime(2024),
+                          lastDate: DateTime.now(),
+                        );
+                        if (d != null) {
+                          setS(() {
+                            date = d;
+                            if (!DateUtils.isSameDay(d, DateTime.now())) {
+                              fromDrawer = false;
+                            }
+                          });
+                        }
+                      },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Dibayar dari kas laci'),
+                      subtitle: Text(
+                        shift == null
+                            ? 'Tidak ada shift aktif'
+                            : 'Mengurangi kas shift berjalan',
+                      ),
+                      value: fromDrawer,
+                      onChanged: canDrawer
+                          ? (v) => setS(() => fromDrawer = v)
+                          : null,
+                    ),
+                  ],
+                  if (drawerOnly && shift == null)
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.roseSoft,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Buka shift dulu di tab Kas.',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: const Color(0xFF9F1239),
+                        ),
+                      ),
+                    ),
                 ],
-                if (drawerOnly && shift == null)
-                  Text(
-                    'Buka shift dulu di tab Kas.',
-                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-                  ),
-              ],
+              ),
             ),
           ),
           actions: [
@@ -156,9 +182,20 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
   void _move(int d) =>
       setState(() => _month = DateTime(_month.year, _month.month + d));
 
+  Future<void> _pickMonth() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _month,
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now(),
+      helpText: 'Pilih tanggal di bulan yang diinginkan',
+    );
+    if (d != null) setState(() => _month = DateTime(d.year, d.month));
+  }
+
   Future<void> _delete(Expense e) async {
     final user = ref.read(appUserProvider).value;
-    if (!(user?.isManager ?? false)) return;
+    if (!(user?.can('expenses.manage_all') ?? false)) return;
     final reason = await askReason(context, 'Hapus biaya ${e.category}');
     if (reason == null) return;
     await ref.read(expenseRepositoryProvider).remove(e.id);
@@ -175,82 +212,240 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
   @override
   Widget build(BuildContext context) {
     final all = ref.watch(expensesProvider).value ?? <Expense>[];
+    final isManager =
+        ref.watch(appUserProvider).value?.can('expenses.manage_all') ?? false;
     final start = _month.millisecondsSinceEpoch;
     final end = DateTime(_month.year, _month.month + 1).millisecondsSinceEpoch;
-    final list = all.where((e) => e.at >= start && e.at < end).toList();
+    final list = all.where((e) => e.at >= start && e.at < end).toList()
+      ..sort((a, b) => b.at.compareTo(a.at));
     final total = list.fold<int>(0, (s, e) => s + e.amount);
     final now = DateTime.now();
     final isCurrent = _month.year == now.year && _month.month == now.month;
-    final th = Theme.of(context).textTheme;
+
+    final byCat = <String, int>{};
+    for (final e in list) {
+      byCat[e.category] = (byCat[e.category] ?? 0) + e.amount;
+    }
+    final cats = byCat.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final denom = total == 0 ? 1 : total;
+
+    final summary = Column(
+      children: [
+        AdaptiveGrid(
+          minTileWidth: 150,
+          maxColumns: 2,
+          children: [
+            StatTile(
+              icon: Icons.payments_outlined,
+              label: 'Total biaya',
+              value: rupiah.format(total),
+              tone: Tone.danger,
+            ),
+            StatTile(
+              icon: Icons.receipt_long_outlined,
+              label: 'Jumlah catatan',
+              value: '${list.length}',
+            ),
+          ],
+        ),
+        if (cats.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          SectionCard(
+            title: 'Per kategori',
+            child: Column(
+              children: [
+                for (final e in cats)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                e.key,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${(e.value * 100 / denom).round()}%',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              rupiah.format(e.value),
+                              style: GoogleFonts.inter(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: e.value / denom,
+                            minHeight: 5,
+                            color: AppColors.rose,
+                            backgroundColor: AppColors.roseSoft,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+
+    Widget tile(Expense e) => Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onLongPress: isManager ? () => _delete(e) : null,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(12, 10, isManager ? 4 : 12, 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: AppColors.roseSoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.receipt_long_outlined,
+                  size: 18,
+                  color: Color(0xFF9F1239),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            e.category,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (e.fromDrawer) ...[
+                          const SizedBox(width: 6),
+                          const StatusPill('Kas laci', tone: Tone.info),
+                        ],
+                      ],
+                    ),
+                    Text(
+                      '${_dayFmt.format(DateTime.fromMillisecondsSinceEpoch(e.at))}'
+                      '${e.userName.isEmpty ? '' : ' • ${e.userName}'}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    if (e.note.isNotEmpty)
+                      Text(e.note, style: GoogleFonts.inter(fontSize: 12.5)),
+                  ],
+                ),
+              ),
+              Text(
+                rupiah.format(e.amount),
+                style: GoogleFonts.inter(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (isManager)
+                IconButton(
+                  tooltip: 'Hapus',
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  onPressed: () => _delete(e),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final listView = list.isEmpty
+        ? const EmptyState(
+            icon: Icons.receipt_long_outlined,
+            title: 'Belum ada biaya',
+          )
+        : Column(children: [for (final e in list) tile(e)]);
+
+    final footnote = Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        'Hapus biaya: manager, alasan wajib. Kategori "Pembelian bahan (sudah di Stok)" '
+        'tidak masuk laba rugi karena biayanya sudah dihitung lewat HPP.',
+        style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+      ),
+    );
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showExpenseDialog(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('Biaya'),
       ),
-      body: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      body: LayoutBuilder(
+        builder: (context, c) {
+          final wide = c.maxWidth >= 900;
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () => _move(-1),
+              DateBar(
+                label: _monthFmt.format(_month),
+                onPrev: () => _move(-1),
+                onNext: isCurrent ? null : () => _move(1),
+                onPick: _pickMonth,
               ),
-              Text(_monthFmt.format(_month), style: th.titleMedium),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: isCurrent ? null : () => _move(1),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Total'),
-                Text(
-                  rupiah.format(total),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+              const SizedBox(height: 12),
+              if (wide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: Column(children: [listView, footnote])),
+                    const SizedBox(width: 16),
+                    SizedBox(width: 340, child: summary),
+                  ],
+                )
+              else ...[
+                summary,
+                const SizedBox(height: 12),
+                listView,
+                footnote,
               ],
-            ),
-          ),
-          const Divider(),
-          Expanded(
-            child: list.isEmpty
-                ? const Center(child: Text('Belum ada biaya'))
-                : ListView(
-                    children: [
-                      for (final e in list)
-                        ListTile(
-                          isThreeLine: e.note.isNotEmpty,
-                          title: Text(
-                            '${e.category} • ${rupiah.format(e.amount)}',
-                          ),
-                          subtitle: Text(
-                            '${_dayFmt.format(DateTime.fromMillisecondsSinceEpoch(e.at))}'
-                            '${e.fromDrawer ? ' • kas laci' : ''}'
-                            '${e.userName.isEmpty ? '' : ' • ${e.userName}'}'
-                            '${e.note.isEmpty ? '' : '\n${e.note}'}',
-                          ),
-                          onLongPress: () => _delete(e),
-                        ),
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text(
-                          'Tekan lama untuk menghapus (manager, alasan wajib). '
-                          'Kategori "Pembelian bahan (sudah di Stok)" tidak masuk laba rugi '
-                          'karena biayanya sudah dihitung lewat HPP.',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

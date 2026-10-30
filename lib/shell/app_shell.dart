@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/layout/form_factor.dart';
 import '../core/sync/sync_controller.dart';
 import '../core/theme/app_colors.dart';
-import '../features/admin/managed_user.dart';
 import '../features/auth/auth_providers.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -497,7 +496,7 @@ class _Sidebar extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          roleLabel(user.role),
+                          user.roleLabel,
                           style: GoogleFonts.inter(
                             color: Colors.white54,
                             fontSize: 12,

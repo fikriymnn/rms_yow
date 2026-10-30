@@ -34,14 +34,17 @@ class _ApprovalsPageState extends ConsumerState<ApprovalsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final role = ref.watch(appUserProvider).value?.role;
+    final user = ref.watch(appUserProvider).value;
     final isApprover =
-        role == AppRole.owner ||
-        role == AppRole.manager ||
-        role == AppRole.head_chef;
+        user?.canAny(const [
+          'approvals.approve_l1',
+          'approvals.approve_final',
+        ]) ??
+        false;
     final tabs = <(String, String)>[
       if (isApprover) ('Menunggu saya', 'inbox'),
-      if (role != AppRole.owner) ('Pengajuan saya', 'mine'),
+      if (user?.can('approvals.create') ?? false) ('Pengajuan saya', 'mine'),
+      if (isApprover) ('Semua menunggu', 'pending'),
       if (isApprover) ('Riwayat', 'history'),
     ];
     if (tabs.isEmpty)
@@ -136,6 +139,7 @@ class _ApprovalList extends ConsumerWidget {
                     title: switch (scope) {
                       'inbox' => 'Tidak ada yang menunggu Anda',
                       'mine' => 'Belum ada pengajuan',
+                      'pending' => 'Tidak ada pengajuan yang menunggu',
                       _ => 'Belum ada riwayat',
                     },
                   ),

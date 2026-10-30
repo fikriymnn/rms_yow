@@ -1,16 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/form_dialog.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
+import '../roles/role_models.dart';
 import 'managed_user.dart';
 
 class _Data {
   _Data(this.users, this.outlets);
   final List<ManagedUser> users;
   final List<OutletInfo> outlets;
+}
+
+String _initials(String name) {
+  final p = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((e) => e.isNotEmpty)
+      .toList();
+  if (p.isEmpty) return '?';
+  return (p.first[0] + (p.length > 1 ? p.last[0] : '')).toUpperCase();
 }
 
 class UsersAdminPage extends ConsumerStatefulWidget {
@@ -21,7 +35,11 @@ class UsersAdminPage extends ConsumerStatefulWidget {
 
 class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
   String? _filterOutlet; // hanya owner
+  String _query = '';
   late Future<_Data> _future = _load();
+  List<RoleOption> _roleOptions = const [];
+
+  String _roleName(String key) => roleNameOf(key, _roleOptions);
 
   Future<_Data> _load() async {
     final api = ref.read(apiClientProvider);
@@ -38,12 +56,16 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
               as List<dynamic>)
         ManagedUser.fromJson(m as Map<String, dynamic>),
     ];
-    final outlets = session.user.role == AppRole.owner
+    final outlets = session.user.isOwner
         ? [
             for (final m in await api.get('/outlets') as List<dynamic>)
               OutletInfo.fromJson(m as Map<String, dynamic>),
           ]
         : [if (session.outlet != null) session.outlet!];
+    _roleOptions = [
+      for (final m in await api.get('/users/role-options') as List<dynamic>)
+        RoleOption.fromJson(m as Map<String, dynamic>),
+    ];
     return _Data(users, outlets);
   }
 
@@ -73,13 +95,19 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
     List<OutletInfo> outlets,
   ) {
     final me = ref.read(sessionProvider).value!.user;
-    final roles = creatableRoles(me);
-    final isOwner = me.role == AppRole.owner;
+    final roles = _roleOptions.where((o) => o.assignable).toList();
+    if (roles.isEmpty) {
+      _toast('Anda tidak punya role yang boleh diberikan.');
+      return Future.value(null);
+    }
+    final isOwner = me.isOwner;
     final username = TextEditingController();
     final password = TextEditingController();
     final name = TextEditingController(text: u?.name);
     final position = TextEditingController(text: u?.position);
-    var role = (u != null && roles.contains(u.role)) ? u.role : roles.first;
+    var role = (u != null && roles.any((o) => o.key == u.roleKey))
+        ? u.roleKey
+        : roles.first.key;
     String? outletId =
         u?.outletId ?? (outlets.length == 1 ? outlets.first.id : null);
 
@@ -95,60 +123,70 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
               (!isOwner || outletId != null);
           return AlertDialog(
             title: Text(u == null ? 'Pengguna baru' : 'Edit pengguna'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (u == null) ...[
-                    TextField(
-                      controller: username,
-                      autofocus: true,
-                      autocorrect: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Username (huruf, angka, . _ -)',
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (u == null) ...[
+                      TextField(
+                        controller: username,
+                        autofocus: true,
+                        autocorrect: false,
+                        decoration: const InputDecoration(
+                          labelText: 'Username (huruf, angka, . _ -)',
+                        ),
+                        onChanged: (_) => setS(() {}),
                       ),
-                      onChanged: (_) => setS(() {}),
-                    ),
-                    TextField(
-                      controller: password,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Password awal (min. 8)',
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: password,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password awal (min. 8)',
+                        ),
+                        onChanged: (_) => setS(() {}),
                       ),
-                      onChanged: (_) => setS(() {}),
-                    ),
-                  ],
-                  TextField(
-                    controller: name,
-                    decoration: const InputDecoration(labelText: 'Nama'),
-                    onChanged: (_) => setS(() {}),
-                  ),
-                  TextField(
-                    controller: position,
-                    decoration: const InputDecoration(labelText: 'Jabatan'),
-                  ),
-                  DropdownButtonFormField<AppRole>(
-                    initialValue: role,
-                    decoration: const InputDecoration(labelText: 'Role'),
-                    items: [
-                      for (final r in roles)
-                        DropdownMenuItem(value: r, child: Text(roleLabel(r))),
+                      const SizedBox(height: 12),
                     ],
-                    onChanged: (v) => setS(() => role = v ?? role),
-                  ),
-                  if (isOwner)
-                    DropdownButtonFormField<String>(
-                      initialValue: outletId,
-                      isExpanded: true,
-                      hint: const Text('Pilih outlet'),
-                      decoration: const InputDecoration(labelText: 'Outlet'),
-                      items: [
-                        for (final o in outlets)
-                          DropdownMenuItem(value: o.id, child: Text(o.name)),
-                      ],
-                      onChanged: (v) => setS(() => outletId = v),
+                    TextField(
+                      controller: name,
+                      decoration: const InputDecoration(labelText: 'Nama'),
+                      onChanged: (_) => setS(() {}),
                     ),
-                ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: position,
+                      decoration: const InputDecoration(labelText: 'Jabatan'),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: role,
+                      decoration: const InputDecoration(labelText: 'Role'),
+                      items: [
+                        for (final r in roles)
+                          DropdownMenuItem(value: r.key, child: Text(r.name)),
+                      ],
+                      onChanged: (v) => setS(() => role = v ?? role),
+                    ),
+                    if (isOwner) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: outletId,
+                        isExpanded: true,
+                        hint: const Text('Pilih outlet'),
+                        decoration: const InputDecoration(labelText: 'Outlet'),
+                        items: [
+                          for (final o in outlets)
+                            DropdownMenuItem(value: o.id, child: Text(o.name)),
+                        ],
+                        onChanged: (v) => setS(() => outletId = v),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -163,7 +201,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                         'password': password.text,
                         'name': name.text.trim(),
                         'position': position.text.trim(),
-                        'role': role.name,
+                        'role': role,
                         'outlet_id': outletId,
                       })
                     : null,
@@ -179,7 +217,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
   Future<void> _create(List<OutletInfo> outlets) async {
     final r = await _userForm(null, outlets);
     if (r == null) return;
-    final isOwner = ref.read(sessionProvider).value!.user.role == AppRole.owner;
+    final isOwner = ref.read(sessionProvider).value!.user.isOwner;
     await _run(() async {
       await ref
           .read(apiClientProvider)
@@ -200,7 +238,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
   Future<void> _edit(ManagedUser u, List<OutletInfo> outlets) async {
     final r = await _userForm(u, outlets);
     if (r == null) return;
-    final isOwner = ref.read(sessionProvider).value!.user.role == AppRole.owner;
+    final isOwner = ref.read(sessionProvider).value!.user.isOwner;
     await _run(() async {
       await ref
           .read(apiClientProvider)
@@ -246,9 +284,16 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: Text(u.name),
-              subtitle: Text('${u.username} • ${roleLabel(u.role)}'),
+              title: Text(
+                u.name,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              subtitle: Text('${u.username} • ${_roleName(u.roleKey)}'),
             ),
+            const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
               title: const Text('Edit'),
@@ -262,6 +307,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
             ListTile(
               leading: Icon(
                 u.active ? Icons.block : Icons.check_circle_outline,
+                color: u.active ? AppColors.danger : AppColors.success,
               ),
               title: Text(u.active ? 'Nonaktifkan' : 'Aktifkan'),
               onTap: () => Navigator.pop(ctx, 'toggle'),
@@ -283,6 +329,93 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
               .post('/users/${u.id}/${u.active ? 'deactivate' : 'activate'}');
         }, ok: u.active ? 'Akun dinonaktifkan' : 'Akun diaktifkan');
     }
+  }
+
+  Widget _card(
+    ManagedUser u,
+    String outletName,
+    bool canEdit,
+    VoidCallback onTap,
+  ) {
+    final senior =
+        u.roleKey == 'owner' ||
+        u.roleKey == 'manager' ||
+        u.roleKey == 'head_chef';
+    return Material(
+      color: u.active ? AppColors.surface : const Color(0xFFF3F4F6),
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: canEdit ? onTap : null,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: u.active
+                    ? AppColors.primary
+                    : const Color(0xFFD1D5DB),
+                child: Text(
+                  _initials(u.name),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      u.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: u.active ? AppColors.ink : AppColors.muted,
+                      ),
+                    ),
+                    Text(
+                      '@${u.username} • $outletName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        StatusPill(
+                          _roleName(u.roleKey),
+                          tone: senior ? Tone.info : Tone.neutral,
+                        ),
+                        if (!u.active)
+                          const StatusPill('Nonaktif', tone: Tone.danger),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (canEdit)
+                const Icon(Icons.more_vert, size: 20, color: AppColors.muted),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -317,66 +450,88 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
           String outletName(String? id) =>
               d.outlets.where((o) => o.id == id).firstOrNull?.name ??
               (id == null ? 'Semua outlet' : '-');
+          final shown = d.users
+              .where(
+                (u) =>
+                    _query.isEmpty ||
+                    u.name.toLowerCase().contains(_query) ||
+                    u.username.toLowerCase().contains(_query),
+              )
+              .toList();
+          final inactive = d.users.where((u) => !u.active).length;
 
           return Scaffold(
+            backgroundColor: Colors.transparent,
             floatingActionButton: FloatingActionButton.extended(
               onPressed: d.outlets.isEmpty ? null : () => _create(d.outlets),
               icon: const Icon(Icons.person_add_alt),
               label: const Text('Pengguna'),
             ),
-            body: Column(
+            body: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
-                if (me.role == AppRole.owner)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: DropdownButtonFormField<String?>(
-                      initialValue: _filterOutlet,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Filter outlet',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Semua outlet'),
-                        ),
-                        for (final o in d.outlets)
-                          DropdownMenuItem<String?>(
-                            value: o.id,
-                            child: Text(o.name),
-                          ),
-                      ],
-                      onChanged: (v) {
-                        _filterOutlet = v;
-                        _reload();
-                      },
-                    ),
-                  ),
-                Expanded(
-                  child: d.users.isEmpty
-                      ? const Center(child: Text('Belum ada pengguna'))
-                      : ListView(
-                          children: [
-                            for (final u in d.users)
-                              ListTile(
-                                leading: Icon(
-                                  u.active
-                                      ? Icons.person_outline
-                                      : Icons.person_off_outlined,
-                                ),
-                                title: Text(
-                                  '${u.name}${u.active ? '' : ' (nonaktif)'}',
-                                ),
-                                subtitle: Text(
-                                  '${u.username} • ${roleLabel(u.role)} • ${outletName(u.outletId)}',
-                                ),
-                                onTap: canManageUser(me, u)
-                                    ? () => _actions(u, d.outlets)
-                                    : null,
-                              ),
-                          ],
-                        ),
+                Row(
+                  children: [
+                    StatusPill('${d.users.length} pengguna', tone: Tone.info),
+                    const SizedBox(width: 8),
+                    if (inactive > 0) StatusPill('$inactive nonaktif'),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  onChanged: (v) =>
+                      setState(() => _query = v.trim().toLowerCase()),
+                  decoration: const InputDecoration(
+                    hintText: 'Cari nama atau username',
+                    isDense: true,
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
+                if (me.isOwner) ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String?>(
+                    initialValue: _filterOutlet,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Filter outlet',
+                    ),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Semua outlet'),
+                      ),
+                      for (final o in d.outlets)
+                        DropdownMenuItem<String?>(
+                          value: o.id,
+                          child: Text(o.name),
+                        ),
+                    ],
+                    onChanged: (v) {
+                      _filterOutlet = v;
+                      _reload();
+                    },
+                  ),
+                ],
+                const SizedBox(height: 12),
+                if (shown.isEmpty)
+                  const EmptyState(
+                    icon: Icons.people_outline,
+                    title: 'Tidak ada pengguna',
+                  )
+                else
+                  AdaptiveGrid(
+                    minTileWidth: 380,
+                    maxColumns: 3,
+                    children: [
+                      for (final u in shown)
+                        _card(
+                          u,
+                          outletName(u.outletId),
+                          canManageUser(me, u, _roleOptions),
+                          () => _actions(u, d.outlets),
+                        ),
+                    ],
+                  ),
               ],
             ),
           );

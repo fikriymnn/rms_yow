@@ -222,7 +222,11 @@ class ApprovalDetailView extends ConsumerWidget {
         const SizedBox(height: 12),
         SectionCard(
           title: 'Rincian',
-          child: a.type == 'purchase_order' ? _po(a) : _supplier(a),
+          child: switch (a.type) {
+            'purchase_order' => _po(a),
+            'ingredient' => _ingredient(a),
+            _ => _supplier(a),
+          },
         ),
       ],
     );
@@ -416,6 +420,42 @@ class ApprovalDetailView extends ConsumerWidget {
         _row('Nama', change('name')),
         _row('Telepon', change('phone')),
         if ('${p['note'] ?? ''}'.isNotEmpty) _row('Catatan', change('note')),
+      ],
+    );
+  }
+
+  Widget _ingredient(ApprovalRequest a) {
+    final p = a.payload;
+    final before = p['before'] as Map?;
+    String q(Object? v) => qtyText((v as num?)?.toDouble() ?? 0);
+    String change(String now, String? old) =>
+        old == null || old == now ? now : '$now  (sebelumnya: $old)';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _row('Jenis', p['action'] == 'create' ? 'Bahan baru' : 'Ubah bahan'),
+        _row(
+          'Nama',
+          change(
+            '${p['name'] ?? ''}',
+            before == null ? null : '${before['name']}',
+          ),
+        ),
+        _row('Satuan dasar', '${p['unit'] ?? ''}'),
+        _row(
+          'Stok minimum',
+          change(
+            '${q(p['minStock'])} ${p['unit'] ?? ''}',
+            before == null
+                ? null
+                : '${q(before['minStock'])} ${before['unit'] ?? ''}',
+          ),
+        ),
+        if ('${p['buyUnit'] ?? ''}'.isNotEmpty)
+          _row(
+            'Satuan beli',
+            'per ${p['buyUnit']} (= ${q(p['buyFactor'])} ${p['unit']})',
+          ),
       ],
     );
   }

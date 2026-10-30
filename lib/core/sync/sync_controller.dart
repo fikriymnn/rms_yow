@@ -71,10 +71,9 @@ class SyncController extends Notifier<SyncState> {
         syncNow();
       }
     });
-    final role = ref.read(appUserProvider).value?.role;
+    // dapur (penerima notifikasi pesanan): pesanan harus cepat
     final fast =
-        role == AppRole.kitchen ||
-        role == AppRole.head_chef; // dapur: pesanan harus cepat
+        ref.read(appUserProvider).value?.can('kitchen.notify') ?? false;
     _timer = Timer.periodic(Duration(seconds: fast ? 2 : 5), (_) => syncNow());
     unawaited(
       _applyEntitlements(db),
@@ -190,7 +189,9 @@ class SyncController extends Notifier<SyncState> {
     int? from,
     bool saveCursor = true,
   }) async {
-    final role = ref.read(appUserProvider).value?.role.name;
+    // Cursor dikaitkan ke himpunan izin: izin baru = unduh ulang dari awal,
+    // supaya koleksi yang baru boleh dibaca ikut terunduh.
+    final role = ref.read(appUserProvider).value?.permSignature;
     var since = from ?? await _loadCursor(db, role);
     while (true) {
       final res =

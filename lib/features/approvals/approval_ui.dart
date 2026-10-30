@@ -17,7 +17,9 @@ extension ApprovalUi on ApprovalRequest {
     _ => statusLabel,
   };
 
-  IconData get typeIcon => type == 'purchase_order'
-      ? Icons.shopping_cart_outlined
-      : Icons.local_shipping_outlined;
+  IconData get typeIcon => switch (type) {
+    'purchase_order' => Icons.shopping_cart_outlined,
+    'ingredient' => Icons.egg_alt_outlined,
+    _ => Icons.local_shipping_outlined,
+  };
 }

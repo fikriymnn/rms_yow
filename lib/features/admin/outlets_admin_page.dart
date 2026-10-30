@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:rms_yow/features/attendance/location_service.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_kit.dart';
 
 class _AdminOutlet {
   _AdminOutlet.fromJson(Map<String, dynamic> m)
@@ -67,92 +70,130 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           title: Text(o == null ? 'Outlet baru' : 'Edit outlet'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: name,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: 'Nama outlet'),
-                ),
-                TextField(
-                  controller: addr,
-                  decoration: const InputDecoration(labelText: 'Alamat'),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.my_location, size: 18),
-                    label: const Text('Pakai lokasi saya'),
-                    onPressed: () async {
-                      try {
-                        await ensureLocationReady();
-                        final f = await currentFix();
-                        setS(() {
-                          lat.text = f.lat.toStringAsFixed(6);
-                          lng.text = f.lng.toStringAsFixed(6);
-                        });
-                        _toast(
-                          'Akurasi ±${f.accuracy.round()} m. Lakukan di tengah outlet.',
-                        );
-                      } catch (e) {
-                        _toast('$e');
-                      }
-                    },
+          content: SizedBox(
+            width: 440,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: name,
+                    autofocus: true,
+                    decoration: const InputDecoration(labelText: 'Nama outlet'),
                   ),
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: lat,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Latitude',
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addr,
+                    decoration: const InputDecoration(labelText: 'Alamat'),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Lokasi untuk absensi',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.tonalIcon(
+                      icon: const Icon(Icons.my_location, size: 18),
+                      label: const Text('Pakai lokasi saya'),
+                      onPressed: () async {
+                        try {
+                          await ensureLocationReady();
+                          final f = await currentFix();
+                          setS(() {
+                            lat.text = f.lat.toStringAsFixed(6);
+                            lng.text = f.lng.toStringAsFixed(6);
+                          });
+                          _toast(
+                            'Akurasi ±${f.accuracy.round()} m. Lakukan di tengah outlet.',
+                          );
+                        } catch (e) {
+                          _toast('$e');
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: lat,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Latitude',
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: lng,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Longitude',
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: lng,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Longitude',
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: radius,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Radius absensi (meter, 20–2000)',
                     ),
-                  ],
-                ),
-                TextField(
-                  controller: radius,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Radius absensi (meter, 20–2000)',
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text(
-                    'Titik lokasi dipakai untuk batas absensi. Salin koordinat dari Google Maps (tekan lama pada peta).',
-                    style: TextStyle(fontSize: 12),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Titik lokasi dipakai untuk batas absensi. Salin koordinat dari '
+                            'Google Maps (tekan lama pada peta).',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.ink,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (o != null)
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Aktif'),
-                    value: active,
-                    onChanged: (v) => setS(() => active = v),
-                  ),
-              ],
+                  if (o != null)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Aktif'),
+                      value: active,
+                      onChanged: (v) => setS(() => active = v),
+                    ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -194,6 +235,105 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
     }
   }
 
+  Widget _card(_AdminOutlet o) {
+    final hasLoc = o.lat != null;
+    return Material(
+      color: o.active ? AppColors.surface : const Color(0xFFF3F4F6),
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _edit(o),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: o.active
+                      ? AppColors.primarySoft
+                      : const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.storefront_outlined,
+                  color: o.active ? AppColors.primary : AppColors.muted,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            o.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (!o.active) ...[
+                          const SizedBox(width: 8),
+                          const StatusPill('Nonaktif'),
+                        ],
+                      ],
+                    ),
+                    if (o.address.isNotEmpty)
+                      Text(
+                        o.address,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        StatusPill(
+                          hasLoc ? 'Lokasi diatur' : 'Lokasi belum diatur',
+                          tone: hasLoc ? Tone.success : Tone.warning,
+                        ),
+                        if (hasLoc)
+                          StatusPill('Radius ${o.radiusM} m', tone: Tone.info),
+                      ],
+                    ),
+                    if (hasLoc)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          '${o.lat!.toStringAsFixed(5)}, ${o.lng?.toStringAsFixed(5) ?? '-'}',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Kelola outlet')),
@@ -224,23 +364,37 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
           );
         }
         final list = snap.data!;
-        return ListView(
-          children: [
-            for (final o in list)
-              ListTile(
-                leading: Icon(
-                  Icons.storefront_outlined,
-                  color: o.active ? null : Theme.of(context).disabledColor,
-                ),
-                title: Text('${o.name}${o.active ? '' : ' (nonaktif)'}'),
-                subtitle: Text(
-                  o.lat == null
-                      ? 'Lokasi belum diatur'
-                      : '${o.lat!.toStringAsFixed(5)}, ${o.lng?.toStringAsFixed(5) ?? '-'} • radius ${o.radiusM} m',
-                ),
-                onTap: () => _edit(o),
+        if (list.isEmpty) {
+          return const EmptyState(
+            icon: Icons.storefront_outlined,
+            title: 'Belum ada outlet',
+          );
+        }
+        final inactive = list.where((o) => !o.active).length;
+        return RefreshIndicator(
+          onRefresh: () async {
+            _reload();
+            await _future;
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            children: [
+              Wrap(
+                spacing: 8,
+                children: [
+                  StatusPill('${list.length} outlet', tone: Tone.info),
+                  if (inactive > 0) StatusPill('$inactive nonaktif'),
+                ],
               ),
-          ],
+              const SizedBox(height: 12),
+              AdaptiveGrid(
+                minTileWidth: 380,
+                maxColumns: 3,
+                children: [for (final o in list) _card(o)],
+              ),
+            ],
+          ),
         );
       },
     ),

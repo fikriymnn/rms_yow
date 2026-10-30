@@ -2,11 +2,14 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/reason_dialog.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
 import '../export/csv_util.dart';
 import '../export/export_service.dart';
@@ -34,6 +37,22 @@ String _statusLabel(String s) => switch (s) {
   _ => 'Belum ditinjau',
 };
 
+Tone _reviewTone(String s) => switch (s) {
+  'ok' => Tone.success,
+  'suspicious' => Tone.danger,
+  _ => Tone.neutral,
+};
+
+String _initials(String name) {
+  final p = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((e) => e.isNotEmpty)
+      .toList();
+  if (p.isEmpty) return '?';
+  return (p.first[0] + (p.length > 1 ? p.last[0] : '')).toUpperCase();
+}
+
 class AttendanceAdminPage extends ConsumerStatefulWidget {
   const AttendanceAdminPage({super.key});
   @override
@@ -56,6 +75,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
   bool _loadingMore = false;
   bool _hasMore = false;
   Object? _error;
+  String? _selectedId; // layar lebar: catatan yang dibuka di panel kanan
 
   @override
   void initState() {
@@ -193,6 +213,41 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
     );
   }
 
+  Widget _timeTile(
+    IconData icon,
+    String label,
+    String value,
+    VoidCallback onTap,
+  ) => InkWell(
+    borderRadius: BorderRadius.circular(12),
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 13.5, color: AppColors.muted),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 6),
+          const Icon(Icons.edit_outlined, size: 16, color: AppColors.muted),
+        ],
+      ),
+    ),
+  );
+
   Future<void> _correct(AttendanceRecord r) async {
     final inDt = DateTime.fromMillisecondsSinceEpoch(r.clockInAt);
     var tin = TimeOfDay.fromDateTime(inDt);
@@ -207,38 +262,42 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           title: Text('Koreksi ${r.userName}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(DateFormat('EEEE, d MMM yyyy').format(inDt)),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.login, size: 18),
-                label: Text('Masuk ${tin.format(ctx)}'),
-                onPressed: () async {
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  DateFormat('EEEE, d MMM yyyy').format(inDt),
+                  style: GoogleFonts.inter(
+                    fontSize: 13.5,
+                    color: AppColors.muted,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _timeTile(Icons.login, 'Jam masuk', tin.format(ctx), () async {
                   final t = await showTimePicker(
                     context: ctx,
                     initialTime: tin,
                   );
                   if (t != null) setS(() => tin = t);
-                },
-              ),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.logout, size: 18),
-                label: Text(
-                  tout == null
-                      ? 'Pulang: belum diisi'
-                      : 'Pulang ${tout!.format(ctx)}',
+                }),
+                const SizedBox(height: 8),
+                _timeTile(
+                  Icons.logout,
+                  'Jam pulang',
+                  tout == null ? 'belum diisi' : tout!.format(ctx),
+                  () async {
+                    final t = await showTimePicker(
+                      context: ctx,
+                      initialTime: tout ?? tin,
+                    );
+                    if (t != null) setS(() => tout = t);
+                  },
                 ),
-                onPressed: () async {
-                  final t = await showTimePicker(
-                    context: ctx,
-                    initialTime: tout ?? tin,
-                  );
-                  if (t != null) setS(() => tout = t);
-                },
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -289,123 +348,32 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
     );
   }
 
-  Future<void> _open(AttendanceRecord r) async {
-    final inDt = DateTime.fromMillisecondsSinceEpoch(r.clockInAt);
-    final outDt = r.clockOutAt == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!);
-    final th = Theme.of(context).textTheme;
-
-    Widget info(String k, String v) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 130, child: Text(k)),
-          Expanded(child: Text(v)),
-        ],
-      ),
-    );
-
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.85,
-        maxChildSize: 0.95,
-        builder: (_, sc) => ListView(
-          controller: sc,
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(r.userName, style: th.titleLarge),
-            Text(DateFormat('EEEE, d MMM yyyy').format(inDt)),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _PhotoBox(
-                    recordId: r.id,
-                    kind: 'in',
-                    available: r.hasInPhoto,
-                    label: 'Masuk ${_hm.format(inDt)}',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _PhotoBox(
-                    recordId: r.id,
-                    kind: 'out',
-                    available: r.hasOutPhoto,
-                    label: outDt == null
-                        ? 'Pulang'
-                        : 'Pulang ${_hm.format(outDt)}',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (r.minutes != null) info('Durasi', durationText(r.minutes!)),
-            info(
-              'Jarak masuk',
-              r.inDistanceM == null
-                  ? '-'
-                  : '±${r.inDistanceM} m dari titik outlet',
-            ),
-            if (r.outDistanceM != null)
-              info('Jarak pulang', '±${r.outDistanceM} m dari titik outlet'),
-            if (r.inFlags.isNotEmpty || r.outFlags.isNotEmpty)
-              info(
-                'Tanda',
-                [...r.inFlags, ...r.outFlags]
-                    .map((f) => f == 'late_sync' ? 'dikirim terlambat' : f)
-                    .join(', '),
-              ),
-            if (r.stale)
-              info('Peringatan', 'Belum absen pulang lebih dari 16 jam'),
-            if (r.edited) info('Riwayat', 'Pernah dikoreksi manager'),
-            info('Tinjauan', _statusLabel(r.reviewStatus)),
-            if (r.reviewNote.isNotEmpty) info('Catatan', r.reviewNote),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (r.reviewStatus != 'ok')
-                  FilledButton.tonalIcon(
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Tandai OK'),
-                    onPressed: () => Navigator.pop(ctx, 'ok'),
-                  ),
-                if (r.reviewStatus != 'suspicious')
-                  FilledButton.tonalIcon(
-                    icon: const Icon(Icons.report_outlined),
-                    label: const Text('Mencurigakan'),
-                    onPressed: () => Navigator.pop(ctx, 'suspicious'),
-                  ),
-                if (r.reviewStatus != 'pending')
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx, 'pending'),
-                    child: const Text('Reset tinjauan'),
-                  ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Koreksi jam'),
-                  onPressed: () => Navigator.pop(ctx, 'correct'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-    if (action == null || !mounted) return;
+  Future<void> _handle(AttendanceRecord r, String action) async {
     switch (action) {
       case 'correct':
         await _correct(r);
       default:
         await _review(r, action);
     }
+  }
+
+  Future<void> _openSheet(AttendanceRecord r) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.88,
+        maxChildSize: 0.95,
+        builder: (_, sc) => ListView(
+          controller: sc,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: _detailChildren(r, (a) => Navigator.pop(ctx, a)),
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+    await _handle(r, action);
   }
 
   // ---------- ekspor ----------
@@ -505,131 +473,531 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
     ),
   );
 
-  Widget _recordTile(AttendanceRecord r) {
-    final cs = Theme.of(context).colorScheme;
+  Widget _info(String k, String v, {Color? color}) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            k,
+            style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            v,
+            style: GoogleFonts.inter(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: color ?? AppColors.ink,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  List<Widget> _detailChildren(
+    AttendanceRecord r,
+    ValueChanged<String> onAction,
+  ) {
     final inDt = DateTime.fromMillisecondsSinceEpoch(r.clockInAt);
     final outDt = r.clockOutAt == null
         ? null
         : DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!);
-    final tags = <String>[
-      if (r.inDistanceM != null) 'masuk ±${r.inDistanceM} m',
-      if (r.outDistanceM != null) 'pulang ±${r.outDistanceM} m',
-      if (r.inFlags.contains('late_sync') || r.outFlags.contains('late_sync'))
-        'dikirim terlambat',
-      if (r.edited) 'dikoreksi',
-    ];
-    final icon = switch (r.reviewStatus) {
-      'ok' => Icon(Icons.check_circle, color: Colors.green.shade700),
-      'suspicious' => Icon(Icons.report, color: cs.error),
-      _ => const Icon(Icons.hourglass_empty),
-    };
-    return ListTile(
-      isThreeLine: true,
-      title: Text('${r.userName} • ${_day.format(inDt)}'),
-      subtitle: Text(
-        '${_hm.format(inDt)} - ${outDt == null ? '...' : _hm.format(outDt)}'
-        '${r.minutes == null ? '' : ' • ${durationText(r.minutes!)}'}'
-        '${r.stale ? '\nLupa absen pulang' : ''}'
-        '${tags.isEmpty ? '' : '\n${tags.join(' • ')}'}',
+    final flags = [
+      ...r.inFlags,
+      ...r.outFlags,
+    ].map((f) => f == 'late_sync' ? 'dikirim terlambat' : f).join(', ');
+    return [
+      Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.primary,
+              child: Text(
+                _initials(r.userName),
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    r.userName,
+                    style: GoogleFonts.inter(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    DateFormat('EEEE, d MMM yyyy').format(inDt),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                StatusPill(
+                  _statusLabel(r.reviewStatus),
+                  tone: _reviewTone(r.reviewStatus),
+                ),
+                if (r.stale) ...[
+                  const SizedBox(height: 4),
+                  const StatusPill('Lupa pulang', tone: Tone.danger),
+                ],
+              ],
+            ),
+          ],
+        ),
       ),
-      trailing: icon,
-      onTap: () => _open(r),
+      const SizedBox(height: 12),
+      SectionCard(
+        title: 'Foto verifikasi',
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _PhotoBox(
+                recordId: r.id,
+                kind: 'in',
+                available: r.hasInPhoto,
+                label: 'Masuk ${_hm.format(inDt)}',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _PhotoBox(
+                recordId: r.id,
+                kind: 'out',
+                available: r.hasOutPhoto,
+                label: outDt == null ? 'Pulang' : 'Pulang ${_hm.format(outDt)}',
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      SectionCard(
+        title: 'Rincian',
+        child: Column(
+          children: [
+            if (r.minutes != null) _info('Durasi', durationText(r.minutes!)),
+            _info(
+              'Jarak masuk',
+              r.inDistanceM == null
+                  ? '-'
+                  : '±${r.inDistanceM} m dari titik outlet',
+            ),
+            if (r.outDistanceM != null)
+              _info('Jarak pulang', '±${r.outDistanceM} m dari titik outlet'),
+            if (flags.isNotEmpty) _info('Tanda', flags),
+            if (r.stale)
+              _info(
+                'Peringatan',
+                'Belum absen pulang lebih dari 16 jam',
+                color: AppColors.danger,
+              ),
+            if (r.edited) _info('Riwayat', 'Pernah dikoreksi manager'),
+            _info('Tinjauan', _statusLabel(r.reviewStatus)),
+            if (r.reviewNote.isNotEmpty) _info('Catatan', r.reviewNote),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          if (r.reviewStatus != 'ok')
+            FilledButton.tonalIcon(
+              icon: const Icon(Icons.check_circle_outline),
+              label: const Text('Tandai OK'),
+              onPressed: () => onAction('ok'),
+            ),
+          if (r.reviewStatus != 'suspicious')
+            FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(foregroundColor: AppColors.danger),
+              icon: const Icon(Icons.report_outlined),
+              label: const Text('Mencurigakan'),
+              onPressed: () => onAction('suspicious'),
+            ),
+          if (r.reviewStatus != 'pending')
+            OutlinedButton(
+              onPressed: () => onAction('pending'),
+              child: const Text('Reset tinjauan'),
+            ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Koreksi jam'),
+            onPressed: () => onAction('correct'),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  Widget _recordCard(
+    AttendanceRecord r, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final inDt = DateTime.fromMillisecondsSinceEpoch(r.clockInAt);
+    final outDt = r.clockOutAt == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!);
+    final late =
+        r.inFlags.contains('late_sync') || r.outFlags.contains('late_sync');
+    return Material(
+      color: selected ? AppColors.primarySoft : AppColors.surface,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: r.stale
+                  ? AppColors.danger
+                  : (selected ? AppColors.primary : AppColors.border),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  _initials(r.userName),
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            r.userName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        StatusPill(
+                          _statusLabel(r.reviewStatus),
+                          tone: _reviewTone(r.reviewStatus),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_day.format(inDt)} • ${_hm.format(inDt)} - ${outDt == null ? '...' : _hm.format(outDt)}'
+                      '${r.minutes == null ? '' : ' • ${durationText(r.minutes!)}'}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        if (r.stale)
+                          const StatusPill(
+                            'Lupa absen pulang',
+                            tone: Tone.danger,
+                          ),
+                        if (r.edited)
+                          const StatusPill('Dikoreksi', tone: Tone.info),
+                        if (late)
+                          const StatusPill(
+                            'Dikirim terlambat',
+                            tone: Tone.warning,
+                          ),
+                        if (r.inDistanceM != null)
+                          StatusPill('Masuk ±${r.inDistanceM} m'),
+                        if (r.outDistanceM != null)
+                          StatusPill('Pulang ±${r.outDistanceM} m'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Widget _recordsTab() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _errorView();
-    final pending = _items.where((r) => r.reviewStatus == 'pending').length;
-    final stale = _items.where((r) => r.stale).length;
-    final cs = Theme.of(context).colorScheme;
-    return RefreshIndicator(
-      onRefresh: _reload,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                for (final (label, value) in [
-                  ('Semua', null),
-                  ('Perlu ditinjau', 'pending'),
-                  ('Mencurigakan', 'suspicious'),
-                  ('OK', 'ok'),
-                ])
-                  ChoiceChip(
-                    label: Text(label),
-                    selected: _status == value,
-                    onSelected: (_) {
-                      setState(() {
-                        _status = value;
-                      });
-                      _reload();
+    return LayoutBuilder(
+      builder: (context, c) {
+        final wide = c.maxWidth >= 900;
+        final pending = _items.where((r) => r.reviewStatus == 'pending').length;
+        final stale = _items.where((r) => r.stale).length;
+
+        final listView = RefreshIndicator(
+          onRefresh: _reload,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            children: [
+              AdaptiveGrid(
+                minTileWidth: 120,
+                maxColumns: 3,
+                children: [
+                  StatTile(
+                    icon: Icons.fact_check_outlined,
+                    label: 'Catatan',
+                    value: '${_items.length}',
+                  ),
+                  StatTile(
+                    icon: Icons.hourglass_top,
+                    label: 'Perlu ditinjau',
+                    value: '$pending',
+                    tone: pending > 0 ? Tone.warning : Tone.success,
+                  ),
+                  StatTile(
+                    icon: Icons.warning_amber_rounded,
+                    label: 'Lupa pulang',
+                    value: '$stale',
+                    tone: stale > 0 ? Tone.danger : Tone.success,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final (label, value) in [
+                    ('Semua', null),
+                    ('Perlu ditinjau', 'pending'),
+                    ('Mencurigakan', 'suspicious'),
+                    ('OK', 'ok'),
+                  ])
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: _status == value,
+                      onSelected: (_) {
+                        setState(() {
+                          _status = value;
+                        });
+                        _reload();
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (_items.isEmpty)
+                const EmptyState(
+                  icon: Icons.fact_check_outlined,
+                  title: 'Tidak ada catatan pada periode ini',
+                ),
+              for (final r in _items)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _recordCard(
+                    r,
+                    selected: wide && r.id == _selectedId,
+                    onTap: () {
+                      if (wide) {
+                        setState(() => _selectedId = r.id);
+                      } else {
+                        _openSheet(r);
+                      }
                     },
                   ),
-              ],
-            ),
+                ),
+              if (_hasMore)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: OutlinedButton(
+                    onPressed: _loadingMore ? null : _more,
+                    child: Text(
+                      _loadingMore ? 'Memuat...' : 'Muat lebih banyak',
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 24),
+            ],
           ),
-          if (pending > 0 || stale > 0)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(
-                [
-                  if (pending > 0) '$pending belum ditinjau',
-                  if (stale > 0) '$stale lupa absen pulang',
-                ].join(' • '),
-                style: TextStyle(color: stale > 0 ? cs.error : null),
-              ),
+        );
+        if (!wide) return listView;
+
+        final sel = _items.where((r) => r.id == _selectedId).firstOrNull;
+        return Row(
+          children: [
+            SizedBox(width: 460, child: listView),
+            const VerticalDivider(width: 1),
+            Expanded(
+              child: sel == null
+                  ? const EmptyState(
+                      icon: Icons.touch_app_outlined,
+                      title: 'Pilih catatan',
+                      message: 'Foto dan rinciannya tampil di sini',
+                    )
+                  : ListView(
+                      key: ValueKey(sel.id),
+                      padding: const EdgeInsets.all(16),
+                      children: _detailChildren(sel, (a) => _handle(sel, a)),
+                    ),
             ),
-          const SizedBox(height: 4),
-          if (_items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: Text('Tidak ada catatan pada periode ini')),
-            ),
-          for (final r in _items) _recordTile(r),
-          if (_hasMore)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: OutlinedButton(
-                onPressed: _loadingMore ? null : _more,
-                child: Text(_loadingMore ? 'Memuat...' : 'Muat lebih banyak'),
-              ),
-            ),
-          const SizedBox(height: 24),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 
   Widget _summaryTab() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _errorView();
-    final cs = Theme.of(context).colorScheme;
+    final totalMin = _summary.fold<int>(0, (s, e) => s + e.minutes);
+    final openAll = _summary.fold<int>(0, (s, e) => s + e.openCount);
     return RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         children: [
+          AdaptiveGrid(
+            minTileWidth: 150,
+            maxColumns: 3,
+            children: [
+              StatTile(
+                icon: Icons.groups_outlined,
+                label: 'Karyawan',
+                value: '${_summary.length}',
+              ),
+              StatTile(
+                icon: Icons.schedule,
+                label: 'Total jam kerja',
+                value: durationText(totalMin),
+                tone: Tone.success,
+              ),
+              StatTile(
+                icon: Icons.warning_amber_rounded,
+                label: 'Belum pulang',
+                value: '$openAll',
+                tone: openAll > 0 ? Tone.danger : Tone.success,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           if (_summary.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: Text('Belum ada absensi pada periode ini')),
-            ),
-          for (final s in _summary)
-            ListTile(
-              title: Text(s.userName),
-              subtitle: Text(
-                '${s.records} catatan'
-                '${s.openCount > 0 ? ' • ${s.openCount} belum pulang' : ''}',
-                style: s.openCount > 0 ? TextStyle(color: cs.error) : null,
-              ),
-              trailing: Text(
-                durationText(s.minutes),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+            const EmptyState(
+              icon: Icons.groups_outlined,
+              title: 'Belum ada absensi pada periode ini',
+            )
+          else
+            AdaptiveGrid(
+              minTileWidth: 340,
+              maxColumns: 3,
+              children: [
+                for (final s in _summary)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: AppColors.primary,
+                          child: Text(
+                            _initials(s.userName),
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.userName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                '${s.records} catatan',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12.5,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                              if (s.openCount > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: StatusPill(
+                                    '${s.openCount} belum pulang',
+                                    tone: Tone.danger,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          durationText(s.minutes),
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
         ],
       ),
@@ -667,8 +1035,13 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
         ),
         body: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                border: Border(bottom: BorderSide(color: AppColors.border)),
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: PeriodChips(
@@ -721,13 +1094,29 @@ class _PhotoBoxState extends ConsumerState<_PhotoBox> {
     }
   }
 
+  Widget _placeholder(IconData icon, String text) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.muted, size: 28),
+          const SizedBox(height: 4),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.muted),
+          ),
+        ],
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final Widget body;
     if (_future == null) {
-      body = const Center(
-        child: Text('Tidak ada foto', style: TextStyle(fontSize: 12)),
-      );
+      body = _placeholder(Icons.no_photography_outlined, 'Tidak ada foto');
     } else {
       body = FutureBuilder<Uint8List>(
         future: _future,
@@ -736,15 +1125,9 @@ class _PhotoBoxState extends ConsumerState<_PhotoBox> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(8),
-                child: Text(
-                  'Foto tidak tersedia (mungkin sudah dihapus sesuai masa simpan)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11),
-                ),
-              ),
+            return _placeholder(
+              Icons.hide_image_outlined,
+              'Foto tidak tersedia (mungkin sudah dihapus sesuai masa simpan)',
             );
           }
           final bytes = snap.data!;
@@ -767,16 +1150,16 @@ class _PhotoBoxState extends ConsumerState<_PhotoBox> {
     }
     return Column(
       children: [
-        Text(widget.label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
+        Text(
+          widget.label,
+          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
         AspectRatio(
           aspectRatio: 1,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: ColoredBox(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: body,
-            ),
+            borderRadius: BorderRadius.circular(12),
+            child: ColoredBox(color: AppColors.bg, child: body),
           ),
         ),
       ],

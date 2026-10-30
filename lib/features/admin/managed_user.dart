@@ -1,21 +1,5 @@
 import '../auth/auth_providers.dart';
-
-const staffRoles = [
-  AppRole.cashier,
-  AppRole.waiter,
-  AppRole.kitchen,
-  AppRole.warehouse,
-];
-
-String roleLabel(AppRole r) => switch (r) {
-  AppRole.owner => 'Owner',
-  AppRole.manager => 'Manager',
-  AppRole.head_chef => 'Head Chef',
-  AppRole.cashier => 'Kasir',
-  AppRole.waiter => 'Waiter',
-  AppRole.kitchen => 'Dapur',
-  AppRole.warehouse => 'Gudang',
-};
+import '../roles/role_models.dart';
 
 class ManagedUser {
   const ManagedUser({
@@ -23,7 +7,7 @@ class ManagedUser {
     required this.username,
     required this.name,
     required this.position,
-    required this.role,
+    required this.roleKey,
     required this.outletId,
     required this.active,
   });
@@ -32,7 +16,7 @@ class ManagedUser {
   final String username;
   final String name;
   final String position;
-  final AppRole role;
+  final String roleKey; // = roles.key (peran bawaan maupun buatan owner)
   final String? outletId;
   final bool active;
 
@@ -41,27 +25,20 @@ class ManagedUser {
     username: m['username'] as String? ?? '',
     name: m['name'] as String? ?? '',
     position: m['position'] as String? ?? '',
-    role: AppRole.values.firstWhere(
-      (r) => r.name == m['role'],
-      orElse: () => AppRole.waiter,
-    ),
+    roleKey: m['role'] as String? ?? '',
     outletId: m['outlet_id'] as String?,
     active: m['active'] as bool? ?? true,
   );
 }
 
-/// Sama dengan aturan di server (server tetap yang memutuskan).
-bool canManageUser(AppUser actor, ManagedUser t) {
-  if (t.id == actor.uid || t.role == AppRole.owner) return false;
-  if (actor.role == AppRole.owner) return true;
-  if (actor.role == AppRole.manager) {
-    return t.outletId == actor.outletId && staffRoles.contains(t.role);
-  }
-  return false;
+/// Petunjuk untuk UI saja (server tetap yang memutuskan).
+bool canManageUser(AppUser actor, ManagedUser t, List<RoleOption> options) {
+  if (t.id == actor.uid || t.roleKey == 'owner') return false;
+  if (actor.isOwner) return true;
+  if (!actor.can('users.update')) return false;
+  final staff = {
+    for (final o in options)
+      if (o.assignable) o.key,
+  };
+  return t.outletId == actor.outletId && staff.contains(t.roleKey);
 }
-
-List<AppRole> creatableRoles(AppUser actor) => switch (actor.role) {
-  AppRole.owner => [AppRole.manager, AppRole.head_chef, ...staffRoles],
-  AppRole.manager => staffRoles,
-  _ => const [],
-};

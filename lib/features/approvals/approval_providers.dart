@@ -8,17 +8,10 @@ import '../../core/sync/sync_controller.dart';
 import '../auth/auth_providers.dart';
 import 'approval_models.dart';
 
-const _approvalRoles = {
-  AppRole.owner,
-  AppRole.manager,
-  AppRole.head_chef,
-  AppRole.warehouse,
-};
-
 /// Jumlah di kotak masuk dan pengajuan terbuka, disegarkan tiap 20 detik.
 final approvalCountsProvider = StreamProvider<ApprovalCounts>((ref) async* {
   final session = ref.watch(sessionProvider).value;
-  if (session == null || !_approvalRoles.contains(session.user.role)) {
+  if (session == null || !session.user.can('approvals.read')) {
     yield const ApprovalCounts();
     return;
   }
@@ -141,6 +134,39 @@ Future<ApprovalRequest> submitSupplier(
                     'name': name,
                     'phone': phone,
                     'note': note,
+                  },
+                },
+              )
+          as Map<String, dynamic>;
+  _refresh(ref);
+  return ApprovalRequest.fromJson(m);
+}
+
+Future<ApprovalRequest> submitIngredient(
+  WidgetRef ref, {
+  required String action, // create | update
+  String? ingredientId,
+  required String name,
+  required String unit,
+  double minStock = 0,
+  String buyUnit = '',
+  double buyFactor = 1,
+}) async {
+  final m =
+      await ref
+              .read(apiClientProvider)
+              .post(
+                '/approvals',
+                data: {
+                  'type': 'ingredient',
+                  'ingredient': {
+                    'action': action,
+                    'ingredient_id': ingredientId,
+                    'name': name,
+                    'unit': unit,
+                    'min_stock': minStock,
+                    'buy_unit': buyUnit,
+                    'buy_factor': buyFactor,
                   },
                 },
               )

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/format.dart';
 import '../../core/sync/local_first_repository.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_kit.dart';
 import 'inventory_models.dart';
 import 'inventory_providers.dart';
 
@@ -75,6 +78,12 @@ List<String> describeChange(
   ];
 }
 
+Color _changeColor(String s) => s.startsWith('+')
+    ? AppColors.success
+    : s.startsWith('−')
+    ? AppColors.danger
+    : AppColors.warning;
+
 Future<void> showRecipeHistory(
   BuildContext context,
   WidgetRef ref,
@@ -94,24 +103,81 @@ Future<void> showRecipeHistory(
     isScrollControlled: true,
     builder: (ctx) => DraggableScrollableSheet(
       expand: false,
-      initialChildSize: 0.6,
+      initialChildSize: 0.65,
       builder: (_, sc) => ListView(
         controller: sc,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
-          ListTile(title: Text('Riwayat resep $menuName')),
-          if (revs.isEmpty) const ListTile(title: Text('Belum ada riwayat')),
-          for (final r in revs)
-            ListTile(
-              isThreeLine: true,
-              title: Text(
-                '${fmt.format(DateTime.fromMillisecondsSinceEpoch(r.at))} • ${r.byName}',
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              'Riwayat resep $menuName',
+              style: GoogleFonts.inter(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
               ),
-              subtitle: Text(
-                [
-                  if (r.via.isNotEmpty) r.via,
-                  if (r.before == null) 'Resep dibuat',
-                  ...describeChange(r.before, r.after, ings),
-                ].join('\n'),
+            ),
+          ),
+          if (revs.isEmpty)
+            const EmptyState(icon: Icons.history, title: 'Belum ada riwayat'),
+          for (final r in revs)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          r.byName,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        fmt.format(DateTime.fromMillisecondsSinceEpoch(r.at)),
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (r.via.isNotEmpty || r.before == null) ...[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        if (r.before == null)
+                          const StatusPill('Resep dibuat', tone: Tone.info),
+                        if (r.via.isNotEmpty) StatusPill(r.via),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  for (final line in describeChange(r.before, r.after, ings))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        line,
+                        style: GoogleFonts.inter(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: _changeColor(line),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
         ],

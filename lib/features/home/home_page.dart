@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:rms_yow/features/tables/table_providers.dart';
+import 'package:rms_yow/features/tables/tables_providers.dart';
 
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
@@ -85,8 +85,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (user == null) return const SizedBox.shrink();
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
-    final isManager = user.isManager;
-    final isOwner = user.role == AppRole.owner;
+    final isManager = user.can('finance.read');
+    final isOwner = user.isOwner;
 
     final orders = ref.watch(ordersProvider).value ?? <Order>[];
     final stats = computeHomeStats(orders, now);

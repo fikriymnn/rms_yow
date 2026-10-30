@@ -12,11 +12,8 @@ class InventoryPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(appUserProvider).value?.role;
     final showRecipes =
-        role == AppRole.owner ||
-        role == AppRole.manager ||
-        role == AppRole.head_chef;
+        ref.watch(appUserProvider).value?.can('recipes.read') ?? false;
 
     return DefaultTabController(
       length: showRecipes ? 3 : 2,

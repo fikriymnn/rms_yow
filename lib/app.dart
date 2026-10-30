@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +20,7 @@ import 'package:rms_yow/features/reports/reports_page.dart';
 import 'package:rms_yow/features/reservations/reservation_providers.dart';
 import 'package:rms_yow/features/shifts/shift_page.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
-import 'package:rms_yow/features/tables/table_providers.dart';
+import 'package:rms_yow/features/tables/tables_providers.dart';
 import 'core/sync/sync_controller.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_page.dart';
@@ -75,14 +77,14 @@ class _Dest {
     this.label,
     this.icon,
     this.page,
-    this.roles, {
+    this.perm, {
     required this.group,
     this.rank = 50,
   });
   final String label;
   final IconData icon;
   final Widget page;
-  final Set<AppRole> roles;
+  final String? perm;
   final String group;
   final int rank; // prioritas di bilah bawah HP
 }
@@ -96,6 +98,7 @@ class HomeShell extends ConsumerStatefulWidget {
 class _HomeShellState extends ConsumerState<HomeShell>
     with WidgetsBindingObserver {
   int _index = 0;
+  Timer? _profileTimer;
 
   @override
   void initState() {
@@ -125,6 +128,20 @@ class _HomeShellState extends ConsumerState<HomeShell>
       ref.listenManual(p, (_, __) {});
     }
     WidgetsBinding.instance.addObserver(this);
+    // Izin diubah owner di Master role -> segarkan tiap menit; bila berubah,
+    // unduh ulang data agar koleksi yang baru boleh dibaca ikut terunduh.
+    _profileTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => ref.read(sessionProvider.notifier).refreshProfile(),
+    );
+    ref.listenManual<String?>(
+      appUserProvider.select((a) => a.value?.permSignature),
+      (prev, next) {
+        if (prev != null && next != null && prev != next) {
+          ref.read(syncControllerProvider.notifier).start();
+        }
+      },
+    );
     ref.listenManual<String?>(activeOutletIdProvider, (prev, next) {
       if (next != null && next != prev) {
         ref.read(syncControllerProvider.notifier).start();
@@ -154,6 +171,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
 
   @override
   void dispose() {
+    _profileTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -161,6 +179,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      ref.read(sessionProvider.notifier).refreshProfile();
       ref.read(syncControllerProvider.notifier).syncSoon();
       ref.invalidate(approvalCountsProvider);
       ref.read(unreadNotificationsProvider.notifier).refresh();
@@ -180,12 +199,14 @@ class _HomeShellState extends ConsumerState<HomeShell>
       );
     }
 
+    // perm = izin yang membuka tab ini (null = semua pengguna). Daftar izinnya
+    // diatur owner di Master role; tab muncul bila role memegang izin tersebut.
     final all = <_Dest>[
       _Dest(
         'Dashboard',
         Icons.space_dashboard_outlined,
         const HomePage(),
-        {AppRole.owner, AppRole.manager, AppRole.head_chef},
+        'dashboard.read',
         group: 'Operasional',
         rank: 5,
       ),
@@ -193,7 +214,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Meja',
         Icons.table_restaurant_outlined,
         const TablesPage(),
-        {AppRole.owner, AppRole.manager, AppRole.cashier, AppRole.waiter},
+        'orders.create',
         group: 'Operasional',
         rank: 10,
       ),
@@ -201,13 +222,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Menu',
         Icons.restaurant_menu,
         const MenuPage(),
-        {
-          AppRole.owner,
-          AppRole.manager,
-          AppRole.head_chef,
-          AppRole.cashier,
-          AppRole.waiter,
-        },
+        'menu.read',
         group: 'Operasional',
         rank: 13,
       ),
@@ -215,13 +230,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Dapur',
         Icons.soup_kitchen_outlined,
         const KdsPage(),
-        {
-          AppRole.owner,
-          AppRole.manager,
-          AppRole.head_chef,
-          AppRole.kitchen,
-          AppRole.waiter,
-        },
+        'kitchen.read',
         group: 'Operasional',
         rank: 11,
       ),
@@ -229,7 +238,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Kas',
         Icons.point_of_sale,
         const ShiftPage(),
-        {AppRole.owner, AppRole.manager, AppRole.cashier},
+        'shifts.read',
         group: 'Operasional',
         rank: 12,
       ),
@@ -237,7 +246,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Laporan',
         Icons.bar_chart_rounded,
         const ReportsPage(),
-        {AppRole.owner, AppRole.manager},
+        'reports.read',
         group: 'Manajemen',
         rank: 16,
       ),
@@ -245,7 +254,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Keuangan',
         Icons.account_balance_wallet_outlined,
         const FinancePage(),
-        {AppRole.owner, AppRole.manager},
+        'finance.read',
         group: 'Manajemen',
         rank: 17,
       ),
@@ -253,7 +262,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Stok',
         Icons.inventory_2_outlined,
         const InventoryPage(),
-        {AppRole.owner, AppRole.manager, AppRole.head_chef, AppRole.warehouse},
+        'stock.read',
         group: 'Manajemen',
         rank: 14,
       ),
@@ -261,7 +270,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Persetujuan',
         Icons.task_alt,
         const ApprovalsPage(),
-        {AppRole.owner, AppRole.manager, AppRole.head_chef, AppRole.warehouse},
+        'approvals.read',
         group: 'Manajemen',
         rank: 15,
       ),
@@ -269,7 +278,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Usulan',
         Icons.lightbulb_outline,
         const ProposalsPage(),
-        {AppRole.owner, AppRole.head_chef},
+        'proposals.read',
         group: 'Manajemen',
         rank: 18,
       ),
@@ -278,14 +287,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
           'Absensi',
           Icons.fingerprint,
           const ClockPage(),
-          {
-            AppRole.manager,
-            AppRole.head_chef,
-            AppRole.cashier,
-            AppRole.waiter,
-            AppRole.kitchen,
-            AppRole.warehouse,
-          },
+          'attendance.clock',
           group: 'Tim',
           rank: 20,
         ),
@@ -293,13 +295,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Notifikasi',
         Icons.notifications_none_rounded,
         const NotificationsPage(),
-        {
-          AppRole.owner,
-          AppRole.manager,
-          AppRole.head_chef,
-          AppRole.kitchen,
-          AppRole.warehouse,
-        },
+        'notifications.read',
         group: 'Akun',
         rank: 30,
       ),
@@ -307,12 +303,14 @@ class _HomeShellState extends ConsumerState<HomeShell>
         'Akun',
         Icons.person_outline_rounded,
         const AccountPage(),
-        {...AppRole.values},
+        null,
         group: 'Akun',
         rank: 25,
       ),
     ];
-    final dests = all.where((d) => d.roles.contains(user.role)).toList();
+    final dests = all
+        .where((d) => d.perm == null || user.can(d.perm!))
+        .toList();
     if (_index >= dests.length) _index = 0;
 
     return AppShell(

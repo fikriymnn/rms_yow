@@ -44,7 +44,8 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
+    final isOwner =
+        ref.watch(appUserProvider).value?.can('proposals.decide') ?? false;
     final all = ref.watch(proposalsProvider).value ?? <MenuProposal>[];
     final list = _filter == null
         ? all

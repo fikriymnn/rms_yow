@@ -6,8 +6,6 @@ import '../../core/sync/local_first_repository.dart';
 import '../auth/auth_providers.dart';
 import '../finance/expense.dart';
 import '../finance/finance_providers.dart';
-import '../inventory/inventory_models.dart';
-import '../inventory/inventory_providers.dart';
 import '../shifts/shift_providers.dart';
 import 'purchasing_models.dart';
 

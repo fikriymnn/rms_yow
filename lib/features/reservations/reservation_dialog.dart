@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:rms_yow/features/tables/table_providers.dart';
+import 'package:rms_yow/features/tables/tables_providers.dart';
 import 'package:uuid/uuid.dart';
 
 import '../auth/auth_providers.dart';

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/form_dialog.dart';
 import '../../core/format.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_extra.dart';
+import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
 import '../inventory/inventory_models.dart';
 import '../inventory/inventory_providers.dart';
@@ -31,6 +35,15 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
   late bool _withRecipe =
       widget.existing == null || widget.existing!.recipe != null;
   late List<RecipeLine> _lines = [...?widget.existing?.recipe];
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _cat.dispose();
+    _desc.dispose();
+    _price.dispose();
+    super.dispose();
+  }
 
   void _toast(String m) {
     if (!mounted) return;
@@ -161,28 +174,36 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
     final cost = foodCostOf(_lines, avg);
     final price = int.tryParse(_price.text.trim()) ?? 0;
     final missingPrice = _lines.any((l) => avg[l.ingredientId] == null);
-    final cs = Theme.of(context).colorScheme;
-    final th = Theme.of(context).textTheme;
+    final pct = price > 0 && _lines.isNotEmpty ? marginPct(price, cost) : null;
+    final marginTone = toneColors(
+      pct == null
+          ? Tone.neutral
+          : (pct >= 60
+                ? Tone.success
+                : (pct >= 30 ? Tone.warning : Tone.danger)),
+    );
+    final wide = MediaQuery.sizeOf(context).width >= 900;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.existing == null ? 'Usulan baru' : 'Edit usulan'),
+    final kindCard = SectionCard(
+      title: 'Jenis usulan',
+      child: SegmentedButton<String>(
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(value: 'new', label: Text('Menu baru')),
+          ButtonSegment(value: 'change', label: Text('Ubah menu/harga')),
+        ],
+        selected: {_kind},
+        onSelectionChanged: widget.existing != null
+            ? null
+            : (v) => setState(() => _kind = v.first),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    );
+
+    final infoCard = SectionCard(
+      title: 'Informasi menu',
+      child: Column(
         children: [
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'new', label: Text('Menu baru')),
-              ButtonSegment(value: 'change', label: Text('Ubah menu/harga')),
-            ],
-            selected: {_kind},
-            onSelectionChanged: widget.existing != null
-                ? null
-                : (v) => setState(() => _kind = v.first),
-          ),
-          const SizedBox(height: 12),
-          if (_kind == 'change')
+          if (_kind == 'change') ...[
             DropdownButtonFormField<String>(
               initialValue: target?.id,
               isExpanded: true,
@@ -201,29 +222,50 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
                       if (m != null) _pickTarget(m);
                     },
             ),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _name,
             decoration: const InputDecoration(labelText: 'Nama menu'),
           ),
+          const SizedBox(height: 12),
           TextField(
             controller: _cat,
             decoration: const InputDecoration(labelText: 'Kategori'),
           ),
+          const SizedBox(height: 12),
           TextField(
             controller: _desc,
             maxLines: 2,
             decoration: const InputDecoration(labelText: 'Deskripsi'),
           ),
+          const SizedBox(height: 12),
           TextField(
             controller: _price,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
               labelText: 'Harga usulan (Rp)',
+              prefixText: 'Rp ',
               helperText: 'Harga final ditetapkan owner saat menyetujui',
             ),
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 12),
+        ],
+      ),
+    );
+
+    final recipeCard = SectionCard(
+      title: 'Resep per porsi',
+      trailing: showRecipe
+          ? TextButton.icon(
+              onPressed: () => _addLine(ings),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Tambah bahan'),
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           if (_kind == 'change')
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -239,88 +281,219 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
               }),
             ),
           if (showRecipe) ...[
-            Text('Resep per porsi', style: th.titleMedium),
             if (_lines.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('Belum ada bahan'),
+              const EmptyState(
+                icon: Icons.menu_book_outlined,
+                title: 'Belum ada bahan',
+                message: 'Ketuk "Tambah bahan"',
               ),
             for (var i = 0; i < _lines.length; i++)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  ingMap[_lines[i].ingredientId]?.name ?? '(bahan dihapus)',
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
                 ),
-                subtitle: avg[_lines[i].ingredientId] == null
-                    ? Text(
-                        'belum ada harga beli',
-                        style: TextStyle(color: cs.error),
-                      )
-                    : null,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${qtyText(_lines[i].qty)} ${ingMap[_lines[i].ingredientId]?.unit ?? ''}',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => setState(() => _lines.removeAt(i)),
-                    ),
-                  ],
-                ),
-                onTap: () => _editLine(i, ingMap),
-              ),
-            TextButton.icon(
-              onPressed: () => _addLine(ings),
-              icon: const Icon(Icons.add),
-              label: const Text('Tambah bahan'),
-            ),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _editLine(i, ingMap),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                    child: Row(
                       children: [
-                        const Text('Food cost per porsi'),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ingMap[_lines[i].ingredientId]?.name ??
+                                    '(bahan dihapus)',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (avg[_lines[i].ingredientId] == null)
+                                Text(
+                                  'belum ada harga beli',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: AppColors.danger,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                         Text(
-                          rupiah.format(cost.round()),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          '${qtyText(_lines[i].qty)} ${ingMap[_lines[i].ingredientId]?.unit ?? ''}',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Hapus',
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => setState(() => _lines.removeAt(i)),
                         ),
                       ],
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Margin pada harga usulan'),
-                        Text(
-                          price > 0 ? '${marginPct(price, cost)}%' : '-',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    if (missingPrice)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Sebagian bahan belum punya harga beli, food cost bisa lebih rendah dari sebenarnya.',
-                          style: TextStyle(color: cs.error, fontSize: 12),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
               ),
-            ),
           ],
-          const SizedBox(height: 16),
+        ],
+      ),
+    );
+
+    final form = ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        kindCard,
+        const SizedBox(height: 12),
+        infoCard,
+        const SizedBox(height: 12),
+        recipeCard,
+      ],
+    );
+
+    final warning = missingPrice
+        ? Container(
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.roseSoft,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'Sebagian bahan belum punya harga beli, food cost bisa lebih rendah dari sebenarnya.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: const Color(0xFF9F1239),
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
+
+    final summaryCard = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showRecipe)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: marginTone.bg,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Margin pada harga usulan',
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                  Text(
+                    pct == null ? '-' : '$pct%',
+                    style: GoogleFonts.inter(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      color: marginTone.fg,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (showRecipe) ...[
+            const SizedBox(height: 10),
+            KvRow('Food cost per porsi', rupiah.format(cost.round())),
+          ],
+          KvRow('Harga usulan', price > 0 ? rupiah.format(price) : '-'),
+          warning,
+          const SizedBox(height: 14),
           FilledButton(
             onPressed: () => _submit(target),
             child: const Text('Kirim ke owner'),
           ),
         ],
       ),
+    );
+
+    final bottomBar = Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            if (showRecipe)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Food cost ${rupiah.format(cost.round())}',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    Text(
+                      pct == null ? 'Margin -' : 'Margin $pct%',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: marginTone.fg,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              const Spacer(),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(160, 48)),
+              onPressed: () => _submit(target),
+              child: const Text('Kirim ke owner'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.existing == null ? 'Usulan baru' : 'Edit usulan'),
+      ),
+      body: wide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: form),
+                SizedBox(
+                  width: 380,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+                    child: summaryCard,
+                  ),
+                ),
+              ],
+            )
+          : form,
+      bottomNavigationBar: wide ? null : bottomBar,
     );
   }
 }

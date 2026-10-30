@@ -5,16 +5,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/db/meta_db.dart';
 import '../notifications/notification_service.dart';
+import 'dart:async'; // di paling atas
+import '../../core/api/api_client.dart';
+import '../roles/role_models.dart';
 
 enum AppRole {
   owner,
   manager,
-  // ignore: constant_identifier_names
   head_chef,
   cashier,
   waiter,
   kitchen,
   warehouse,
+
+  /// Peran buatan owner. Hak aksesnya ada di AppUser.permissions.
+  custom,
 }
 
 class AppUser {
@@ -22,41 +27,64 @@ class AppUser {
     required this.uid,
     required this.name,
     required this.role,
+    this.roleKey = '',
+    this.roleName = '',
+    this.permissions = const {},
     this.username = '',
     this.outletId,
     this.mustChangePassword = false,
   });
   final String uid;
   final String name;
+
+  /// Hanya untuk peran bawaan; peran buatan owner = [AppRole.custom].
+  /// Jangan dipakai memutuskan akses: pakai [can].
   final AppRole role;
+  final String roleKey; // = roles.key di server
+  final String roleName; // nama tampilan dari master role
+  final Set<String> permissions; // izin efektif, mis. "menu.create"
   final String username;
   final String? outletId;
   final bool mustChangePassword;
 
-  bool get canManageMenu => role == AppRole.owner || role == AppRole.manager;
-  bool get canPay =>
-      role == AppRole.owner ||
-      role == AppRole.manager ||
-      role == AppRole.cashier;
-  bool get isManager => role == AppRole.owner || role == AppRole.manager;
+  bool get isOwner => roleKey == 'owner';
+  bool can(String permission) => permissions.contains(permission);
+  bool canAny(Iterable<String> perms) => perms.any(permissions.contains);
+  bool get canPay => can('orders.pay');
+  String get roleLabel =>
+      roleName.isNotEmpty ? roleName : (kBuiltInRoleLabels[roleKey] ?? roleKey);
 
-  factory AppUser.fromJson(Map<String, dynamic> m) => AppUser(
-    uid: m['id'] as String,
-    username: m['username'] as String? ?? '',
-    name: m['name'] as String? ?? '-',
-    role: AppRole.values.firstWhere(
-      (r) => r.name == m['role'],
-      orElse: () => AppRole.waiter,
-    ),
-    outletId: m['outlet_id'] as String?,
-    mustChangePassword: m['must_change_password'] as bool? ?? false,
-  );
+  /// Berubah bila himpunan izin berubah (memicu unduh ulang data sinkron).
+  String get permSignature => (permissions.toList()..sort()).join(',');
+
+  factory AppUser.fromJson(Map<String, dynamic> m) {
+    final key = m['role'] as String? ?? '';
+    return AppUser(
+      uid: m['id'] as String,
+      username: m['username'] as String? ?? '',
+      name: m['name'] as String? ?? '-',
+      role: AppRole.values.firstWhere(
+        (r) => r.name == key,
+        orElse: () => AppRole.custom,
+      ),
+      roleKey: key,
+      roleName: m['role_name'] as String? ?? '',
+      permissions: {
+        for (final p in (m['permissions'] as List<dynamic>? ?? const []))
+          p as String,
+      },
+      outletId: m['outlet_id'] as String?,
+      mustChangePassword: m['must_change_password'] as bool? ?? false,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': uid,
     'username': username,
     'name': name,
-    'role': role.name,
+    'role': roleKey,
+    'role_name': roleName,
+    'permissions': permissions.toList()..sort(),
     'outlet_id': outletId,
     'must_change_password': mustChangePassword,
   };
@@ -132,6 +160,14 @@ class Session {
     'user': user.toJson(),
     'outlet': outlet?.toJson(),
   };
+
+  Session withUser(AppUser u) => Session(
+    baseUrl: baseUrl,
+    accessToken: accessToken,
+    refreshToken: refreshToken,
+    user: u,
+    outlet: outlet,
+  );
 }
 
 String defaultServerUrl() =>
@@ -151,7 +187,37 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   @override
   Future<Session?> build() async {
     final m = await ref.read(metaDbProvider).getMeta('session');
-    return m == null ? null : Session.fromJson(m);
+    if (m == null) return null;
+    // Izin bisa berubah sejak sesi terakhir disimpan: segarkan di latar belakang.
+    unawaited(
+      Future<void>.delayed(const Duration(milliseconds: 500), refreshProfile),
+    );
+    return Session.fromJson(m);
+  }
+
+  /// Ambil ulang profil + izin dari server (owner bisa mengubah role kapan saja).
+  /// Gagal/offline: pakai izin terakhir. Server tetap yang memutuskan.
+  Future<void> refreshProfile() async {
+    final cur = state.value;
+    if (cur == null) return;
+    try {
+      final m =
+          await ref.read(apiClientProvider).get('/auth/me')
+              as Map<String, dynamic>;
+      final u = AppUser.fromJson(m);
+      final old = cur.user;
+      if (u.permSignature == old.permSignature &&
+          u.roleKey == old.roleKey &&
+          u.roleName == old.roleName &&
+          u.name == old.name) {
+        return;
+      }
+      final next = (state.value ?? cur).withUser(u);
+      await ref.read(metaDbProvider).putMeta('session', next.toJson());
+      state = AsyncData(next);
+    } catch (_) {
+      /* offline */
+    }
   }
 
   Future<void> login({
@@ -274,7 +340,7 @@ final ownerOutletProvider =
 final activeOutletProvider = Provider<OutletInfo?>((ref) {
   final s = ref.watch(sessionProvider).value;
   if (s == null) return null;
-  if (s.user.role == AppRole.owner) return ref.watch(ownerOutletProvider).value;
+  if (s.user.isOwner) return ref.watch(ownerOutletProvider).value;
   return s.outlet;
 });
 

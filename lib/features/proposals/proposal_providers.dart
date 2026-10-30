@@ -30,8 +30,9 @@ final proposalsProvider = StreamProvider<List<MenuProposal>>(
 
 /// Jumlah usulan menunggu (penanda di navigasi); hanya untuk owner.
 final pendingProposalsCountProvider = Provider<int>((ref) {
-  final role = ref.watch(appUserProvider).value?.role;
-  if (role != AppRole.owner) return 0;
+  if (!(ref.watch(appUserProvider).value?.can('proposals.decide') ?? false)) {
+    return 0;
+  }
   return (ref.watch(proposalsProvider).value ?? <MenuProposal>[])
       .where((p) => p.status == ProposalStatus.pending)
       .length;

@@ -137,7 +137,7 @@ class ProposalDetailView extends ConsumerWidget {
     if (p == null) return const Center(child: CircularProgressIndicator());
 
     final user = ref.watch(appUserProvider).value;
-    final isOwner = user?.role == AppRole.owner;
+    final isOwner = user?.can('proposals.decide') ?? false;
     final isMine = user?.uid == p.submittedBy;
     final pending = p.status == ProposalStatus.pending;
     final ings = {

@@ -6,9 +6,12 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
 import 'attendance_models.dart';
 import 'attendance_queue.dart';
@@ -140,13 +143,40 @@ class _ClockPageState extends ConsumerState<ClockPage> {
     }
   }
 
+  Widget _banner(
+    IconData icon,
+    String text,
+    Color bg,
+    Color fg, {
+    Widget? trailing,
+  }) => Container(
+    margin: const EdgeInsets.only(top: 10),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: fg),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text, style: GoogleFonts.inter(fontSize: 13, color: fg)),
+        ),
+        if (trailing != null) trailing,
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
       return Scaffold(
         appBar: AppBar(title: const Text('Absensi')),
-        body: const Center(
-          child: Text('Absensi hanya tersedia di aplikasi Android.'),
+        body: const EmptyState(
+          icon: Icons.phone_android,
+          title: 'Absensi hanya tersedia di aplikasi Android',
         ),
       );
     }
@@ -154,8 +184,6 @@ class _ClockPageState extends ConsumerState<ClockPage> {
     final outlet = session?.outlet;
     final me = ref.watch(attendanceMeProvider).value;
     final queue = ref.watch(queueItemsProvider).value ?? <QueueItem>[];
-    final cs = Theme.of(context).colorScheme;
-    final th = Theme.of(context).textTheme;
     final now = DateTime.now();
 
     final pending = queue.where((q) => q.status == 'pending').toList();
@@ -175,37 +203,323 @@ class _ClockPageState extends ConsumerState<ClockPage> {
         !_busy && hasOutletLoc && area.inArea && accuracyOk && !mocked;
 
     String locText;
-    Color locColor = cs.onSurface;
+    Tone locTone = Tone.info;
     if (outlet == null) {
       locText = 'Akun ini tidak terikat outlet.';
+      locTone = Tone.neutral;
     } else if (!hasOutletLoc) {
       locText =
           'Lokasi outlet belum diatur. Minta owner mengaturnya di Kelola outlet.';
-      locColor = cs.error;
+      locTone = Tone.danger;
     } else if (_locError != null) {
       locText = _locError!.message;
-      locColor = cs.error;
+      locTone = Tone.danger;
     } else if (fix == null) {
       locText = 'Mencari sinyal GPS...';
+      locTone = Tone.neutral;
     } else if (mocked) {
       locText =
           'Lokasi palsu (mock location) terdeteksi. Matikan aplikasi lokasi palsu.';
-      locColor = cs.error;
+      locTone = Tone.danger;
     } else if (!accuracyOk) {
       locText =
           'Akurasi GPS kurang (±${fix.accuracy.round()} m). Pindah ke tempat terbuka.';
-      locColor = cs.error;
+      locTone = Tone.danger;
     } else if (area.inArea) {
       locText = 'Dalam area outlet (±${area.distance!.round()} m dari titik)';
-      locColor = Colors.green.shade700;
+      locTone = Tone.success;
     } else {
       locText =
           'Di luar area outlet (±${area.distance!.round()} m, batas ${outlet!.radiusM} m)';
-      locColor = cs.error;
+      locTone = Tone.danger;
+    }
+    final locColors = toneColors(locTone);
+
+    String statusText;
+    final open = me?.open;
+    if (pending.isNotEmpty && pending.last.kind == 'in' && open == null) {
+      statusText = 'Sedang bekerja (absen masuk menunggu dikirim)';
+    } else if (open != null && isOpen) {
+      final mins = ((now.millisecondsSinceEpoch - open.clockInAt) / 60000)
+          .round();
+      statusText =
+          'Sedang bekerja sejak ${_hm.format(DateTime.fromMillisecondsSinceEpoch(open.clockInAt))} • ${durationText(mins)}';
+    } else {
+      statusText = isOpen ? 'Sedang bekerja' : 'Belum absen masuk';
     }
 
     final staleRecords = (me?.recent ?? const <AttendanceRecord>[]).where(
       (r) => r.stale,
+    );
+
+    final hero = Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [AppColors.ink, AppColors.inkSoft],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            _hm.format(now),
+            style: GoogleFonts.inter(
+              fontSize: 48,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${_day.format(now)} • ${outlet?.name ?? '-'}',
+            style: GoogleFonts.inter(fontSize: 13.5, color: Colors.white70),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .14),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isOpen ? const Color(0xFF6EE7B7) : Colors.white38,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    statusText,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final locationCard = Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: locColors.bg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              locTone == Tone.success
+                  ? Icons.check_circle_outline
+                  : Icons.place_outlined,
+              color: locColors.fg,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  locText,
+                  style: GoogleFonts.inter(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: locColors.fg,
+                  ),
+                ),
+                if (fix != null)
+                  Text(
+                    'Akurasi GPS ±${fix.accuracy.round()} m',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (_locError?.openSettings ?? false)
+            TextButton(
+              onPressed: Geolocator.openAppSettings,
+              child: const Text('Pengaturan'),
+            ),
+        ],
+      ),
+    );
+
+    final button = SizedBox(
+      height: 60,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: isOpen ? AppColors.rose : AppColors.primary,
+          textStyle: GoogleFonts.inter(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        onPressed: canClock ? () => _clock(kind) : null,
+        icon: _busy
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
+            : Icon(isOpen ? Icons.logout : Icons.login),
+        label: Text(isOpen ? 'Absen pulang' : 'Absen masuk'),
+      ),
+    );
+
+    final alerts = Column(
+      children: [
+        if (pending.isNotEmpty)
+          _banner(
+            Icons.schedule_send,
+            '${pending.length} absen menunggu dikirim ke server',
+            const Color(0xFFFEF3C7),
+            const Color(0xFF92400E),
+          ),
+        for (final q in rejected)
+          _banner(
+            Icons.cancel_outlined,
+            'Absen ${q.kind == 'in' ? 'masuk' : 'pulang'} '
+            '${_hm.format(DateTime.fromMillisecondsSinceEpoch(q.clientTime))} ditolak: ${q.error}',
+            AppColors.roseSoft,
+            const Color(0xFF9F1239),
+            trailing: IconButton(
+              tooltip: 'Tutup',
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: () =>
+                  ref.read(attendanceQueueProvider).dismiss(q.eventId),
+            ),
+          ),
+        for (final r in staleRecords)
+          _banner(
+            Icons.warning_amber,
+            'Lupa absen pulang (${_day.format(DateTime.fromMillisecondsSinceEpoch(r.clockInAt))}). '
+            'Hubungi manager untuk mengoreksi jam pulang.',
+            AppColors.roseSoft,
+            const Color(0xFF9F1239),
+          ),
+      ],
+    );
+
+    final history = SectionCard(
+      title: '14 hari terakhir',
+      child: (me == null || me.recent.isEmpty)
+          ? const EmptyState(icon: Icons.history, title: 'Belum ada catatan')
+          : Column(
+              children: [
+                for (final r in me.recent)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                DateFormat('d').format(
+                                  DateTime.fromMillisecondsSinceEpoch(
+                                    r.clockInAt,
+                                  ),
+                                ),
+                                style: GoogleFonts.inter(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              Text(
+                                DateFormat('MMM').format(
+                                  DateTime.fromMillisecondsSinceEpoch(
+                                    r.clockInAt,
+                                  ),
+                                ),
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_hm.format(DateTime.fromMillisecondsSinceEpoch(r.clockInAt))} - '
+                                '${r.clockOutAt == null ? '...' : _hm.format(DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!))}'
+                                '${r.minutes == null ? '' : '  •  ${durationText(r.minutes!)}'}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: [
+                                  if (r.edited)
+                                    const StatusPill(
+                                      'Dikoreksi',
+                                      tone: Tone.info,
+                                    ),
+                                  if (r.inFlags.contains('late_sync'))
+                                    const StatusPill(
+                                      'Dikirim terlambat',
+                                      tone: Tone.warning,
+                                    ),
+                                  if (r.reviewStatus == 'suspicious')
+                                    const StatusPill(
+                                      'Ditandai manager',
+                                      tone: Tone.danger,
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
     );
 
     return Scaffold(
@@ -219,132 +533,40 @@ class _ClockPageState extends ConsumerState<ClockPage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Center(child: Text(_hm.format(now), style: th.displaySmall)),
-          Center(child: Text('${_day.format(now)} • ${outlet?.name ?? '-'}')),
-          const SizedBox(height: 16),
-          Card(
-            color: isOpen ? cs.primaryContainer : null,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Builder(
-                builder: (_) {
-                  final open = me?.open;
-                  if (pending.isNotEmpty &&
-                      pending.last.kind == 'in' &&
-                      open == null) {
-                    return const Text(
-                      'Sedang bekerja (absen masuk menunggu dikirim)',
-                    );
-                  }
-                  if (open != null && isOpen) {
-                    final mins =
-                        ((now.millisecondsSinceEpoch - open.clockInAt) / 60000)
-                            .round();
-                    return Text(
-                      'Sedang bekerja sejak ${_hm.format(DateTime.fromMillisecondsSinceEpoch(open.clockInAt))} • ${durationText(mins)}',
-                      style: th.titleMedium,
-                    );
-                  }
-                  return Text(
-                    isOpen ? 'Sedang bekerja' : 'Belum absen masuk',
-                    style: th.titleMedium,
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.place_outlined, color: locColor),
-            title: Text(locText, style: TextStyle(color: locColor)),
-            subtitle: fix == null
-                ? null
-                : Text('Akurasi GPS ±${fix.accuracy.round()} m'),
-            trailing: (_locError?.openSettings ?? false)
-                ? TextButton(
-                    onPressed: Geolocator.openAppSettings,
-                    child: const Text('Pengaturan'),
-                  )
-                : null,
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 56,
-            child: FilledButton.icon(
-              onPressed: canClock ? () => _clock(kind) : null,
-              icon: Icon(isOpen ? Icons.logout : Icons.login),
-              label: Text(isOpen ? 'Absen pulang' : 'Absen masuk'),
-            ),
-          ),
-          if (pending.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                '${pending.length} absen menunggu dikirim ke server',
-                style: TextStyle(color: cs.tertiary),
-              ),
-            ),
-          for (final q in rejected)
-            Card(
-              color: cs.errorContainer,
-              child: ListTile(
-                title: Text(
-                  'Absen ${q.kind == 'in' ? 'masuk' : 'pulang'} '
-                  '${_hm.format(DateTime.fromMillisecondsSinceEpoch(q.clientTime))} ditolak',
-                ),
-                subtitle: Text(q.error),
-                trailing: IconButton(
-                  tooltip: 'Tutup',
-                  icon: const Icon(Icons.close),
-                  onPressed: () =>
-                      ref.read(attendanceQueueProvider).dismiss(q.eventId),
-                ),
-              ),
-            ),
-          for (final r in staleRecords)
-            Card(
-              color: cs.errorContainer,
-              child: ListTile(
-                leading: const Icon(Icons.warning_amber),
-                title: Text(
-                  'Lupa absen pulang (${_day.format(DateTime.fromMillisecondsSinceEpoch(r.clockInAt))})',
-                ),
-                subtitle: const Text(
-                  'Hubungi manager untuk mengoreksi jam pulang.',
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-          Text('14 hari terakhir', style: th.titleMedium),
-          const Divider(),
-          if (me == null || me.recent.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: Text('Belum ada catatan'),
-            ),
-          for (final r in me?.recent ?? const <AttendanceRecord>[])
-            ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                '${_day.format(DateTime.fromMillisecondsSinceEpoch(r.clockInAt))}   '
-                '${_hm.format(DateTime.fromMillisecondsSinceEpoch(r.clockInAt))} - '
-                '${r.clockOutAt == null ? '...' : _hm.format(DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!))}',
-              ),
-              subtitle: Text(
-                [
-                  if (r.minutes != null) durationText(r.minutes!),
-                  if (r.edited) 'dikoreksi',
-                  if (r.inFlags.contains('late_sync')) 'dikirim terlambat',
-                  if (r.reviewStatus == 'suspicious') 'ditandai manager',
-                ].join(' • '),
-              ),
-            ),
-        ],
+      body: LayoutBuilder(
+        builder: (context, c) {
+          final wide = c.maxWidth >= 900;
+          final left = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              hero,
+              const SizedBox(height: 12),
+              locationCard,
+              const SizedBox(height: 12),
+              button,
+              alerts,
+            ],
+          );
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (wide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: left),
+                    const SizedBox(width: 16),
+                    Expanded(child: history),
+                  ],
+                )
+              else ...[
+                left,
+                const SizedBox(height: 16),
+                history,
+              ],
+            ],
+          );
+        },
       ),
     );
   }

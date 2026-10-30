@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:rms_yow/features/tables/table_providers.dart';
+import 'package:rms_yow/features/tables/tables_providers.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_extra.dart';
+import '../../core/ui/ui_kit.dart';
 import '../orders/order_providers.dart';
 import '../pos/pos_page.dart';
 import '../tables/dining_table.dart';
@@ -24,6 +28,11 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
   );
   static final _dateFmt = DateFormat('EEE, d MMM yyyy');
   static final _timeFmt = DateFormat('HH:mm');
+
+  bool get _isToday {
+    final n = DateTime.now();
+    return _day.year == n.year && _day.month == n.month && _day.day == n.day;
+  }
 
   void _move(int d) =>
       setState(() => _day = DateTime(_day.year, _day.month, _day.day + d));
@@ -117,6 +126,13 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
     );
   }
 
+  Tone _tone(ReservationStatus s) => switch (s) {
+    ReservationStatus.booked => Tone.info,
+    ReservationStatus.seated => Tone.success,
+    ReservationStatus.noShow => Tone.warning,
+    ReservationStatus.cancelled => Tone.neutral,
+  };
+
   Future<void> _actions(Reservation r, Map<String, DiningTable> tables) async {
     final booked = r.status == ReservationStatus.booked;
     final seated = r.status == ReservationStatus.seated;
@@ -127,11 +143,17 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: Text(r.name),
-              subtitle: Text(
-                '${r.partySize} orang • ${r.phone} • ${r.status.label}',
+              title: Text(
+                r.name,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
+              subtitle: Text('${r.partySize} orang • ${r.phone}'),
+              trailing: StatusPill(r.status.label, tone: _tone(r.status)),
             ),
+            const Divider(height: 1),
             if (booked) ...[
               ListTile(
                 leading: const Icon(Icons.login),
@@ -189,6 +211,93 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
     }
   }
 
+  Widget _tile(Reservation r, Map<String, DiningTable> tables, int now) {
+    final late =
+        r.status == ReservationStatus.booked && now > r.at + 15 * 60000;
+    final struck =
+        r.status == ReservationStatus.noShow ||
+        r.status == ReservationStatus.cancelled;
+    final (String label, Tone tone) = late
+        ? ('Terlambat', Tone.danger)
+        : (r.status.label, _tone(r.status));
+    final detail = [
+      tables[r.tableId]?.name ?? 'Meja belum dipilih',
+      if (r.phone.isNotEmpty) r.phone,
+      if (r.note.isNotEmpty) r.note,
+    ].join(' • ');
+
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _actions(r, tables),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: late ? AppColors.danger : AppColors.border,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 66,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: late ? const Color(0xFFFEE2E2) : AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _timeFmt.format(DateTime.fromMillisecondsSinceEpoch(r.at)),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: late ? AppColors.danger : AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${r.name} • ${r.partySize} orang',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        decoration: struck ? TextDecoration.lineThrough : null,
+                        color: struck ? AppColors.muted : AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              StatusPill(label, tone: tone),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final all = ref.watch(reservationsProvider).value ?? <Reservation>[];
@@ -202,77 +311,111 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
       _day.month,
       _day.day + 1,
     ).millisecondsSinceEpoch;
-    final list = all.where((r) => r.at >= start && r.at < end).toList();
+    final list = all.where((r) => r.at >= start && r.at < end).toList()
+      ..sort((a, b) => a.at.compareTo(b.at));
     final now = DateTime.now().millisecondsSinceEpoch;
-    final cs = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reservasi'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () => _move(-1),
-          ),
-          TextButton(onPressed: _pick, child: Text(_dateFmt.format(_day))),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () => _move(1),
+    int count(ReservationStatus s) => list.where((r) => r.status == s).length;
+    final guests = list
+        .where(
+          (r) =>
+              r.status == ReservationStatus.booked ||
+              r.status == ReservationStatus.seated,
+        )
+        .fold<int>(0, (s, r) => s + r.partySize);
+
+    final summary = SectionCard(
+      title: 'Ringkasan',
+      child: Column(
+        children: [
+          KvRow('Dipesan', '${count(ReservationStatus.booked)}'),
+          KvRow('Sudah duduk', '${count(ReservationStatus.seated)}'),
+          KvRow('Tidak datang', '${count(ReservationStatus.noShow)}'),
+          KvRow('Dibatalkan', '${count(ReservationStatus.cancelled)}'),
+          const Divider(height: 20),
+          KvRow(
+            'Total tamu aktif',
+            '$guests',
+            bold: true,
+            color: AppColors.primary,
           ),
         ],
       ),
+    );
+
+    final listView = list.isEmpty
+        ? const EmptyState(
+            icon: Icons.event_busy_outlined,
+            title: 'Tidak ada reservasi pada tanggal ini',
+          )
+        : Column(
+            children: [
+              for (final r in list)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _tile(r, tables, now),
+                ),
+            ],
+          );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Reservasi')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showReservationDialog(context, ref, day: _day),
         icon: const Icon(Icons.add),
         label: const Text('Reservasi'),
       ),
-      body: list.isEmpty
-          ? const Center(child: Text('Tidak ada reservasi pada tanggal ini'))
-          : ListView(
-              children: [
-                for (final r in list)
-                  Builder(
-                    builder: (_) {
-                      final late =
-                          r.status == ReservationStatus.booked &&
-                          now > r.at + 15 * 60000;
-                      final inactive = r.status != ReservationStatus.booked;
-                      return ListTile(
-                        leading: Text(
-                          _timeFmt.format(
-                            DateTime.fromMillisecondsSinceEpoch(r.at),
-                          ),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: late ? cs.error : null,
-                          ),
-                        ),
-                        title: Text(
-                          '${r.name} • ${r.partySize} orang',
-                          style: TextStyle(
-                            decoration:
-                                inactive && r.status != ReservationStatus.seated
-                                ? TextDecoration.lineThrough
-                                : null,
-                          ),
-                        ),
-                        subtitle: Text(
-                          [
-                            tables[r.tableId]?.name ?? 'Meja belum dipilih',
-                            if (r.phone.isNotEmpty) r.phone,
-                            if (r.note.isNotEmpty) r.note,
-                          ].join(' • '),
-                        ),
-                        trailing: Chip(
-                          label: Text(late ? 'Terlambat' : r.status.label),
-                        ),
-                        onTap: () => _actions(r, tables),
-                      );
-                    },
-                  ),
+      body: LayoutBuilder(
+        builder: (context, c) {
+          final wide = c.maxWidth >= 900;
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            children: [
+              DateBar(
+                label: _dateFmt.format(_day),
+                onPrev: () => _move(-1),
+                onNext: () => _move(1),
+                onPick: _pick,
+                onToday: _isToday
+                    ? null
+                    : () => setState(() {
+                        final n = DateTime.now();
+                        _day = DateTime(n.year, n.month, n.day);
+                      }),
+              ),
+              const SizedBox(height: 12),
+              if (wide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: listView),
+                    const SizedBox(width: 16),
+                    SizedBox(width: 320, child: summary),
+                  ],
+                )
+              else ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    StatusPill(
+                      'Dipesan ${count(ReservationStatus.booked)}',
+                      tone: Tone.info,
+                    ),
+                    StatusPill(
+                      'Duduk ${count(ReservationStatus.seated)}',
+                      tone: Tone.success,
+                    ),
+                    StatusPill('Tamu aktif $guests'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                listView,
               ],
-            ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

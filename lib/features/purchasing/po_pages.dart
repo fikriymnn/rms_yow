@@ -2,67 +2,258 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/api/api_exception.dart';
 import '../../core/form_dialog.dart';
 import '../../core/format.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/ui/ui_extra.dart';
+import '../../core/ui/ui_kit.dart';
+import '../approvals/approval_providers.dart';
 import '../auth/auth_providers.dart';
 import '../inventory/inventory_models.dart';
 import '../inventory/inventory_providers.dart';
 import '../shifts/shift_providers.dart';
 import 'purchasing_models.dart';
 import 'purchasing_providers.dart';
-import '../../core/api/api_exception.dart';
-import '../approvals/approval_providers.dart';
+import '../approvals/pending_requests_card.dart';
 
 String poStatusText(PurchaseOrder po, Map<String, double>? received) =>
     (po.status == PoStatus.ordered && received != null && received.isNotEmpty)
     ? 'Diterima sebagian'
     : po.status.label;
 
-class PoTab extends ConsumerWidget {
+Tone poTone(PurchaseOrder po, Map<String, double>? received) =>
+    switch (po.status) {
+      PoStatus.draft => Tone.neutral,
+      PoStatus.pending => Tone.warning,
+      PoStatus.ordered =>
+        (received != null && received.isNotEmpty) ? Tone.warning : Tone.info,
+      PoStatus.closed => Tone.success,
+      PoStatus.cancelled => Tone.neutral,
+      PoStatus.rejected => Tone.danger,
+    };
+
+/// Rata-rata persentase penerimaan per baris (0..1).
+double poReceivedFraction(PurchaseOrder po, Map<String, double> rec) {
+  if (po.lines.isEmpty) return 0;
+  var sum = 0.0;
+  for (final l in po.lines) {
+    if (l.qty > 0) sum += math.min(1.0, (rec[l.ingredientId] ?? 0) / l.qty);
+  }
+  return sum / po.lines.length;
+}
+
+// ===================================================================== daftar PO
+
+class PoTab extends ConsumerStatefulWidget {
   const PoTab({super.key});
+  @override
+  ConsumerState<PoTab> createState() => _PoTabState();
+}
+
+class _PoTabState extends ConsumerState<PoTab> {
+  PoStatus? _filter;
+  String? _selected;
+  static final _fmt = DateFormat('d MMM yyyy');
+
+  void _open(PurchaseOrder po, bool wide) {
+    if (wide) {
+      setState(() => _selected = po.id);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PoDetailPage(poId: po.id)),
+    );
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pos = ref.watch(purchaseOrdersProvider).value ?? <PurchaseOrder>[];
+  Widget build(BuildContext context) {
+    final all = ref.watch(purchaseOrdersProvider).value ?? <PurchaseOrder>[];
     final received = ref.watch(receivedByPoProvider);
-    final fmt = DateFormat('d MMM yyyy');
-    return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const PoEditorPage()),
-        ),
-        icon: const Icon(Icons.add),
-        label: const Text('PO baru'),
-      ),
-      body: pos.isEmpty
-          ? const Center(child: Text('Belum ada PO'))
-          : ListView(
-              children: [
-                for (final po in pos)
-                  ListTile(
-                    title: Text('${po.number} • ${po.supplierName}'),
-                    subtitle: Text(
-                      '${fmt.format(DateTime.fromMillisecondsSinceEpoch(po.createdAt))} • ${rupiah.format(po.total)}',
-                    ),
-                    trailing: Chip(
-                      label: Text(poStatusText(po, received[po.id])),
-                    ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PoDetailPage(poId: po.id),
-                      ),
-                    ),
-                  ),
-              ],
+    final pos = _filter == null
+        ? all
+        : all.where((p) => p.status == _filter).toList();
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        final wide = c.maxWidth >= 900;
+        final master = Scaffold(
+          backgroundColor: Colors.transparent,
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PoEditorPage()),
             ),
+            icon: const Icon(Icons.add),
+            label: const Text('PO baru'),
+          ),
+          body: Column(
+            children: [
+              SizedBox(
+                height: 56,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  children: [
+                    for (final s in <PoStatus?>[null, ...PoStatus.values])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(s?.label ?? 'Semua'),
+                          selected: _filter == s,
+                          onSelected: (_) => setState(() => _filter = s),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
+                child: PendingRequestsCard(type: 'purchase_order', maxItems: 3),
+              ),
+              Expanded(
+                child: pos.isEmpty
+                    ? EmptyState(
+                        icon: Icons.shopping_cart_outlined,
+                        title: all.isEmpty
+                            ? 'Belum ada PO'
+                            : 'Tidak ada PO pada filter ini',
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
+                        itemCount: pos.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (_, i) {
+                          final po = pos[i];
+                          final rec = received[po.id];
+                          final selected = wide && po.id == _selected;
+                          return Material(
+                            color: selected
+                                ? AppColors.primarySoft
+                                : AppColors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () => _open(po, wide),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : AppColors.border,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            po.number,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.inter(
+                                              fontSize: 14.5,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                        StatusPill(
+                                          poStatusText(po, rec),
+                                          tone: poTone(po, rec),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      po.supplierName,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '${_fmt.format(DateTime.fromMillisecondsSinceEpoch(po.createdAt))} • ${po.lines.length} item',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 12,
+                                              color: AppColors.muted,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          rupiah.format(po.total),
+                                          style: GoogleFonts.inter(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (po.status == PoStatus.ordered &&
+                                        rec != null &&
+                                        rec.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          value: poReceivedFraction(po, rec),
+                                          minHeight: 5,
+                                          color: AppColors.warning,
+                                          backgroundColor: const Color(
+                                            0xFFFEF3C7,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+        if (!wide) return master;
+        return Row(
+          children: [
+            SizedBox(width: 420, child: master),
+            const VerticalDivider(width: 1),
+            Expanded(
+              child: _selected == null
+                  ? const EmptyState(
+                      icon: Icons.touch_app_outlined,
+                      title: 'Pilih PO',
+                      message: 'Rinciannya tampil di sini',
+                    )
+                  : PoDetailView(key: ValueKey(_selected), poId: _selected!),
+            ),
+          ],
+        );
+      },
     );
   }
 }
+
+// ===================================================================== editor PO
 
 class PoEditorPage extends ConsumerStatefulWidget {
   const PoEditorPage({super.key, this.po});
@@ -79,6 +270,12 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
   late final TextEditingController _note = TextEditingController(
     text: widget.po?.note,
   );
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
 
   void _toast(String m) {
     if (!mounted) return;
@@ -201,111 +398,341 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
     }
   }
 
+  String? _chainNote(AppUser? u) {
+    if (u == null || u.can('purchase_orders.direct_order')) return null;
+    return u.can('approvals.approve_l1')
+        ? 'Pengajuan diteruskan langsung ke owner.'
+        : 'Pengajuan diteruskan ke manager atau head chef, lalu ke owner.';
+  }
+
+  Widget _lineTile(int i) {
+    final l = _lines[i];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _editLine(i),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.name,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${qtyText(l.qty)} ${l.unitLabel} × ${rupiah.format(l.unitPrice)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                rupiah.format(l.total),
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Hapus',
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => setState(() => _lines.removeAt(i)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summary({
+    required bool isOwner,
+    required int total,
+    required bool card,
+  }) {
+    final chain = _chainNote(ref.watch(appUserProvider).value);
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Total PO',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.muted,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              rupiah.format(total),
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+        if (chain != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline, size: 15, color: AppColors.muted),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  chain,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _save(order: false),
+                child: const Text('Simpan draft'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton(
+                onPressed: () => isOwner ? _save(order: true) : _submit(),
+                child: Text(isOwner ? 'Pesan' : 'Ajukan'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+    if (card) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: content,
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: SafeArea(top: false, child: content),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isOwner = ref.watch(appUserProvider).value?.role == AppRole.owner;
+    final isOwner =
+        ref.watch(appUserProvider).value?.can('purchase_orders.direct_order') ??
+        false;
     final suppliers = ref.watch(suppliersProvider).value ?? <Supplier>[];
     final total = _lines.fold<int>(0, (s, l) => s + l.total);
+    final wide = MediaQuery.sizeOf(context).width >= 900;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.po == null ? 'PO baru' : _number)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (suppliers.isEmpty)
-            const Text('Tambahkan supplier dulu di tab Supplier.')
-          else
-            DropdownButtonFormField<String>(
+    final supplierCard = SectionCard(
+      title: 'Supplier',
+      child: suppliers.isEmpty
+          ? Text(
+              'Tambahkan supplier dulu di tab Supplier.',
+              style: GoogleFonts.inter(fontSize: 13.5, color: AppColors.muted),
+            )
+          : DropdownButtonFormField<String>(
               initialValue: _supplierId,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Supplier'),
+              decoration: const InputDecoration(hintText: 'Pilih supplier'),
               items: [
                 for (final s in suppliers)
                   DropdownMenuItem(value: s.id, child: Text(s.name)),
               ],
               onChanged: (v) => setState(() => _supplierId = v),
             ),
-          const SizedBox(height: 16),
-          Text('Item', style: Theme.of(context).textTheme.titleMedium),
-          if (_lines.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('Belum ada item'),
-            ),
-          for (var i = 0; i < _lines.length; i++)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(_lines[i].name),
-              subtitle: Text(
-                '${qtyText(_lines[i].qty)} ${_lines[i].unitLabel} × ${rupiah.format(_lines[i].unitPrice)}',
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(rupiah.format(_lines[i].total)),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => setState(() => _lines.removeAt(i)),
-                  ),
-                ],
-              ),
-              onTap: () => _editLine(i),
-            ),
-          TextButton.icon(
-            onPressed: _addLine,
-            icon: const Icon(Icons.add),
-            label: const Text('Tambah bahan'),
-          ),
-          TextField(
-            controller: _note,
-            decoration: const InputDecoration(labelText: 'Catatan'),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Total PO'),
-              Text(
-                rupiah.format(total),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _save(order: false),
-                  child: const Text('Simpan draft'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => isOwner ? _save(order: true) : _submit(),
-                  child: Text(isOwner ? 'Pesan' : 'Ajukan'),
-                ),
-              ),
-            ],
-          ),
-          if (!isOwner)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                'Pengajuan persetujuan (manager atau head chef, lalu owner) aktif di pembaruan berikutnya. '
-                'Untuk sekarang simpan sebagai draft.',
-                style: TextStyle(fontSize: 12),
-              ),
-            ),
-        ],
+    );
+
+    final itemsCard = SectionCard(
+      title: 'Item (${_lines.length})',
+      trailing: TextButton.icon(
+        onPressed: _addLine,
+        icon: const Icon(Icons.add, size: 18),
+        label: const Text('Tambah bahan'),
       ),
+      child: _lines.isEmpty
+          ? const EmptyState(
+              icon: Icons.inventory_2_outlined,
+              title: 'Belum ada item',
+              message: 'Ketuk "Tambah bahan"',
+            )
+          : Column(
+              children: [for (var i = 0; i < _lines.length; i++) _lineTile(i)],
+            ),
+    );
+
+    final noteCard = SectionCard(
+      title: 'Catatan',
+      child: TextField(
+        controller: _note,
+        maxLines: 2,
+        decoration: const InputDecoration(hintText: 'Opsional'),
+      ),
+    );
+
+    final form = ListView(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, wide ? 16 : 24),
+      children: [
+        supplierCard,
+        const SizedBox(height: 12),
+        itemsCard,
+        const SizedBox(height: 12),
+        noteCard,
+      ],
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.po == null ? 'PO baru' : _number)),
+      body: wide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: form),
+                SizedBox(
+                  width: 380,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+                    child: _summary(isOwner: isOwner, total: total, card: true),
+                  ),
+                ),
+              ],
+            )
+          : form,
+      bottomNavigationBar: wide
+          ? null
+          : _summary(isOwner: isOwner, total: total, card: false),
     );
   }
 }
 
-class PoDetailPage extends ConsumerWidget {
+// ===================================================================== detail PO
+
+/// Halaman penuh (HP). Di layar lebar, PoDetailView dipakai langsung di panel kanan.
+class PoDetailPage extends StatelessWidget {
   const PoDetailPage({super.key, required this.poId});
+  final String poId;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Detail PO')),
+    body: PoDetailView(poId: poId),
+  );
+}
+
+class _PoSteps extends StatelessWidget {
+  const _PoSteps(this.po);
+  final PurchaseOrder po;
+
+  @override
+  Widget build(BuildContext context) {
+    if (po.status == PoStatus.rejected || po.status == PoStatus.cancelled) {
+      return const SizedBox.shrink();
+    }
+    const labels = ['Draft', 'Diajukan', 'Dipesan', 'Selesai'];
+    final current = switch (po.status) {
+      PoStatus.draft => 0,
+      PoStatus.pending => 1,
+      PoStatus.ordered => 2,
+      _ => 3,
+    };
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < labels.length; i++) ...[
+          if (i > 0)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 11),
+                child: Container(
+                  height: 2,
+                  color: i <= current ? AppColors.primary : AppColors.border,
+                ),
+              ),
+            ),
+          Column(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i <= current ? AppColors.primary : AppColors.surface,
+                  border: Border.all(
+                    color: i <= current ? AppColors.primary : AppColors.border,
+                    width: 2,
+                  ),
+                ),
+                child: i < current
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    : i == current
+                    ? Center(
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                labels[i],
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: i == current ? FontWeight.w700 : FontWeight.w500,
+                  color: i <= current ? AppColors.ink : AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class PoDetailView extends ConsumerWidget {
+  const PoDetailView({super.key, required this.poId});
   final String poId;
 
   Future<bool> _confirm(BuildContext c, String title) async =>
@@ -345,16 +772,14 @@ class PoDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(appUserProvider).value?.role;
-    final isOwner = role == AppRole.owner;
-    final canReceive =
-        isOwner || role == AppRole.manager || role == AppRole.warehouse;
+    final user = ref.watch(appUserProvider).value;
+    final isOwner = user?.can('purchase_orders.direct_order') ?? false;
+    final canReceive = user?.can('goods_receipts.create') ?? false;
     final po = (ref.watch(purchaseOrdersProvider).value ?? <PurchaseOrder>[])
         .where((p) => p.id == poId)
         .firstOrNull;
-    if (po == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    if (po == null) return const Center(child: CircularProgressIndicator());
+
     final fmt = DateFormat('d MMM yyyy HH:mm');
     final received =
         ref.watch(receivedByPoProvider)[po.id] ?? <String, double>{};
@@ -362,133 +787,338 @@ class PoDetailPage extends ConsumerWidget {
         .where((r) => r.poId == po.id)
         .toList();
     final repo = ref.read(poRepositoryProvider);
+    final showProgress =
+        po.status == PoStatus.ordered || po.status == PoStatus.closed;
 
-    Widget kv(String k, String v, {bool bold = false}) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+    final canCancel =
+        (po.status == PoStatus.draft || po.status == PoStatus.ordered) &&
+        receipts.isEmpty;
+    final actions = <Widget>[
+      if (canCancel)
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+          onPressed: () async {
+            if (await _confirm(context, 'Batalkan PO ini?')) {
+              await repo.save(po.copyWith(status: PoStatus.cancelled));
+            }
+          },
+          child: const Text('Batalkan'),
+        ),
+      if (po.status == PoStatus.draft) ...[
+        OutlinedButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => PoEditorPage(po: po)),
+          ),
+          child: const Text('Edit'),
+        ),
+        if (isOwner)
+          FilledButton(
+            onPressed: () => repo.save(po.copyWith(status: PoStatus.ordered)),
+            child: const Text('Pesan'),
+          )
+        else
+          FilledButton(
+            onPressed: () => _submit(context, ref, po),
+            child: const Text('Ajukan'),
+          ),
+      ],
+      if (po.status == PoStatus.ordered) ...[
+        OutlinedButton(
+          onPressed: () async {
+            if (await _confirm(context, 'Tutup PO ini (sisa tidak dikirim)?')) {
+              await repo.save(po.copyWith(status: PoStatus.closed));
+            }
+          },
+          child: const Text('Tutup PO'),
+        ),
+        if (canReceive)
+          FilledButton(
+            onPressed: () => showReceiveDialog(context, ref, po, received),
+            child: const Text('Terima barang'),
+          ),
+      ],
+    ];
+
+    Widget banner(IconData icon, String text, Color bg, Color fg) => Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(k),
-          Text(v, style: TextStyle(fontWeight: bold ? FontWeight.bold : null)),
+          Icon(icon, size: 18, color: fg),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(fontSize: 13, color: fg),
+            ),
+          ),
         ],
       ),
     );
 
-    return Scaffold(
-      appBar: AppBar(title: Text(po.number)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          kv('Supplier', po.supplierName),
-          kv('Status', poStatusText(po, received)),
-          if (po.status == PoStatus.pending)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text('Menunggu persetujuan. Pantau di tab Persetujuan.'),
-            ),
-          if (po.status == PoStatus.rejected)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                'Ditolak. Alasannya ada di Persetujuan → Pengajuan saya. Buat PO baru bila perlu.',
-              ),
-            ),
-          kv(
-            'Tanggal',
-            fmt.format(DateTime.fromMillisecondsSinceEpoch(po.createdAt)),
-          ),
-          kv('Total PO', rupiah.format(po.total), bold: true),
-          if (po.note.isNotEmpty) Text('Catatan: ${po.note}'),
-          const Divider(height: 24),
-          Text('Item', style: Theme.of(context).textTheme.titleMedium),
-          for (final l in po.lines)
-            ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(l.name),
-              subtitle: Text(
-                '${qtyText(l.qty)} ${l.unitLabel} × ${rupiah.format(l.unitPrice)}',
-              ),
-              trailing: Text(
-                'Diterima ${qtyText(received[l.ingredientId] ?? 0)}/${qtyText(l.qty)}',
-              ),
-            ),
-          if (receipts.isNotEmpty) ...[
-            const Divider(height: 24),
-            Text('Penerimaan', style: Theme.of(context).textTheme.titleMedium),
-            for (final r in receipts)
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text('${r.number} • ${rupiah.format(r.total)}'),
-                subtitle: Text(
-                  '${fmt.format(DateTime.fromMillisecondsSinceEpoch(r.at))}'
-                  '${r.invoiceNo.isEmpty ? '' : ' • Faktur ${r.invoiceNo}'}',
-                ),
-              ),
-          ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              if (po.status == PoStatus.draft) ...[
-                OutlinedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => PoEditorPage(po: po)),
-                  ),
-                  child: const Text('Edit'),
+              if (po.status == PoStatus.pending)
+                banner(
+                  Icons.hourglass_top,
+                  'Menunggu persetujuan. Pantau di tab Persetujuan.',
+                  const Color(0xFFFEF3C7),
+                  const Color(0xFF92400E),
                 ),
-                if (isOwner)
-                  FilledButton(
-                    onPressed: () =>
-                        repo.save(po.copyWith(status: PoStatus.ordered)),
-                    child: const Text('Pesan'),
+              if (po.status == PoStatus.rejected)
+                banner(
+                  Icons.cancel_outlined,
+                  'Ditolak. Alasannya ada di Persetujuan → Pengajuan saya. Buat PO baru bila perlu.',
+                  AppColors.roseSoft,
+                  const Color(0xFF9F1239),
+                ),
+              if (po.status == PoStatus.cancelled)
+                banner(
+                  Icons.block,
+                  'PO ini dibatalkan.',
+                  const Color(0xFFF3F4F6),
+                  AppColors.muted,
+                ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                po.number,
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                po.supplierName,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13.5,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        StatusPill(
+                          poStatusText(po, received),
+                          tone: poTone(po, received),
+                        ),
+                      ],
+                    ),
+                    if (po.status != PoStatus.rejected &&
+                        po.status != PoStatus.cancelled) ...[
+                      const SizedBox(height: 16),
+                      _PoSteps(po),
+                    ],
+                    const SizedBox(height: 12),
+                    const Divider(height: 1),
+                    const SizedBox(height: 8),
+                    KvRow(
+                      'Tanggal',
+                      fmt.format(
+                        DateTime.fromMillisecondsSinceEpoch(po.createdAt),
+                      ),
+                    ),
+                    if (po.createdByName.isNotEmpty)
+                      KvRow('Dibuat oleh', po.createdByName),
+                    KvRow(
+                      'Total PO',
+                      rupiah.format(po.total),
+                      bold: true,
+                      color: AppColors.primary,
+                    ),
+                    if (po.note.isNotEmpty) KvRow('Catatan', po.note),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SectionCard(
+                title: 'Item (${po.lines.length})',
+                child: Column(
+                  children: [
+                    for (final l in po.lines)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l.name,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${qtyText(l.qty)} ${l.unitLabel} × ${rupiah.format(l.unitPrice)}',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12.5,
+                                          color: AppColors.muted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      rupiah.format(l.total),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    if (showProgress)
+                                      Text(
+                                        'Diterima ${qtyText(received[l.ingredientId] ?? 0)}/${qtyText(l.qty)}',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: AppColors.muted,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            if (showProgress && l.qty > 0) ...[
+                              const SizedBox(height: 6),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: math.min(
+                                    1.0,
+                                    (received[l.ingredientId] ?? 0) / l.qty,
+                                  ),
+                                  minHeight: 5,
+                                  color: AppColors.success,
+                                  backgroundColor: const Color(0xFFD1FAE5),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (receipts.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                SectionCard(
+                  title: 'Penerimaan (${receipts.length})',
+                  child: Column(
+                    children: [
+                      for (final r in receipts)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 7),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD1FAE5),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.inventory_2_outlined,
+                                  size: 18,
+                                  color: Color(0xFF047857),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      r.number,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${fmt.format(DateTime.fromMillisecondsSinceEpoch(r.at))}'
+                                      '${r.invoiceNo.isEmpty ? '' : ' • Faktur ${r.invoiceNo}'}',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: AppColors.muted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                rupiah.format(r.total),
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
-                if (!isOwner)
-                  FilledButton(
-                    onPressed: () => _submit(context, ref, po),
-                    child: const Text('Ajukan'),
-                  ),
+                ),
               ],
-              if (po.status == PoStatus.ordered) ...[
-                if (canReceive)
-                  FilledButton(
-                    onPressed: () =>
-                        showReceiveDialog(context, ref, po, received),
-                    child: const Text('Terima barang'),
-                  ),
-                OutlinedButton(
-                  onPressed: () async {
-                    if (await _confirm(
-                      context,
-                      'Tutup PO ini (sisa tidak dikirim)?',
-                    )) {
-                      await repo.save(po.copyWith(status: PoStatus.closed));
-                    }
-                  },
-                  child: const Text('Tutup PO'),
-                ),
-              ],
-              if ((po.status == PoStatus.draft ||
-                      po.status == PoStatus.ordered) &&
-                  receipts.isEmpty)
-                TextButton(
-                  onPressed: () async {
-                    if (await _confirm(context, 'Batalkan PO ini?')) {
-                      await repo.save(po.copyWith(status: PoStatus.cancelled));
-                    }
-                  },
-                  child: const Text('Batalkan'),
-                ),
             ],
           ),
-        ],
-      ),
+        ),
+        if (actions.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
+                children: actions,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
+
+// ===================================================================== terima barang
 
 Future<void> showReceiveDialog(
   BuildContext context,
@@ -511,7 +1141,7 @@ Future<void> showReceiveDialog(
   final invoice = TextEditingController();
   final paid = TextEditingController(text: '0');
   var fromDrawer = false;
-  final canPay = user?.isManager ?? false;
+  final canPay = user?.can('supplier_payments.create') ?? false;
 
   int lineTotal(int i) =>
       ((parseNum(qty[i].text) ?? 0) * (int.tryParse(price[i].text) ?? 0))
@@ -531,23 +1161,47 @@ Future<void> showReceiveDialog(
             paidNow >= 0 &&
             paidNow <= total &&
             (!drawerOn || canDrawer);
+
         return AlertDialog(
           title: const Text('Terima barang'),
           content: SizedBox(
-            width: double.maxFinite,
+            width: 460,
             child: ListView(
               shrinkWrap: true,
               children: [
                 for (var i = 0; i < po.lines.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '${po.lines[i].name} (${po.lines[i].unitLabel})',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${po.lines[i].name} (${po.lines[i].unitLabel})',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              'Dipesan ${qtyText(po.lines[i].qty)} • sudah ${qtyText(before[po.lines[i].ingredientId] ?? 0)}',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
@@ -559,6 +1213,7 @@ Future<void> showReceiveDialog(
                                     ),
                                 decoration: const InputDecoration(
                                   labelText: 'Diterima',
+                                  isDense: true,
                                 ),
                                 onChanged: (_) => setS(() {}),
                               ),
@@ -570,35 +1225,74 @@ Future<void> showReceiveDialog(
                                 keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
                                   labelText: 'Harga/satuan',
+                                  isDense: true,
                                 ),
                                 onChanged: (_) => setS(() {}),
                               ),
                             ),
                           ],
                         ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              rupiah.format(lineTotal(i)),
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                const Divider(),
                 TextField(
                   controller: invoice,
                   decoration: const InputDecoration(
                     labelText: 'No. faktur / nota (opsional)',
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Total: ${rupiah.format(total)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Total diterima',
+                        style: GoogleFonts.inter(
+                          fontSize: 13.5,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        rupiah.format(total),
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (canPay) ...[
+                  const SizedBox(height: 12),
                   TextField(
                     controller: paid,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Dibayar sekarang (Rp)',
+                      prefixText: 'Rp ',
                     ),
                     onChanged: (_) => setS(() {}),
                   ),
@@ -616,13 +1310,35 @@ Future<void> showReceiveDialog(
                         : null,
                   ),
                   if (paidNow > total)
-                    Text(
-                      'Pembayaran melebihi total',
-                      style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.roseSoft,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Pembayaran melebihi total',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: const Color(0xFF9F1239),
+                        ),
+                      ),
                     )
                   else if (total > paidNow)
-                    Text(
-                      'Sisa menjadi hutang: ${rupiah.format(total - paidNow)}',
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Sisa menjadi hutang: ${rupiah.format(total - paidNow)}',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF92400E),
+                        ),
+                      ),
                     ),
                 ],
               ],
