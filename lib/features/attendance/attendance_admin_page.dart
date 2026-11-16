@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:rms_yow/features/attendance/outlet_schedule_page.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
@@ -22,13 +23,21 @@ class _SummaryRow {
       userName = m['user_name'] as String? ?? '',
       records = (m['records'] as num?)?.toInt() ?? 0,
       minutes = (m['minutes'] as num?)?.toInt() ?? 0,
-      openCount = (m['open_count'] as num?)?.toInt() ?? 0;
+      openCount = (m['open_count'] as num?)?.toInt() ?? 0,
+      lateCount = (m['late_count'] as num?)?.toInt() ?? 0,
+      lateMinutes = (m['late_minutes'] as num?)?.toInt() ?? 0,
+      earlyOutCount = (m['early_out_count'] as num?)?.toInt() ?? 0,
+      overtimeMinutes = (m['overtime_minutes'] as num?)?.toInt() ?? 0;
 
   final String userId;
   final String userName;
   final int records;
   final int minutes;
   final int openCount;
+  final int lateCount;
+  final int lateMinutes;
+  final int earlyOutCount;
+  final int overtimeMinutes;
 }
 
 String _statusLabel(String s) => switch (s) {
@@ -92,11 +101,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
 
   Map<String, dynamic> _base() {
     final outlet = ref.read(activeOutletIdProvider);
-    return {
-      'since': _since,
-      'until': _until,
-      if (outlet != null) 'outlet_id': outlet,
-    };
+    return {'since': _since, 'until': _until, 'outlet_id': ?outlet};
   }
 
   List<AttendanceRecord> _parse(dynamic data) => [
@@ -384,13 +389,26 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
       final List<List<Object?>> rows;
       if (summary) {
         rows = [
-          ['Karyawan', 'Jumlah catatan', 'Total jam', 'Belum pulang'],
+          [
+            'Karyawan',
+            'Jumlah catatan',
+            'Total jam',
+            'Belum pulang',
+            'Terlambat (kali)',
+            'Terlambat (menit)',
+            'Pulang cepat (kali)',
+            'Lembur (menit)',
+          ],
           for (final s in _summary)
             [
               s.userName,
               s.records,
               double.parse((s.minutes / 60).toStringAsFixed(2)),
               s.openCount,
+              s.lateCount,
+              s.lateMinutes,
+              s.earlyOutCount,
+              s.overtimeMinutes,
             ],
         ];
       } else {
@@ -423,6 +441,12 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
             'Status tinjauan',
             'Catatan tinjauan',
             'Dikoreksi',
+            'Sumber',
+            'Jadwal masuk',
+            'Terlambat (menit)',
+            'Jadwal pulang',
+            'Pulang cepat (menit)',
+            'Lembur (menit)',
           ],
           for (final r in all)
             [
@@ -443,6 +467,20 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
               r.reviewStatus,
               r.reviewNote,
               r.edited ? 'ya' : 'tidak',
+              r.viaKiosk ? 'kiosk' : 'HP sendiri',
+              r.schedInAt == null
+                  ? ''
+                  : _hm.format(
+                      DateTime.fromMillisecondsSinceEpoch(r.schedInAt!),
+                    ),
+              r.lateMin,
+              r.schedOutAt == null
+                  ? ''
+                  : _hm.format(
+                      DateTime.fromMillisecondsSinceEpoch(r.schedOutAt!),
+                    ),
+              r.earlyOutMin,
+              r.overtimeMin,
             ],
         ];
       }
@@ -603,6 +641,24 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
         child: Column(
           children: [
             if (r.minutes != null) _info('Durasi', durationText(r.minutes!)),
+            if (r.schedInAt != null)
+              _info(
+                'Jadwal',
+                '${_hm.format(DateTime.fromMillisecondsSinceEpoch(r.schedInAt!))}'
+                    ' - ${r.schedOutAt == null ? '...' : _hm.format(DateTime.fromMillisecondsSinceEpoch(r.schedOutAt!))}',
+              ),
+            if (r.inStatus != null)
+              _info(
+                'Masuk',
+                punctualityText(r, out: false) ?? '-',
+                color: r.inStatus == 'late' ? AppColors.danger : null,
+              ),
+            if (r.outStatus != null)
+              _info(
+                'Pulang',
+                punctualityText(r, out: true) ?? '-',
+                color: r.outStatus == 'early' ? AppColors.danger : null,
+              ),
             _info(
               'Jarak masuk',
               r.inDistanceM == null
@@ -619,6 +675,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                 color: AppColors.danger,
               ),
             if (r.edited) _info('Riwayat', 'Pernah dikoreksi manager'),
+            if (r.viaKiosk) _info('Sumber', 'Tablet kiosk (absen bersama)'),
             _info('Tinjauan', _statusLabel(r.reviewStatus)),
             if (r.reviewNote.isNotEmpty) _info('Catatan', r.reviewNote),
           ],
@@ -744,6 +801,22 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                           ),
                         if (r.edited)
                           const StatusPill('Dikoreksi', tone: Tone.info),
+                        if (r.viaKiosk) const StatusPill('Via kiosk'),
+                        if (r.inStatus == 'late')
+                          StatusPill(
+                            'Terlambat ${minText(r.lateMin)}',
+                            tone: Tone.warning,
+                          ),
+                        if (r.outStatus == 'early')
+                          StatusPill(
+                            'Pulang cepat ${minText(r.earlyOutMin)}',
+                            tone: Tone.warning,
+                          ),
+                        if (r.outStatus == 'overtime')
+                          StatusPill(
+                            'Lembur ${minText(r.overtimeMin)}',
+                            tone: Tone.info,
+                          ),
                         if (late)
                           const StatusPill(
                             'Dikirim terlambat',
@@ -892,6 +965,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
     if (_error != null) return _errorView();
     final totalMin = _summary.fold<int>(0, (s, e) => s + e.minutes);
     final openAll = _summary.fold<int>(0, (s, e) => s + e.openCount);
+    final lateAll = _summary.fold<int>(0, (s, e) => s + e.lateCount);
     return RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
@@ -918,6 +992,12 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                 label: 'Belum pulang',
                 value: '$openAll',
                 tone: openAll > 0 ? Tone.danger : Tone.success,
+              ),
+              StatTile(
+                icon: Icons.alarm,
+                label: 'Terlambat',
+                value: '$lateAll',
+                tone: lateAll > 0 ? Tone.warning : Tone.success,
               ),
             ],
           ),
@@ -975,14 +1055,35 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                                   color: AppColors.muted,
                                 ),
                               ),
-                              if (s.openCount > 0)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: StatusPill(
-                                    '${s.openCount} belum pulang',
-                                    tone: Tone.danger,
-                                  ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: [
+                                    if (s.openCount > 0)
+                                      StatusPill(
+                                        '${s.openCount} belum pulang',
+                                        tone: Tone.danger,
+                                      ),
+                                    if (s.lateCount > 0)
+                                      StatusPill(
+                                        'Terlambat ${s.lateCount}× • ${minText(s.lateMinutes)}',
+                                        tone: Tone.warning,
+                                      ),
+                                    if (s.earlyOutCount > 0)
+                                      StatusPill(
+                                        'Pulang cepat ${s.earlyOutCount}×',
+                                        tone: Tone.warning,
+                                      ),
+                                    if (s.overtimeMinutes > 0)
+                                      StatusPill(
+                                        'Lembur ${minText(s.overtimeMinutes)}',
+                                        tone: Tone.info,
+                                      ),
+                                  ],
                                 ),
+                              ),
                             ],
                           ),
                         ),
@@ -1013,6 +1114,25 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
         appBar: AppBar(
           title: Text('Absensi${outlet == null ? '' : ' • ${outlet.name}'}'),
           actions: [
+            if (ref.watch(appUserProvider).value?.can('attendance.schedule') ??
+                false)
+              IconButton(
+                tooltip: 'Jadwal buka-tutup',
+                icon: const Icon(Icons.calendar_month_outlined),
+                onPressed: () {
+                  final id = ref.read(activeOutletIdProvider);
+                  if (id == null) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OutletSchedulePage(
+                        outletId: id,
+                        outletName: outlet?.name ?? '',
+                      ),
+                    ),
+                  );
+                },
+              ),
             PopupMenuButton<bool>(
               tooltip: 'Ekspor CSV',
               icon: const Icon(Icons.ios_share),

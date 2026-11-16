@@ -10,6 +10,7 @@ class ManagedUser {
     required this.roleKey,
     required this.outletId,
     required this.active,
+    this.pinSet = false,
   });
 
   final String id;
@@ -19,6 +20,7 @@ class ManagedUser {
   final String roleKey; // = roles.key (peran bawaan maupun buatan owner)
   final String? outletId;
   final bool active;
+  final bool pinSet; // PIN absensi sudah diatur
 
   factory ManagedUser.fromJson(Map<String, dynamic> m) => ManagedUser(
     id: m['id'] as String,
@@ -28,6 +30,7 @@ class ManagedUser {
     roleKey: m['role'] as String? ?? '',
     outletId: m['outlet_id'] as String?,
     active: m['active'] as bool? ?? true,
+    pinSet: m['attendance_pin_set'] as bool? ?? false,
   );
 }
 

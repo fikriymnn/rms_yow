@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rms_yow/features/auth/auth_providers.dart';
 import 'package:rms_yow/features/tables/dining_table.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -50,7 +51,11 @@ class _KdsPageState extends ConsumerState<KdsPage> {
     }
   }
 
+  bool get _foodcourt => ref.read(activeOutletProvider)?.isFoodcourt ?? false;
+
   String _where(Order o, Map<String, String> tables) {
+    final q = o.queueNo;
+    if (q != null && q.isNotEmpty) return 'No. $q';
     if (o.tableId == null) return 'Takeaway';
     final name = tables[o.tableId] ?? '';
     if (name.isEmpty) return 'Meja';
@@ -112,7 +117,9 @@ class _KdsPageState extends ConsumerState<KdsPage> {
                 ),
                 ButtonSegment(
                   value: true,
-                  label: Text('Siap antar  ${readyList.length}'),
+                  label: Text(
+                    '${_foodcourt ? 'Siap diantar / diambil' : 'Siap antar'}  ${readyList.length}',
+                  ),
                 ),
               ],
               selected: {_showReady},
@@ -126,7 +133,9 @@ class _KdsPageState extends ConsumerState<KdsPage> {
                         ? Icons.room_service_outlined
                         : Icons.soup_kitchen_outlined,
                     title: _showReady
-                        ? 'Tidak ada yang siap diantar'
+                        ? (_foodcourt
+                              ? 'Tidak ada yang siap diantar / diambil'
+                              : 'Tidak ada yang siap diantar')
                         : 'Tidak ada antrian',
                   )
                 : LayoutBuilder(
@@ -272,7 +281,11 @@ class _KdsPageState extends ConsumerState<KdsPage> {
                 _showReady ? KitchenStatus.served : KitchenStatus.ready,
               ),
               icon: const Icon(Icons.done_all),
-              label: Text(_showReady ? 'Semua diantar' : 'Semua siap'),
+              label: Text(
+                _showReady
+                    ? (_foodcourt ? 'Semua selesai' : 'Semua diantar')
+                    : 'Semua siap',
+              ),
             ),
           ),
         ],
@@ -284,7 +297,7 @@ class _KdsPageState extends ConsumerState<KdsPage> {
     final (label, next) = switch (s) {
       KitchenStatus.newItem => ('Mulai', KitchenStatus.preparing),
       KitchenStatus.preparing => ('Siap', KitchenStatus.ready),
-      _ => ('Antar', KitchenStatus.served),
+      _ => (_foodcourt ? 'Selesai' : 'Antar', KitchenStatus.served),
     };
     const btnSize = Size(84, 46);
     return Row(

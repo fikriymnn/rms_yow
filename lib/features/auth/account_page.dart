@@ -15,6 +15,11 @@ import '../admin/users_admin_page.dart';
 import '../roles/roles_admin_page.dart';
 import 'auth_providers.dart';
 import 'outlet_picker_page.dart';
+import 'package:rms_yow/features/attendance/pin_dialogs.dart';
+import 'package:rms_yow/features/update/update_service.dart';
+import 'package:rms_yow/features/update/update_ui.dart';
+import '../client/client_pages.dart';
+import '../client/client_providers.dart';
 
 String _initials(String name) {
   final p = name
@@ -292,7 +297,7 @@ class AccountPage extends ConsumerWidget {
     );
 
     final outletCard = SectionCard(
-      title: 'Outlet & server',
+      title: 'Outlet',
       child: Column(
         children: [
           _infoRow(
@@ -311,7 +316,6 @@ class AccountPage extends ConsumerWidget {
                   )
                 : null,
           ),
-          _infoRow(Icons.dns_outlined, 'Server', session.baseUrl),
         ],
       ),
     );
@@ -452,15 +456,53 @@ class AccountPage extends ConsumerWidget {
           )
         : null;
 
+    final client = ref.watch(clientProvider).value;
     final securityCard = SectionCard(
       title: 'Keamanan & privasi',
       child: Column(
         children: [
+          if (client != null)
+            _actionTile(
+              Icons.workspace_premium_outlined,
+              'Langganan ${client.info.name}',
+              '${client.info.subscription.inGrace ? 'Masa tenggang, ' : ''}'
+                  'aktif ${formatValidUntil(client.info.subscription)}',
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SubscriptionPage(blocked: false),
+                ),
+              ),
+            ),
           _actionTile(
             Icons.lock_outline,
             'Ganti password',
             'Anda akan diminta login ulang',
             () => _changePassword(context, ref),
+          ),
+          if (u.can('attendance.clock'))
+            _actionTile(
+              Icons.pin_outlined,
+              'PIN absensi',
+              'Dipakai saat absen di tablet bersama',
+              () async {
+                final msg = await promptSetMyPin(context, ref);
+                if (msg != null && context.mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(msg)));
+                }
+              },
+            ),
+          _actionTile(
+            Icons.system_update_outlined,
+            'Cek pembaruan',
+            ref
+                .watch(appVersionProvider)
+                .maybeWhen(
+                  data: (v) => 'Versi ${v.name} (build ${v.build})',
+                  orElse: () => 'Periksa versi terbaru aplikasi',
+                ),
+            () => checkForUpdateManually(context, ref),
           ),
           if (showPrivacy)
             _actionTile(

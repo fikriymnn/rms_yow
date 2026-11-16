@@ -13,6 +13,7 @@ import '../notifications/mark_read_on_open.dart';
 import 'approval_models.dart';
 import 'approval_providers.dart';
 import 'approval_ui.dart';
+import '../charges/charge_models.dart';
 
 /// Halaman penuh (HP). Di Tab lanskap dan Web, ApprovalDetailView dipakai langsung di panel kanan.
 class ApprovalDetailPage extends StatelessWidget {
@@ -225,6 +226,7 @@ class ApprovalDetailView extends ConsumerWidget {
           child: switch (a.type) {
             'purchase_order' => _po(a),
             'ingredient' => _ingredient(a),
+            'charge' => _charge(a),
             _ => _supplier(a),
           },
         ),
@@ -420,6 +422,62 @@ class ApprovalDetailView extends ConsumerWidget {
         _row('Nama', change('name')),
         _row('Telepon', change('phone')),
         if ('${p['note'] ?? ''}'.isNotEmpty) _row('Catatan', change('note')),
+      ],
+    );
+  }
+
+  Widget _charge(ApprovalRequest a) {
+    final p = a.payload;
+    final before = p['before'] as Map?;
+    String pct(Object? v) => '${percentText((v as num?) ?? 0)}%';
+    String kind(Object? k) => k == 'service' ? 'Service' : 'Pajak';
+    String base(Object? on) => on == true ? 'Subtotal + service' : 'Subtotal';
+    String status(Object? on) => on == false ? 'Nonaktif' : 'Aktif';
+    String change(String now, String? old) =>
+        old == null || old == now ? now : '$now  (sebelumnya: $old)';
+    final action = p['action'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _row('Jenis', switch (action) {
+          'create' => 'Biaya baru',
+          'delete' => 'Hapus biaya',
+          _ => 'Ubah biaya',
+        }),
+        _row(
+          'Nama',
+          change(
+            '${p['name'] ?? ''}',
+            before == null ? null : '${before['name']}',
+          ),
+        ),
+        _row(
+          'Kategori',
+          change(kind(p['kind']), before == null ? null : kind(before['kind'])),
+        ),
+        _row(
+          'Persentase',
+          change(
+            pct(p['percent']),
+            before == null ? null : pct(before['percent']),
+          ),
+        ),
+        if (action != 'delete') ...[
+          _row(
+            'Dihitung atas',
+            change(
+              base(p['onService']),
+              before == null ? null : base(before['onService']),
+            ),
+          ),
+          _row(
+            'Status',
+            change(
+              status(p['active']),
+              before == null ? null : status(before['active']),
+            ),
+          ),
+        ],
       ],
     );
   }

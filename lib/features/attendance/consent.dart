@@ -9,16 +9,13 @@ import 'attendance_queue.dart';
 /// Harus sama dengan ATTENDANCE_CONSENT_VERSION di server.
 const kConsentVersion = 1;
 
-/// Persetujuan data lokasi dan foto wajah. Tersimpan di server (waktu dan versi).
-Future<bool> ensureConsent(BuildContext context, WidgetRef ref) async {
-  await ref
-      .read(attendanceMeProvider.notifier)
-      .refresh(); // status terbaru bila online
-  if (ref.read(attendanceMeProvider).value?.consentVersion == kConsentVersion)
-    return true;
-  if (!context.mounted) return false;
-
+/// Dialog persetujuan. [forName] diisi di tablet kiosk (karyawan yang sedang absen).
+Future<bool> askConsentAgreement(
+  BuildContext context, {
+  String? forName,
+}) async {
   var agreed = false;
+  final who = forName == null ? '' : ' $forName';
   final ok = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -29,14 +26,14 @@ Future<bool> ensureConsent(BuildContext context, WidgetRef ref) async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Untuk mencatat kehadiran, aplikasi akan:\n\n'
-                '• Membaca lokasi GPS Anda saat Anda menekan tombol absen.\n'
-                '• Mengambil foto wajah (selfie) dan memeriksa bahwa wajah Anda ada di depan kamera.\n\n'
+              Text(
+                'Untuk mencatat kehadiran$who, aplikasi akan:\n\n'
+                '• Membaca lokasi GPS saat tombol absen ditekan.\n'
+                '• Mengambil foto wajah (selfie) dan memeriksa bahwa wajah ada di depan kamera.\n\n'
                 'Data ini hanya dipakai untuk memverifikasi absensi. Yang dapat melihatnya: '
-                'Anda sendiri, manager outlet Anda, dan owner. Foto dihapus otomatis setelah '
+                'karyawan yang bersangkutan, manager outlet, dan owner. Foto dihapus otomatis setelah '
                 'masa simpan (saat ini 90 hari), sedangkan catatan jam masuk dan pulang tetap ada.\n\n'
-                'Persetujuan Anda dicatat di server (waktu dan versi teks ini).',
+                'Persetujuan dicatat di server (waktu dan versi teks ini).',
               ),
               const SizedBox(height: 12),
               CheckboxListTile(
@@ -62,7 +59,19 @@ Future<bool> ensureConsent(BuildContext context, WidgetRef ref) async {
       ),
     ),
   );
-  if (ok != true) return false;
+  return ok == true;
+}
+
+/// Persetujuan data lokasi dan foto wajah. Tersimpan di server (waktu dan versi).
+Future<bool> ensureConsent(BuildContext context, WidgetRef ref) async {
+  await ref
+      .read(attendanceMeProvider.notifier)
+      .refresh(); // status terbaru bila online
+  if (ref.read(attendanceMeProvider).value?.consentVersion == kConsentVersion) {
+    return true;
+  }
+  if (!context.mounted) return false;
+  if (!await askConsentAgreement(context)) return false;
   try {
     await ref
         .read(apiClientProvider)

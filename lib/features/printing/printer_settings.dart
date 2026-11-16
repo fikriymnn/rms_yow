@@ -20,6 +20,7 @@ class PrinterSettings {
     this.lanHost = '',
     this.lanPort = 9100,
     this.autoPrint = false,
+    this.kitchenSlip = true,
     this.shopName = 'Nama Outlet',
     this.shopAddress = '',
     this.footer = 'Terima kasih',
@@ -33,6 +34,7 @@ class PrinterSettings {
   final String lanHost;
   final int lanPort;
   final bool autoPrint;
+  final bool kitchenSlip; // outlet foodcourt: cetak juga struk dapur
   final String shopName;
   final String shopAddress;
   final String footer;
@@ -53,6 +55,7 @@ class PrinterSettings {
     String? lanHost,
     int? lanPort,
     bool? autoPrint,
+    bool? kitchenSlip,
     String? shopName,
     String? shopAddress,
     String? footer,
@@ -65,6 +68,7 @@ class PrinterSettings {
     lanHost: lanHost ?? this.lanHost,
     lanPort: lanPort ?? this.lanPort,
     autoPrint: autoPrint ?? this.autoPrint,
+    kitchenSlip: kitchenSlip ?? this.kitchenSlip,
     shopName: shopName ?? this.shopName,
     shopAddress: shopAddress ?? this.shopAddress,
     footer: footer ?? this.footer,
@@ -85,6 +89,7 @@ class PrinterSettings {
     lanHost: m['lanHost'] as String? ?? '',
     lanPort: (m['lanPort'] as num?)?.toInt() ?? 9100,
     autoPrint: m['autoPrint'] as bool? ?? false,
+    kitchenSlip: m['kitchenSlip'] as bool? ?? true,
     shopName: m['shopName'] as String? ?? 'Nama Outlet',
     shopAddress: m['shopAddress'] as String? ?? '',
     footer: m['footer'] as String? ?? 'Terima kasih',
@@ -99,6 +104,7 @@ class PrinterSettings {
     'lanHost': lanHost,
     'lanPort': lanPort,
     'autoPrint': autoPrint,
+    'kitchenSlip': kitchenSlip,
     'shopName': shopName,
     'shopAddress': shopAddress,
     'footer': footer,

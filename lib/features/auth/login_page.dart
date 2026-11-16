@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:rms_yow/shell/auth_layout.dart';
 
 import '../../core/api/api_exception.dart';
-import '../../core/db/meta_db.dart';
+import '../client/client_pages.dart';
+import '../client/client_providers.dart';
 import '../../core/theme/app_colors.dart';
 import 'auth_providers.dart';
 
@@ -15,27 +16,14 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _server = TextEditingController(text: defaultServerUrl());
   final _user = TextEditingController();
   final _pass = TextEditingController();
   bool _loading = false;
   bool _showPass = false;
-  bool _editServer = false;
   String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    ref.read(metaDbProvider).getMeta('server_url').then((m) {
-      if (m != null && mounted) {
-        setState(() => _server.text = m['url'] as String);
-      }
-    });
-  }
-
-  @override
   void dispose() {
-    _server.dispose();
     _user.dispose();
     _pass.dispose();
     super.dispose();
@@ -49,11 +37,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     try {
       await ref
           .read(sessionProvider.notifier)
-          .login(
-            baseUrl: _server.text,
-            username: _user.text,
-            password: _pass.text,
-          );
+          .login(username: _user.text, password: _pass.text);
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
     } finally {
@@ -61,10 +45,33 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
+  Future<void> _switchClient() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ganti akun restoran?'),
+        content: const Text(
+          'Perangkat perlu diaktivasi ulang dengan kode baru dari CS.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ganti'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await ref.read(clientProvider.notifier).forget();
+  }
+
   @override
   Widget build(BuildContext context) => AuthLayout(
     title: 'Selamat datang',
-    subtitle: 'Masuk untuk melanjutkan',
+    subtitle: ref.watch(clientProvider).value?.info.name ?? 'Masuk untuk melanjutkan',
     child: AutofillGroup(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -103,33 +110,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.roseSoft,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 18,
-                    color: Color(0xFF9F1239),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _error!,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: const Color(0xFF9F1239),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            AuthErrorBox(_error!),
           ],
           const SizedBox(height: 18),
           FilledButton(
@@ -147,53 +128,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 : const Text('Masuk'),
           ),
           const SizedBox(height: 16),
-          if (_editServer)
-            TextField(
-              controller: _server,
-              keyboardType: TextInputType.url,
-              decoration: const InputDecoration(
-                labelText: 'Alamat server',
-                hintText: 'mis. https://rms.contoh.com/api',
-                prefixIcon: Icon(Icons.dns_outlined),
-              ),
-            )
-          else
-            InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => setState(() => _editServer = true),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.dns_outlined,
-                      size: 16,
-                      color: AppColors.muted,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _server.text,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      'Ubah',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          const DeviceNameTile(),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _loading ? null : _switchClient,
+            child: const Text('Bukan restoran ini? Ganti akun restoran'),
+          ),
           const SizedBox(height: 14),
           Center(
             child: Text(

@@ -41,6 +41,13 @@ import 'features/notifications/notifications_page.dart';
 import 'features/notifications/mark_read_on_open.dart';
 import 'core/theme/app_theme.dart';
 import 'shell/app_shell.dart';
+import 'features/attendance/kiosk_page.dart';
+import 'features/pos/pos_page.dart';
+import 'features/update/update_service.dart';
+import 'features/update/update_ui.dart';
+import 'features/client/client_models.dart';
+import 'features/client/client_pages.dart';
+import 'features/client/client_providers.dart';
 
 /// Koleksi yang di-mirror ke lokal. Tambah di sini tiap modul baru.
 
@@ -49,25 +56,39 @@ class RmsApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final client = ref.watch(clientProvider);
+    final blocked = ref.watch(clientBlockProvider);
     final session = ref.watch(sessionProvider);
     final outlet = ref.watch(activeOutletProvider);
+    // versi aplikasi di bawah batas minimum server: wajib diperbarui dulu
+    final forced = ref.watch(mandatoryUpdateProvider).value;
     return MaterialApp(
       title: 'RMS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       themeMode: ThemeMode.light,
-      home: session.when(
-        loading: () =>
-            const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (e, _) => Scaffold(body: Center(child: Text('$e'))),
-        data: (s) {
-          if (s == null) return const LoginPage();
-          if (s.user.mustChangePassword) return const ForcePasswordPage();
-          if (outlet == null)
-            return const OutletPickerPage(); // owner belum memilih outlet
-          return const HomeShell();
-        },
-      ),
+      // urutan: update wajib -> aktivasi perangkat klien -> langganan -> login RMS
+      home: forced != null
+          ? UpdateRequiredPage(info: forced)
+          : client.isLoading && !client.hasValue
+          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+          : client.value == null
+          ? const ClientLoginPage()
+          : blocked != BlockReason.none
+          ? const SubscriptionPage()
+          : session.when(
+              loading: () => const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => Scaffold(body: Center(child: Text('$e'))),
+              data: (s) {
+                if (s == null) return const LoginPage();
+                if (s.user.mustChangePassword) return const ForcePasswordPage();
+                if (outlet == null)
+                  return const OutletPickerPage(); // owner belum memilih outlet
+                return const HomeShell();
+              },
+            ),
     );
   }
 }
@@ -99,6 +120,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
     with WidgetsBindingObserver {
   int _index = 0;
   Timer? _profileTimer;
+  bool _updateOffered = false;
 
   @override
   void initState() {
@@ -128,11 +150,32 @@ class _HomeShellState extends ConsumerState<HomeShell>
       ref.listenManual(p, (_, __) {});
     }
     WidgetsBinding.instance.addObserver(this);
+    // tawarkan pembaruan sekali per sesi aplikasi
+    ref.listenManual(latestUpdateProvider, (_, next) async {
+      final info = next.value;
+      if (info == null || _updateOffered || !mounted) return;
+      final v = await ref.read(appVersionProvider.future);
+      if (!mounted || !info.isNewerThan(v.build)) return;
+      _updateOffered = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          showUpdateDialog(
+            context,
+            info,
+            mandatory: info.isMandatoryFor(v.build),
+          );
+        }
+      });
+    }, fireImmediately: true);
     // Izin diubah owner di Master role -> segarkan tiap menit; bila berubah,
     // unduh ulang data agar koleksi yang baru boleh dibaca ikut terunduh.
     _profileTimer = Timer.periodic(
       const Duration(seconds: 60),
-      (_) => ref.read(sessionProvider.notifier).refreshProfile(),
+      (t) {
+        ref.read(sessionProvider.notifier).refreshProfile();
+        // status langganan klien tiap 10 menit
+        if (t.tick % 10 == 0) ref.read(clientProvider.notifier).refreshStatus();
+      },
     );
     ref.listenManual<String?>(
       appUserProvider.select((a) => a.value?.permSignature),
@@ -180,8 +223,10 @@ class _HomeShellState extends ConsumerState<HomeShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(sessionProvider.notifier).refreshProfile();
+      ref.read(clientProvider.notifier).refreshStatus();
       ref.read(syncControllerProvider.notifier).syncSoon();
       ref.invalidate(approvalCountsProvider);
+      ref.invalidate(latestUpdateProvider);
       ref.read(unreadNotificationsProvider.notifier).refresh();
     }
   }
@@ -198,6 +243,9 @@ class _HomeShellState extends ConsumerState<HomeShell>
         body: Center(child: Text('Akun belum punya role. Hubungi owner.')),
       );
     }
+    if (user.can('attendance.kiosk')) return const KioskPage();
+    // outlet foodcourt: tanpa meja; kasir langsung memesan dan membayar
+    final foodcourt = ref.watch(activeOutletProvider)?.isFoodcourt ?? false;
 
     // perm = izin yang membuka tab ini (null = semua pengguna). Daftar izinnya
     // diatur owner di Master role; tab muncul bila role memegang izin tersebut.
@@ -210,14 +258,24 @@ class _HomeShellState extends ConsumerState<HomeShell>
         group: 'Operasional',
         rank: 5,
       ),
-      _Dest(
-        'Meja',
-        Icons.table_restaurant_outlined,
-        const TablesPage(),
-        'orders.create',
-        group: 'Operasional',
-        rank: 10,
-      ),
+      if (foodcourt)
+        const _Dest(
+          'Order',
+          Icons.shopping_bag_outlined,
+          PosPage(foodcourt: true),
+          'orders.create',
+          group: 'Operasional',
+          rank: 10,
+        )
+      else
+        _Dest(
+          'Meja',
+          Icons.table_restaurant_outlined,
+          const TablesPage(),
+          'orders.create',
+          group: 'Operasional',
+          rank: 10,
+        ),
       _Dest(
         'Menu',
         Icons.restaurant_menu,

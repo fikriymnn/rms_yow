@@ -174,3 +174,36 @@ Future<ApprovalRequest> submitIngredient(
   _refresh(ref);
   return ApprovalRequest.fromJson(m);
 }
+
+Future<ApprovalRequest> submitCharge(
+  WidgetRef ref, {
+  required String action, // create | update | delete
+  String? chargeId,
+  String name = '',
+  String kind = 'tax',
+  double percent = 0,
+  bool onService = false,
+  bool active = true,
+}) async {
+  final m =
+      await ref
+              .read(apiClientProvider)
+              .post(
+                '/approvals',
+                data: {
+                  'type': 'charge',
+                  'charge': {
+                    'action': action,
+                    'charge_id': chargeId,
+                    'name': name,
+                    'kind': kind,
+                    'percent': percent,
+                    'on_service': onService,
+                    'active': active,
+                  },
+                },
+              )
+          as Map<String, dynamic>;
+  _refresh(ref);
+  return ApprovalRequest.fromJson(m);
+}

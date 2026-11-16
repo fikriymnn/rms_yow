@@ -349,6 +349,15 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
             value: _s.autoPrint,
             onChanged: (v) => _upd((s) => s.copyWith(autoPrint: v)),
           ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Cetak struk dapur (outlet foodcourt)'),
+            subtitle: const Text(
+              'Saat pesanan dibayar, struk dapur dicetak dulu, lalu struk pelanggan.',
+            ),
+            value: _s.kitchenSlip,
+            onChanged: (v) => _upd((s) => s.copyWith(kitchenSlip: v)),
+          ),
         ],
       ),
     );

@@ -20,6 +20,7 @@ extension ApprovalUi on ApprovalRequest {
   IconData get typeIcon => switch (type) {
     'purchase_order' => Icons.shopping_cart_outlined,
     'ingredient' => Icons.egg_alt_outlined,
+    'charge' => Icons.percent,
     _ => Icons.local_shipping_outlined,
   };
 }

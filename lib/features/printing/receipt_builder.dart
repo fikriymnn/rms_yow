@@ -76,13 +76,22 @@ List<RLine> buildReceipt({
   final d = DateTime.fromMillisecondsSinceEpoch(
     order.paidAt ?? order.createdAt,
   );
-  final type = order.type == OrderType.takeaway
+  final queue = order.queueNo;
+  final hasQueue = queue != null && queue.isNotEmpty;
+  final type = hasQueue
+      ? 'Foodcourt'
+      : order.type == OrderType.takeaway
       ? 'Takeaway'
       : 'Dine-in ${tableName ?? ''}'.trim();
 
   center(s.shopName, bold: true);
   center(s.shopAddress);
   add(line);
+  if (hasQueue) {
+    center('NOMOR ANTRIAN', bold: true);
+    center('>>> $queue <<<', bold: true);
+    add(line);
+  }
   add('No   : ${order.number}');
   add('Tgl  : ${DateFormat('dd/MM/yy HH:mm').format(d)}');
   add('Tipe : $type');
@@ -104,9 +113,8 @@ List<RLine> buildReceipt({
 
   add(_lr('Subtotal', _n(order.subtotal), w));
   if (order.discount > 0) add(_lr('Diskon', '-${_n(order.discount)}', w));
-  if (order.tax > 0) add(_lr('Pajak $kTaxPercent%', _n(order.tax), w));
-  if (order.service > 0) {
-    add(_lr('Service $kServicePercent%', _n(order.service), w));
+  for (final a in order.appliedCharges) {
+    if (a.amount > 0) add(_lr(a.line.label, _n(a.amount), w));
   }
   add(_lr('TOTAL', _n(order.total), w), bold: true);
   if (order.payMethod != null) {
@@ -126,6 +134,53 @@ List<RLine> buildReceipt({
     center('*** REFUND ***', bold: true);
   if (copy) center('*** SALINAN ***', bold: true);
   center(s.footer);
+  return out;
+}
+
+/// Struk dapur: nomor antrian dan item beserta catatan, tanpa harga.
+List<RLine> buildKitchenSlip({
+  required Order order,
+  required PrinterSettings s,
+  String? cashier,
+}) {
+  final w = s.cols;
+  final out = <RLine>[];
+  void add(String t, {bool bold = false}) =>
+      out.add(RLine(_ascii(t), bold: bold));
+  void center(String t, {bool bold = false}) {
+    for (final l in _centerWrap(t, w)) {
+      add(l, bold: bold);
+    }
+  }
+
+  final line = '-' * w;
+  final queue = order.queueNo;
+  final d = DateTime.fromMillisecondsSinceEpoch(
+    order.paidAt ?? order.createdAt,
+  );
+
+  center('*** DAPUR ***', bold: true);
+  if (queue != null && queue.isNotEmpty) {
+    center('NOMOR ANTRIAN', bold: true);
+    center('>>> $queue <<<', bold: true);
+  }
+  add(line);
+  add('No   : ${order.number}');
+  add('Jam  : ${DateFormat('dd/MM/yy HH:mm').format(d)}');
+  if (cashier != null && cashier.isNotEmpty) add('Kasir: $cashier');
+  add(line);
+  for (final it in order.items) {
+    for (final l in _wrap('${it.qty} x ${it.name}', w)) {
+      add(l, bold: true);
+    }
+    if (it.note.isNotEmpty) {
+      for (final l in _wrap('* ${it.note}', w - 2)) {
+        add('  $l');
+      }
+    }
+  }
+  add(line);
+  add('Total item: ${order.items.fold<int>(0, (s, i) => s + i.qty)}');
   return out;
 }
 

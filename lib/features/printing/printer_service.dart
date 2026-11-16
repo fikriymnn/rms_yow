@@ -19,6 +19,15 @@ Future<void> printLines(PrinterSettings s, List<RLine> lines) async {
   await transport.printBytes(s, await receiptToEscPos(lines, s));
 }
 
+Future<void> printKitchenSlip({
+  required PrinterSettings settings,
+  required Order order,
+  String? cashier,
+}) => printLines(
+  settings,
+  buildKitchenSlip(order: order, s: settings, cashier: cashier),
+);
+
 Future<void> printOrderReceipt({
   required PrinterSettings settings,
   required Order order,

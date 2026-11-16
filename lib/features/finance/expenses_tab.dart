@@ -195,7 +195,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
 
   Future<void> _delete(Expense e) async {
     final user = ref.read(appUserProvider).value;
-    if (!(user?.can('expenses.manage_all') ?? false)) return;
+    if (!(user?.can('expenses.delete') ?? false)) return;
     final reason = await askReason(context, 'Hapus biaya ${e.category}');
     if (reason == null) return;
     await ref.read(expenseRepositoryProvider).remove(e.id);
@@ -213,7 +213,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
   Widget build(BuildContext context) {
     final all = ref.watch(expensesProvider).value ?? <Expense>[];
     final isManager =
-        ref.watch(appUserProvider).value?.can('expenses.manage_all') ?? false;
+        ref.watch(appUserProvider).value?.can('expenses.delete') ?? false;
     final start = _month.millisecondsSinceEpoch;
     final end = DateTime(_month.year, _month.month + 1).millisecondsSinceEpoch;
     final list = all.where((e) => e.at >= start && e.at < end).toList()

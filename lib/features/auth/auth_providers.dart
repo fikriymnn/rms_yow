@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
@@ -8,6 +7,8 @@ import '../notifications/notification_service.dart';
 import 'dart:async'; // di paling atas
 import '../../core/api/api_client.dart';
 import '../roles/role_models.dart';
+import '../client/client_providers.dart';
+import '../../core/config/app_config.dart';
 
 enum AppRole {
   owner,
@@ -97,6 +98,7 @@ class OutletInfo {
     this.lat,
     this.lng,
     this.radiusM = 100,
+    this.serviceMode = 'restaurant',
   });
   final String id;
   final String name;
@@ -104,12 +106,26 @@ class OutletInfo {
   final double? lng;
   final int radiusM;
 
+  /// restaurant = pilih meja; foodcourt = bayar langsung dengan nomor antrian dari kasir.
+  final String serviceMode;
+  bool get isFoodcourt => serviceMode == 'foodcourt';
+
+  bool sameAs(OutletInfo? o) =>
+      o != null &&
+      o.id == id &&
+      o.name == name &&
+      o.lat == lat &&
+      o.lng == lng &&
+      o.radiusM == radiusM &&
+      o.serviceMode == serviceMode;
+
   factory OutletInfo.fromJson(Map<String, dynamic> m) => OutletInfo(
     id: m['id'] as String,
     name: m['name'] as String? ?? '',
     lat: (m['lat'] as num?)?.toDouble(),
     lng: (m['lng'] as num?)?.toDouble(),
     radiusM: (m['radius_m'] as num?)?.toInt() ?? 100,
+    serviceMode: m['service_mode'] as String? ?? 'restaurant',
   );
 
   Map<String, dynamic> toJson() => {
@@ -118,6 +134,7 @@ class OutletInfo {
     'lat': lat,
     'lng': lng,
     'radius_m': radiusM,
+    'service_mode': serviceMode,
   };
 }
 
@@ -168,10 +185,18 @@ class Session {
     user: u,
     outlet: outlet,
   );
+
+  Session withOutlet(OutletInfo? o) => Session(
+    baseUrl: baseUrl,
+    accessToken: accessToken,
+    refreshToken: refreshToken,
+    user: user,
+    outlet: o,
+  );
 }
 
-String defaultServerUrl() =>
-    kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000';
+/// Alamat server: diatur di core/config/app_config.dart (kApiUrl).
+String defaultServerUrl() => kApiUrl;
 
 String normalizeBaseUrl(String raw) {
   var s = raw.trim();
@@ -206,13 +231,20 @@ class SessionNotifier extends AsyncNotifier<Session?> {
               as Map<String, dynamic>;
       final u = AppUser.fromJson(m);
       final old = cur.user;
-      if (u.permSignature == old.permSignature &&
+      final outlet = m['outlet'] == null
+          ? null
+          : OutletInfo.fromJson(m['outlet'] as Map<String, dynamic>);
+      if (u.isOwner) await _refreshOwnerOutlet();
+      final userSame =
+          u.permSignature == old.permSignature &&
           u.roleKey == old.roleKey &&
           u.roleName == old.roleName &&
-          u.name == old.name) {
-        return;
-      }
-      final next = (state.value ?? cur).withUser(u);
+          u.name == old.name;
+      // outlet (tipe, lokasi, radius) bisa diubah owner kapan saja
+      final outletSame = outlet == null || outlet.sameAs(cur.outlet);
+      if (userSame && outletSame) return;
+      var next = (state.value ?? cur).withUser(u);
+      if (outlet != null) next = next.withOutlet(outlet);
       await ref.read(metaDbProvider).putMeta('session', next.toJson());
       state = AsyncData(next);
     } catch (_) {
@@ -220,12 +252,27 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     }
   }
 
-  Future<void> login({
-    required String baseUrl,
-    required String username,
-    required String password,
-  }) async {
-    final base = normalizeBaseUrl(baseUrl);
+  /// Owner memilih outletnya sendiri: ambil data terbarunya dari daftar outlet.
+  Future<void> _refreshOwnerOutlet() async {
+    final cur = ref.read(ownerOutletProvider).value;
+    if (cur == null) return;
+    final list =
+        await ref.read(apiClientProvider).get('/outlets') as List<dynamic>;
+    for (final e in list) {
+      final fresh = OutletInfo.fromJson(e as Map<String, dynamic>);
+      if (fresh.id == cur.id && !fresh.sameAs(cur)) {
+        await ref.read(ownerOutletProvider.notifier).select(fresh);
+      }
+    }
+  }
+
+  /// Login RMS di perangkat yang sudah diaktivasi untuk satu klien.
+  Future<void> login({required String username, required String password}) async {
+    final client = ref.read(clientProvider).value;
+    if (client == null) {
+      throw ApiException(null, 'Perangkat belum diaktivasi untuk klien mana pun');
+    }
+    final base = client.baseUrl;
     final dio = Dio(
       BaseOptions(
         baseUrl: base,
@@ -239,12 +286,19 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       res = await dio.post<dynamic>(
         '/auth/login',
         data: {'username': username.trim(), 'password': password},
+        options: Options(headers: {'X-Device-Token': client.deviceToken}),
       );
     } on DioException {
       throw ApiException(
         null,
-        'Tidak bisa terhubung ke server ($base). Periksa alamat dan jaringan.',
+        'Tidak bisa terhubung ke server. Periksa jaringan lalu coba lagi.',
       );
+    }
+    if (res.statusCode == 402) {
+      await ref.read(clientProvider.notifier).onPaymentRequired();
+    } else if (res.statusCode == 401) {
+      // bisa jadi perangkat dicabut: status klien diperiksa ulang
+      unawaited(ref.read(clientProvider.notifier).refreshStatus());
     }
     if (res.statusCode != 200) {
       throw ApiException(res.statusCode, apiDetail(res.data, res.statusCode));

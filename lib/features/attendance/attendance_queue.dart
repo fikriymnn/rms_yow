@@ -89,10 +89,14 @@ class AttendanceQueue {
       _db.purge('device_settings', 'attq_$eventId');
 
   /// Kirim antrean berurutan. Kembalikan jumlah yang berhasil terkirim.
-  Future<int> flush() async {
-    if (_flushing) return 0;
+  Future<int> flush() async => (await flushWithResults()).length;
+
+  /// Seperti [flush], tetapi mengembalikan catatan hasil dari server per eventId.
+  Future<Map<String, AttendanceRecord>> flushWithResults() async {
+    final results = <String, AttendanceRecord>{};
+    if (_flushing) return results;
     _flushing = true;
-    var sent = 0;
+    var sentOwn = 0; // absen dari HP sendiri (kiosk tidak punya /attendance/me)
     try {
       final rows = await _db.metaPrefixRows('attq_');
       final items =
@@ -104,12 +108,15 @@ class AttendanceQueue {
       for (final q in items) {
         try {
           final bytes = base64Decode(q.photoB64);
-          await _ref
+          final viaKiosk = q.userId != null;
+          final res = await _ref
               .read(apiClientProvider)
               .request(
                 'POST',
-                '/attendance/clock',
+                viaKiosk ? '/attendance/kiosk/clock' : '/attendance/clock',
                 dataBuilder: () => FormData.fromMap({
+                  if (viaKiosk) 'user_id': q.userId,
+                  if (viaKiosk) 'ticket': q.ticket,
                   'event_id': q.eventId,
                   'kind': q.kind,
                   'client_time': q.clientTime,
@@ -124,8 +131,11 @@ class AttendanceQueue {
                   ),
                 }),
               );
+          if (res is Map<String, dynamic>) {
+            results[q.eventId] = AttendanceRecord.fromJson(res);
+          }
           await dismiss(q.eventId);
-          sent++;
+          if (!viaKiosk) sentOwn++;
         } on ApiException catch (e) {
           final code = e.status ?? 0;
           if (code == 401 || code >= 500) break; // coba lagi nanti
@@ -141,8 +151,8 @@ class AttendanceQueue {
     } finally {
       _flushing = false;
     }
-    if (sent > 0) _ref.read(attendanceMeProvider.notifier).refresh();
-    return sent;
+    if (sentOwn > 0) _ref.read(attendanceMeProvider.notifier).refresh();
+    return results;
   }
 
   /// Hapus seluruh antrean di perangkat ini (berisi foto): dipakai saat persetujuan dicabut.

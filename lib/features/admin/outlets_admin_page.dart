@@ -7,6 +7,7 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
+import '../attendance/outlet_schedule_page.dart';
 
 class _AdminOutlet {
   _AdminOutlet.fromJson(Map<String, dynamic> m)
@@ -16,6 +17,7 @@ class _AdminOutlet {
       lat = (m['lat'] as num?)?.toDouble(),
       lng = (m['lng'] as num?)?.toDouble(),
       radiusM = (m['radius_m'] as num?)?.toInt() ?? 100,
+      serviceMode = m['service_mode'] as String? ?? 'restaurant',
       active = m['active'] as bool? ?? true;
 
   final String id;
@@ -24,6 +26,7 @@ class _AdminOutlet {
   final double? lat;
   final double? lng;
   final int radiusM;
+  final String serviceMode; // restaurant | foodcourt
   final bool active;
 }
 
@@ -64,6 +67,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
     final lng = TextEditingController(text: o?.lng?.toString() ?? '');
     final radius = TextEditingController(text: '${o?.radiusM ?? 100}');
     var active = o?.active ?? true;
+    var mode = o?.serviceMode ?? 'restaurant';
 
     final ok = await showDialog<bool>(
       context: context,
@@ -86,6 +90,41 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                   TextField(
                     controller: addr,
                     decoration: const InputDecoration(labelText: 'Alamat'),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tipe outlet',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(
+                        value: 'restaurant',
+                        label: Text('Restoran'),
+                      ),
+                      ButtonSegment(
+                        value: 'foodcourt',
+                        label: Text('Foodcourt'),
+                      ),
+                    ],
+                    selected: {mode},
+                    onSelectionChanged: (v) => setS(() => mode = v.first),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    mode == 'foodcourt'
+                        ? 'Tanpa meja: pelanggan memesan di kasir, langsung bayar, dan '
+                              'menerima nomor antrian yang diisi kasir.'
+                        : 'Pelanggan memilih meja. Mendukung open bill dan reservasi.',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -220,6 +259,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
       'lat': _num(lat.text),
       'lng': _num(lng.text),
       'radius_m': int.tryParse(radius.text.trim()) ?? 100,
+      'service_mode': mode,
       if (o != null) 'active': active,
     };
     try {
@@ -306,6 +346,12 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                       runSpacing: 4,
                       children: [
                         StatusPill(
+                          o.serviceMode == 'foodcourt'
+                              ? 'Foodcourt'
+                              : 'Restoran',
+                          tone: Tone.info,
+                        ),
+                        StatusPill(
                           hasLoc ? 'Lokasi diatur' : 'Lokasi belum diatur',
                           tone: hasLoc ? Tone.success : Tone.warning,
                         ),
@@ -324,6 +370,25 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                           ),
                         ),
                       ),
+                    const SizedBox(height: 4),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        alignment: Alignment.centerLeft,
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => OutletSchedulePage(
+                            outletId: o.id,
+                            outletName: o.name,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.schedule, size: 18),
+                      label: const Text('Jadwal buka-tutup'),
+                    ),
                   ],
                 ),
               ),

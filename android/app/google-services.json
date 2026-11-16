@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:824007960242:android:68ed31c3b1959404cc0bab",
+        "mobilesdk_app_id": "1:824007960242:android:94f1194ce2c706d4cc0bab",
         "android_client_info": {
-          "package_name": "com.example.rms_yow"
+          "package_name": "id.kovalen.teknologi.rms"
         }
       },
       "oauth_client": [],

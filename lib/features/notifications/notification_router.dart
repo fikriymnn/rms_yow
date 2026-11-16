@@ -29,6 +29,10 @@ void openNotificationTarget(BuildContext context, NotificationTap tap) {
     'approval' => ApprovalDetailPage(approvalId: tap.id),
     'proposal' => ProposalDetailPage(proposalId: tap.id),
     'order' => const MarkReadOnOpen(type: 'order', child: KdsPage()),
+    'order_ready' => const MarkReadOnOpen(
+      type: 'order_ready',
+      child: KdsPage(),
+    ),
     _ => null,
   };
   if (page == null) return;

@@ -25,6 +25,12 @@ const _approvalChannel = AndroidNotificationChannel(
   description: 'Pengajuan dan keputusan persetujuan',
   importance: Importance.high,
 );
+const _readyChannel = AndroidNotificationChannel(
+  'order_ready',
+  'Item siap diantar',
+  description: 'Item pesanan yang sudah siap diantar ke meja',
+  importance: Importance.max,
+);
 
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => NotificationService(ref),
@@ -74,6 +80,7 @@ class NotificationService {
         >();
     await android?.createNotificationChannel(_kitchenChannel);
     await android?.createNotificationChannel(_approvalChannel);
+    await android?.createNotificationChannel(_readyChannel);
 
     FirebaseMessaging.onMessage.listen(_onForeground);
     FirebaseMessaging.onMessageOpenedApp.listen(
@@ -119,7 +126,11 @@ class NotificationService {
     _ref.invalidate(approvalCountsProvider);
     final n = m.notification;
     if (n == null) return;
-    final ch = type == 'order' ? _kitchenChannel : _approvalChannel;
+    final ch = switch (type) {
+      'order' => _kitchenChannel,
+      'order_ready' => _readyChannel,
+      _ => _approvalChannel,
+    };
     await _local.show(
       id: (m.messageId ?? '${n.title}${n.body}').hashCode & 0x7fffffff,
       title: n.title,

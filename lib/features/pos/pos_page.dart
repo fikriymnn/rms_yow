@@ -22,13 +22,25 @@ import '../orders/order_models.dart';
 import '../orders/order_providers.dart';
 import '../tables/dining_table.dart';
 import '../tables/table_hold.dart';
+import '../charges/charge_providers.dart';
+import '../orders/queue_providers.dart';
 
 class PosPage extends ConsumerStatefulWidget {
-  const PosPage({super.key, this.table, this.order, this.onOrderSaved});
+  const PosPage({
+    super.key,
+    this.table,
+    this.order,
+    this.onOrderSaved,
+    this.foodcourt = false,
+  });
   final DiningTable? table; // null = takeaway
   final Order? order; // null = order baru
   final VoidCallback?
   onOrderSaved; // dipanggil setelah pesanan tersimpan/dibayar
+
+  /// Outlet foodcourt: halaman ini tampil sebagai tab (bukan route). Tanpa meja dan
+  /// open bill; pembayaran wajib bernomor antrian dan sesudahnya keranjang dikosongkan.
+  final bool foodcourt;
 
   @override
   ConsumerState<PosPage> createState() => _PosPageState();
@@ -174,22 +186,44 @@ class _PosPageState extends ConsumerState<PosPage>
     ));
   }
 
+  Order _newOrder() {
+    final now = DateTime.now();
+    return Order(
+      id: const Uuid().v4(),
+      number:
+          'INV-${DateFormat('yyMMdd').format(now)}-${const Uuid().v4().substring(0, 4).toUpperCase()}',
+      type: widget.table == null ? OrderType.takeaway : OrderType.dineIn,
+      tableId: widget.table?.id,
+      createdAt: now.millisecondsSinceEpoch,
+      createdBy: ref.read(appUserProvider).value?.uid ?? '',
+    );
+  }
+
+  /// Foodcourt: siapkan keranjang kosong untuk pelanggan berikutnya.
+  void _resetForNext() {
+    setState(() {
+      _order = _newOrder().copyWith(charges: ref.read(chargeLinesProvider));
+      _savedIds.clear();
+      _audits.clear();
+      _category = 'Semua';
+      _query = '';
+      _search.clear();
+      _paying = false;
+    });
+    _tab.animateTo(0);
+  }
+
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 2, vsync: this);
-    final now = DateTime.now();
-    _order =
-        widget.order ??
-        Order(
-          id: const Uuid().v4(),
-          number:
-              'INV-${DateFormat('yyMMdd').format(now)}-${const Uuid().v4().substring(0, 4).toUpperCase()}',
-          type: widget.table == null ? OrderType.takeaway : OrderType.dineIn,
-          tableId: widget.table?.id,
-          createdAt: now.millisecondsSinceEpoch,
-          createdBy: ref.read(appUserProvider).value?.uid ?? '',
-        );
+    // pajak & biaya layanan dari master; mengikuti tarif terbaru sampai dibayar
+    _order = (widget.order ?? _newOrder()).copyWith(
+      charges: ref.read(chargeLinesProvider),
+    );
+    ref.listenManual(chargeLinesProvider, (_, next) {
+      if (mounted) setState(() => _order = _order.copyWith(charges: next));
+    });
   }
 
   @override
@@ -341,11 +375,21 @@ class _PosPageState extends ConsumerState<PosPage>
       say('Buka shift dulu di tab Kas');
       return;
     }
-    final r = await showDialog<({PayMethod method, int paid, bool hold})>(
-      context: context,
-      builder: (_) =>
-          _PayDialog(total: _order.total, canHold: widget.table != null),
-    );
+    final foodcourt = widget.foodcourt;
+    final r =
+        await showDialog<
+          ({PayMethod method, int paid, bool hold, String? queueNo})
+        >(
+          context: context,
+          builder: (_) => _PayDialog(
+            total: _order.total,
+            canHold: widget.table != null,
+            queueMode: foodcourt,
+            activeQueues: foodcourt
+                ? ref.read(activeQueueNumbersProvider)
+                : const {},
+          ),
+        );
     if (r == null || !mounted) return;
 
     _paying = true;
@@ -358,6 +402,7 @@ class _PosPageState extends ConsumerState<PosPage>
       paidAt: DateTime.now().millisecondsSinceEpoch,
       paidBy: me?.uid,
       paidByName: me?.name,
+      queueNo: r.queueNo,
     );
     try {
       await ref.read(orderRepositoryProvider).save(paid);
@@ -398,24 +443,44 @@ class _PosPageState extends ConsumerState<PosPage>
     final cashier = ref.read(appUserProvider).value?.name;
     final change = r.method == PayMethod.cash ? r.paid - paid.total : 0;
 
-    nav.pop();
+    if (foodcourt) {
+      _resetForNext(); // layar kasir tetap terbuka untuk pelanggan berikutnya
+    } else {
+      nav.pop();
+    }
+    final queueText = paid.queueNo == null ? '' : ' • Nomor ${paid.queueNo}';
     say(
       change > 0
-          ? 'Pembayaran berhasil • Kembalian ${rupiah.format(change)}'
-          : 'Pembayaran berhasil',
+          ? 'Pembayaran berhasil$queueText • Kembalian ${rupiah.format(change)}'
+          : 'Pembayaran berhasil$queueText',
     );
 
     if (cfg != null && cfg.autoPrint) {
-      await Future<void>.delayed(const Duration(seconds: 2));
+      await Future<void>.delayed(Duration(seconds: foodcourt ? 1 : 2));
       say('Mencetak struk...', sec: 30);
       try {
+        // satu printer: struk dapur dulu, lalu struk pelanggan
+        final withKitchen = foodcourt && cfg.kitchenSlip;
+        if (withKitchen) {
+          await printKitchenSlip(
+            settings: cfg,
+            order: paid,
+            cashier: cashier,
+          ).timeout(const Duration(seconds: 20));
+          await Future<void>.delayed(const Duration(seconds: 1));
+        }
         await printOrderReceipt(
           settings: cfg,
           order: paid,
           tableName: tableName,
           cashier: cashier,
         ).timeout(const Duration(seconds: 20));
-        say('Struk tercetak', sec: 3);
+        say(
+          withKitchen
+              ? 'Struk dapur dan struk pelanggan tercetak'
+              : 'Struk tercetak',
+          sec: 3,
+        );
       } catch (e) {
         say('Struk gagal dicetak: $e', sec: 8);
       }
@@ -430,7 +495,8 @@ class _PosPageState extends ConsumerState<PosPage>
     final menu = ref.watch(menuItemsProvider).value ?? [];
     final w = MediaQuery.sizeOf(context).width;
     final wide = w >= 720;
-    final title = widget.table?.name ?? 'Takeaway';
+    final title =
+        widget.table?.name ?? (widget.foodcourt ? 'Order' : 'Takeaway');
     final qtyAll = _order.items.fold<int>(0, (s, i) => s + i.qty);
 
     final titleWidget = Column(
@@ -925,9 +991,7 @@ class _PosPageState extends ConsumerState<PosPage>
                   ),
                 _line('Subtotal', o.subtotal),
                 if (o.discount > 0) _line('Diskon', -o.discount),
-                if (kTaxPercent > 0) _line('Pajak $kTaxPercent%', o.tax),
-                if (kServicePercent > 0)
-                  _line('Service $kServicePercent%', o.service),
+                for (final a in o.appliedCharges) _line(a.line.label, a.amount),
                 const Divider(height: 20),
                 _line('Total', o.total, bold: true),
                 const SizedBox(height: 6),
@@ -943,13 +1007,15 @@ class _PosPageState extends ConsumerState<PosPage>
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: o.items.isEmpty ? null : _save,
-                        child: const Text('Open Bill'),
+                    if (!widget.foodcourt) ...[
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: o.items.isEmpty ? null : _save,
+                          child: const Text('Open Bill'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
+                      const SizedBox(width: 10),
+                    ],
                     Expanded(
                       flex: 2,
                       child: FilledButton(
@@ -1035,9 +1101,17 @@ class _Stepper extends StatelessWidget {
 }
 
 class _PayDialog extends StatefulWidget {
-  const _PayDialog({required this.total, this.canHold = false});
+  const _PayDialog({
+    required this.total,
+    this.canHold = false,
+    this.queueMode = false,
+    this.activeQueues = const {},
+  });
   final int total;
   final bool canHold; // pesanan makan di tempat (punya meja)
+  final bool queueMode; // outlet foodcourt: nomor antrian wajib diisi
+  final Map<String, String>
+  activeQueues; // nomor yang masih dipakai -> no. order
   @override
   State<_PayDialog> createState() => _PayDialogState();
 }
@@ -1048,11 +1122,14 @@ class _PayDialogState extends State<_PayDialog> {
     text: '${widget.total}',
   );
   bool _hold = false;
+  final _queue = TextEditingController();
 
   int get _paid => _method == PayMethod.cash
       ? (int.tryParse(_cash.text) ?? 0)
       : widget.total;
-  bool get _ok => _paid >= widget.total;
+  bool get _ok =>
+      _paid >= widget.total &&
+      (!widget.queueMode || _queue.text.trim().isNotEmpty);
 
   List<int> get _quick {
     final t = widget.total;
@@ -1072,12 +1149,16 @@ class _PayDialogState extends State<_PayDialog> {
   @override
   void dispose() {
     _cash.dispose();
+    _queue.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final ok = _ok;
+    final dup = widget.queueMode
+        ? widget.activeQueues[_queue.text.trim().toLowerCase()]
+        : null;
     return AlertDialog(
       title: const Text('Pembayaran'),
       content: SizedBox(
@@ -1114,6 +1195,26 @@ class _PayDialogState extends State<_PayDialog> {
                   ],
                 ),
               ),
+              if (widget.queueMode) ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _queue,
+                  autofocus: true,
+                  maxLength: 10,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    labelText: 'Nomor antrian',
+                    hintText: 'Nomor yang diberikan ke pelanggan',
+                    counterText: '',
+                    helperText: dup != null
+                        ? 'Nomor ini masih dipakai pesanan $dup yang belum selesai.'
+                        : null,
+                    helperMaxLines: 2,
+                    helperStyle: const TextStyle(color: Color(0xFFB45309)),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
               const SizedBox(height: 16),
               Wrap(
                 spacing: 8,
@@ -1132,7 +1233,7 @@ class _PayDialogState extends State<_PayDialog> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _cash,
-                  autofocus: true,
+                  autofocus: !widget.queueMode,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'Uang diterima',
@@ -1225,9 +1326,10 @@ class _PayDialogState extends State<_PayDialog> {
                   method: _method,
                   paid: _paid,
                   hold: _hold,
+                  queueNo: widget.queueMode ? _queue.text.trim() : null,
                 ))
               : null,
-          child: const Text('Konfirmasi'),
+          child: Text(dup != null ? 'Tetap pakai nomor ini' : 'Konfirmasi'),
         ),
       ],
     );

@@ -1,6 +1,10 @@
 import 'dart:math';
 
-const kTaxPercent = 10; // PB1, nanti pindah ke Settings
+import '../charges/charge_models.dart';
+
+/// Hanya cadangan untuk order lama yang tidak menyimpan pajaknya.
+/// Tarif sekarang berasal dari master data (features/charges).
+const kTaxPercent = 10;
 const kServicePercent = 0;
 
 enum OrderType { dineIn, takeaway }
@@ -10,6 +14,11 @@ enum OrderStatus { open, paid, voided, refunded }
 enum KitchenStatus { newItem, preparing, ready, served }
 
 enum PayMethod { cash, qris, card, other }
+
+String? _text(Object? v) {
+  final s = v is String ? v.trim() : '';
+  return s.isEmpty ? null : s;
+}
 
 T _byName<T extends Enum>(List<T> values, Object? name, T fallback) =>
     values.firstWhere((e) => e.name == name, orElse: () => fallback);
@@ -62,6 +71,13 @@ class OrderItem {
   };
 }
 
+/// Satu biaya pada order beserta nominal hasil hitungnya.
+class AppliedCharge {
+  const AppliedCharge(this.line, this.amount);
+  final ChargeLine line;
+  final int amount;
+}
+
 class Order {
   const Order({
     required this.id,
@@ -82,6 +98,8 @@ class Order {
     this.refundReason,
     this.paidBy,
     this.paidByName,
+    this.charges = const [],
+    this.queueNo,
   });
 
   final String id;
@@ -102,11 +120,40 @@ class Order {
   final String? refundReason;
   final String? paidBy;
   final String? paidByName;
+  final List<ChargeLine> charges; // salinan tarif pajak / service
+  final String? queueNo;
 
   int get subtotal => items.fold(0, (s, i) => s + i.total);
   int get _base => max(0, subtotal - discount);
-  int get tax => (_base * kTaxPercent / 100).round();
-  int get service => (_base * kServicePercent / 100).round();
+
+  /// Service dihitung dulu. Pajak dihitung atas dasar yang sama, atau atas
+  /// dasar + service bila opsi "atas subtotal + service" aktif.
+  List<AppliedCharge> get appliedCharges {
+    final b = _base;
+    final out = <AppliedCharge>[];
+    var serviceTotal = 0;
+    for (final c in charges) {
+      if (c.kind != ChargeKind.service) continue;
+      final a = c.fixedAmount ?? (b * c.percent / 100).round();
+      serviceTotal += a;
+      out.add(AppliedCharge(c, a));
+    }
+    for (final c in charges) {
+      if (c.kind != ChargeKind.tax) continue;
+      final dasar = b + (c.onService ? serviceTotal : 0);
+      out.add(
+        AppliedCharge(c, c.fixedAmount ?? (dasar * c.percent / 100).round()),
+      );
+    }
+    return out;
+  }
+
+  int get tax => appliedCharges
+      .where((a) => a.line.kind == ChargeKind.tax)
+      .fold(0, (s, a) => s + a.amount);
+  int get service => appliedCharges
+      .where((a) => a.line.kind == ChargeKind.service)
+      .fold(0, (s, a) => s + a.amount);
   int get total => _base + tax + service;
 
   Order copyWith({
@@ -122,6 +169,8 @@ class Order {
     String? refundReason,
     String? paidBy,
     String? paidByName,
+    List<ChargeLine>? charges,
+    String? queueNo,
   }) => Order(
     id: id,
     number: number,
@@ -141,36 +190,86 @@ class Order {
     refundReason: refundReason ?? this.refundReason,
     paidBy: paidBy ?? this.paidBy,
     paidByName: paidByName ?? this.paidByName,
+    charges: charges ?? this.charges,
+    queueNo: queueNo ?? this.queueNo,
   );
 
-  factory Order.fromMap(Map<String, dynamic> m) => Order(
-    id: m['id'] as String,
-    number: m['number'] as String? ?? '',
-    type: _byName(OrderType.values, m['type'], OrderType.dineIn),
-    tableId: m['tableId'] as String?,
-    items: [
+  factory Order.fromMap(Map<String, dynamic> m) {
+    final items = [
       for (final (i, e) in (m['items'] as List? ?? []).indexed)
         OrderItem.fromMap(
           Map<String, dynamic>.from(e as Map),
           fallbackId: '${m['id']}-$i',
         ),
-    ],
-    status: _byName(OrderStatus.values, m['status'], OrderStatus.open),
-    discount: (m['discount'] as num?)?.toInt() ?? 0,
-    payMethod: m['payMethod'] == null
-        ? null
-        : _byName(PayMethod.values, m['payMethod'], PayMethod.other),
-    paidAmount: (m['paidAmount'] as num?)?.toInt() ?? 0,
-    createdAt: (m['createdAt'] as num?)?.toInt() ?? 0,
-    createdBy: m['createdBy'] as String? ?? '',
-    paidAt: (m['paidAt'] as num?)?.toInt(),
-    shiftId: m['shiftId'] as String?,
-    refundedAt: (m['refundedAt'] as num?)?.toInt(),
-    refundShiftId: m['refundShiftId'] as String?,
-    refundReason: m['refundReason'] as String?,
-    paidBy: m['paidBy'] as String?,
-    paidByName: m['paidByName'] as String?,
-  );
+    ];
+    final discount = (m['discount'] as num?)?.toInt() ?? 0;
+    return Order(
+      id: m['id'] as String,
+      number: m['number'] as String? ?? '',
+      type: _byName(OrderType.values, m['type'], OrderType.dineIn),
+      tableId: m['tableId'] as String?,
+      items: items,
+      status: _byName(OrderStatus.values, m['status'], OrderStatus.open),
+      discount: discount,
+      payMethod: m['payMethod'] == null
+          ? null
+          : _byName(PayMethod.values, m['payMethod'], PayMethod.other),
+      paidAmount: (m['paidAmount'] as num?)?.toInt() ?? 0,
+      createdAt: (m['createdAt'] as num?)?.toInt() ?? 0,
+      createdBy: m['createdBy'] as String? ?? '',
+      paidAt: (m['paidAt'] as num?)?.toInt(),
+      shiftId: m['shiftId'] as String?,
+      refundedAt: (m['refundedAt'] as num?)?.toInt(),
+      refundShiftId: m['refundShiftId'] as String?,
+      refundReason: m['refundReason'] as String?,
+      paidBy: m['paidBy'] as String?,
+      paidByName: m['paidByName'] as String?,
+      charges: _chargesFrom(m, items, discount),
+      queueNo: _text(m['queueNo']),
+    );
+  }
+
+  /// Order baru menyimpan salinan tarifnya. Order lama (sebelum master data)
+  /// memakai nominal pajak / service yang tersimpan, supaya totalnya tidak berubah.
+  static List<ChargeLine> _chargesFrom(
+    Map<String, dynamic> m,
+    List<OrderItem> items,
+    int discount,
+  ) {
+    final raw = m['charges'];
+    if (raw is List) {
+      return [
+        for (final e in raw)
+          ChargeLine.fromMap(Map<String, dynamic>.from(e as Map)),
+      ];
+    }
+    final base = max(0, items.fold<int>(0, (s, i) => s + i.total) - discount);
+    final tax =
+        (m['tax'] as num?)?.toInt() ?? (base * kTaxPercent / 100).round();
+    final service =
+        (m['service'] as num?)?.toInt() ??
+        (base * kServicePercent / 100).round();
+    double pct(int a) =>
+        base > 0 ? double.parse((a * 100 / base).toStringAsFixed(2)) : 0;
+    return [
+      if (service > 0)
+        ChargeLine(
+          id: 'legacy-service',
+          name: 'Service',
+          kind: ChargeKind.service,
+          percent: pct(service),
+          fixedAmount: service,
+        ),
+      if (tax > 0)
+        ChargeLine(
+          id: 'legacy-tax',
+          name: 'Pajak',
+          kind: ChargeKind.tax,
+          percent: pct(tax),
+          fixedAmount: tax,
+        ),
+    ];
+  }
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -190,6 +289,8 @@ class Order {
     'tax': tax,
     'service': service,
     'total': total,
+    'charges': [for (final a in appliedCharges) a.line.toMap(a.amount)],
+    'queueNo': queueNo,
     'shiftId': shiftId,
     'refundedAt': refundedAt,
     'refundShiftId': refundShiftId,

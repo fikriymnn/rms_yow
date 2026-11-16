@@ -38,8 +38,15 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     );
   }
 
+  Tone _tone(String type) => switch (type) {
+    'order' => Tone.warning,
+    'order_ready' => Tone.success,
+    _ => Tone.info,
+  };
+
   IconData _icon(String type) => switch (type) {
     'order' => Icons.soup_kitchen_outlined,
+    'order_ready' => Icons.room_service_outlined,
     'proposal' => Icons.lightbulb_outline,
     _ => Icons.task_alt,
   };
@@ -110,11 +117,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                                         Container(
                                           padding: const EdgeInsets.all(9),
                                           decoration: BoxDecoration(
-                                            color: toneColors(
-                                              n.type == 'order'
-                                                  ? Tone.warning
-                                                  : Tone.info,
-                                            ).bg,
+                                            color: toneColors(_tone(n.type)).bg,
                                             borderRadius: BorderRadius.circular(
                                               10,
                                             ),
@@ -122,11 +125,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                                           child: Icon(
                                             _icon(n.type),
                                             size: 20,
-                                            color: toneColors(
-                                              n.type == 'order'
-                                                  ? Tone.warning
-                                                  : Tone.info,
-                                            ).fg,
+                                            color: toneColors(_tone(n.type)).fg,
                                           ),
                                         ),
                                         const SizedBox(width: 12),

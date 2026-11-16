@@ -5,11 +5,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/auth_providers.dart';
+import '../../features/client/client_providers.dart';
 import 'api_exception.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(ref));
 
-enum _Refresh { ok, rejected, unreachable }
+enum _Refresh { ok, rejected, unreachable, blocked }
+
+const _kBlockedMsg = 'Langganan berakhir. Hubungi CS untuk perpanjangan.';
 
 class ApiClient {
   ApiClient(this._ref);
@@ -87,6 +90,7 @@ class ApiClient {
       if (r == _Refresh.rejected) {
         throw ApiException(401, 'Sesi berakhir, silakan login ulang');
       }
+      if (r == _Refresh.blocked) throw ApiException(402, _kBlockedMsg);
       s = _session();
       res = await _call(
         s,
@@ -98,6 +102,10 @@ class ApiClient {
       );
     }
     final code = res.statusCode ?? 0;
+    if (code == 402) {
+      // langganan klien habis/ditangguhkan: aplikasi pindah ke layar "Hubungi CS"
+      unawaited(_ref.read(clientProvider.notifier).onPaymentRequired());
+    }
     if (code >= 400) throw ApiException(code, apiDetail(res.data, code));
     return res.data;
   }
@@ -127,6 +135,9 @@ class ApiClient {
           final token = (res.data as Map)['access_token'] as String;
           await _ref.read(sessionProvider.notifier).updateAccessToken(token);
           c.complete(_Refresh.ok);
+        } else if (res.statusCode == 402) {
+          unawaited(_ref.read(clientProvider.notifier).onPaymentRequired());
+          c.complete(_Refresh.blocked);
         } else if (res.statusCode == 401) {
           await _ref
               .read(sessionProvider.notifier)

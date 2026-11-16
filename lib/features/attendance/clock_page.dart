@@ -116,9 +116,10 @@ class _ClockPageState extends ConsumerState<ClockPage> {
         return;
       }
       final queue = ref.read(attendanceQueueProvider);
+      final eventId = const Uuid().v4();
       await queue.enqueue(
         QueueItem(
-          eventId: const Uuid().v4(),
+          eventId: eventId,
           kind: kind,
           clientTime: DateTime.now().millisecondsSinceEpoch,
           lat: fix.lat,
@@ -129,11 +130,15 @@ class _ClockPageState extends ConsumerState<ClockPage> {
           photoB64: base64Encode(jpeg),
         ),
       );
-      final sent = await queue.flush();
+      final done = await queue.flushWithResults();
+      final rec = done[eventId];
       final label = kind == 'in' ? 'masuk' : 'pulang';
+      final note = rec == null
+          ? null
+          : punctualityText(rec, out: kind == 'out');
       _toast(
-        sent > 0
-            ? 'Absen $label tercatat'
+        rec != null
+            ? 'Absen $label tercatat${note == null ? '' : ' • $note'}'
             : 'Absen $label disimpan. Akan dikirim otomatis saat online.',
       );
     } catch (e) {
@@ -230,7 +235,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
       locTone = Tone.success;
     } else {
       locText =
-          'Di luar area outlet (±${area.distance!.round()} m, batas ${outlet!.radiusM} m)';
+          'Di luar area outlet (±${area.distance!.round()} m, batas ${outlet.radiusM} m)';
       locTone = Tone.danger;
     }
     final locColors = toneColors(locTone);
@@ -495,6 +500,21 @@ class _ClockPageState extends ConsumerState<ClockPage> {
                                 spacing: 6,
                                 runSpacing: 4,
                                 children: [
+                                  if (r.inStatus == 'late')
+                                    StatusPill(
+                                      'Terlambat ${minText(r.lateMin)}',
+                                      tone: Tone.warning,
+                                    ),
+                                  if (r.outStatus == 'early')
+                                    StatusPill(
+                                      'Pulang cepat ${minText(r.earlyOutMin)}',
+                                      tone: Tone.warning,
+                                    ),
+                                  if (r.outStatus == 'overtime')
+                                    StatusPill(
+                                      'Lembur ${minText(r.overtimeMin)}',
+                                      tone: Tone.info,
+                                    ),
                                   if (r.edited)
                                     const StatusPill(
                                       'Dikoreksi',

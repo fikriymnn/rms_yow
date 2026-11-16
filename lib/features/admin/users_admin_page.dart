@@ -10,6 +10,7 @@ import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
 import '../roles/role_models.dart';
 import 'managed_user.dart';
+import '../attendance/pin_dialogs.dart';
 
 class _Data {
   _Data(this.users, this.outlets);
@@ -304,6 +305,14 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
               title: const Text('Reset password'),
               onTap: () => Navigator.pop(ctx, 'reset'),
             ),
+            if (ref.read(appUserProvider).value?.can('attendance.pin_manage') ??
+                false)
+              ListTile(
+                leading: const Icon(Icons.pin_outlined),
+                title: const Text('PIN absensi'),
+                subtitle: Text(u.pinSet ? 'Sudah diatur' : 'Belum diatur'),
+                onTap: () => Navigator.pop(ctx, 'pin'),
+              ),
             ListTile(
               leading: Icon(
                 u.active ? Icons.block : Icons.check_circle_outline,
@@ -328,6 +337,15 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
               .read(apiClientProvider)
               .post('/users/${u.id}/${u.active ? 'deactivate' : 'activate'}');
         }, ok: u.active ? 'Akun dinonaktifkan' : 'Akun diaktifkan');
+      case 'pin':
+        final msg = await promptSetPin(
+          context,
+          ref,
+          userId: u.id,
+          name: u.name,
+        );
+        if (msg != null) _toast(msg);
+        _reload();
     }
   }
 
