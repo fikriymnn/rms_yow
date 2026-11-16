@@ -23,9 +23,19 @@ Future<void> printKitchenSlip({
   required PrinterSettings settings,
   required Order order,
   String? cashier,
+  String? tableName,
+  List<OrderItem>? items,
+  bool addition = false,
 }) => printLines(
   settings,
-  buildKitchenSlip(order: order, s: settings, cashier: cashier),
+  buildKitchenSlip(
+    order: order,
+    s: settings,
+    cashier: cashier,
+    tableName: tableName,
+    items: items,
+    addition: addition,
+  ),
 );
 
 Future<void> printOrderReceipt({

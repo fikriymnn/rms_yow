@@ -11,6 +11,7 @@ import 'package:rms_yow/features/audit/audit_providers.dart';
 import 'package:rms_yow/features/auth/auth_providers.dart';
 import 'package:rms_yow/features/printing/printer_service.dart';
 import 'package:rms_yow/features/printing/printer_settings.dart';
+import 'package:rms_yow/features/printing/receipt_template.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
 import 'package:rms_yow/features/tables/dining_table.dart';
 import 'package:rms_yow/features/tables/tables_providers.dart';
@@ -172,7 +173,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Future<void> _printReceipt(Order o) async {
     final messenger = ScaffoldMessenger.of(context);
     final cfg =
-        ref.read(printerSettingsProvider).value ?? const PrinterSettings();
+        ref.read(effectivePrinterSettingsProvider) ?? const PrinterSettings();
     final tables = ref.read(tablesProvider).value ?? <DiningTable>[];
     final t = tables.where((e) => e.id == o.tableId).firstOrNull;
     try {

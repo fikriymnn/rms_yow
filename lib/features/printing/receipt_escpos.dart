@@ -11,7 +11,12 @@ Future<List<int>> receiptToEscPos(List<RLine> lines, PrinterSettings s) async {
   for (final l in lines) {
     bytes.addAll(g.text(l.text, styles: PosStyles(bold: l.bold)));
   }
-  bytes.addAll(g.feed(3));
-  bytes.addAll(g.cut());
+  // Catatan: g.cut() bawaan esc_pos_utils selalu memajukan 5 baris kosong dulu, ditambah
+  // feed sebelumnya = kertas kosong panjang di printer tanpa pemotong. Kirim perintah sendiri.
+  if (s.autoCut) {
+    bytes.addAll(const [0x1D, 0x56, 0x42, 0x00]); // GS V 66 0: maju ke posisi potong lalu potong
+  } else if (s.feedLines > 0) {
+    bytes.addAll([0x1B, 0x64, s.feedLines]); // ESC d n: maju n baris agar melewati sisi sobek
+  }
   return bytes;
 }

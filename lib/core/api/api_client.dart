@@ -119,6 +119,8 @@ class ApiClient {
       request('GET', path, query: query);
   Future<dynamic> post(String path, {Object? data}) =>
       request('POST', path, data: data);
+  Future<dynamic> put(String path, {Object? data}) =>
+      request('PUT', path, data: data);
 
   Future<_Refresh> _refresh() {
     final running = _refreshing;

@@ -15,6 +15,7 @@ import 'package:rms_yow/features/inventory/inventory_providers.dart'
 import 'package:rms_yow/features/menu/menu_providers.dart';
 import 'package:rms_yow/features/orders/order_providers.dart';
 import 'package:rms_yow/features/printing/printer_settings.dart';
+import 'package:rms_yow/features/printing/receipt_template.dart';
 import 'package:rms_yow/features/purchasing/purchasing_providers.dart';
 import 'package:rms_yow/features/reports/reports_page.dart';
 import 'package:rms_yow/features/reservations/reservation_providers.dart';
@@ -131,6 +132,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
       shiftsProvider,
       currentShiftProvider,
       printerSettingsProvider,
+      receiptTemplateProvider,
       menuItemsProvider,
       tablesProvider,
       ordersProvider,

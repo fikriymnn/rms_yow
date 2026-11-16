@@ -7,8 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:rms_yow/core/reason_dialog.dart';
 import 'package:rms_yow/features/audit/audit_log.dart';
 import 'package:rms_yow/features/audit/audit_providers.dart';
-import 'package:rms_yow/features/printing/printer_service.dart';
-import 'package:rms_yow/features/printing/printer_settings.dart';
+import 'package:rms_yow/features/printing/print_after_pay_dialog.dart';
+import 'package:rms_yow/features/printing/receipt_template.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
 import 'package:uuid/uuid.dart';
 
@@ -342,16 +342,40 @@ class _PosPageState extends ConsumerState<PosPage>
     _setItems(items);
   }
 
+  /// Item yang belum pernah dikirim ke dapur: item baru, atau tambahan qty dari item lama.
+  List<OrderItem> _newForKitchen() {
+    final before = {
+      for (final i in widget.order?.items ?? <OrderItem>[]) i.id: i.qty,
+    };
+    return [
+      for (final it in _order.items)
+        if (it.qty > (before[it.id] ?? 0))
+          it.copyWith(qty: it.qty - (before[it.id] ?? 0)),
+    ];
+  }
+
   Future<void> _save() async {
     if (_order.items.isEmpty) return;
-    await ref.read(orderRepositoryProvider).save(_order);
+    final newItems = _newForKitchen();
+    final saved = _order;
+    await ref.read(orderRepositoryProvider).save(saved);
     widget.onOrderSaved?.call();
     await _flushAudits();
     if (!mounted) return;
-    ScaffoldMessenger.of(
+    final messenger = ScaffoldMessenger.of(context);
+    final nav = Navigator.of(context);
+    // popup cetak struk dapur untuk item baru / tambahan (tidak tampil bila tidak ada)
+    await showPrintAfterSaveDialog(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Order disimpan')));
-    Navigator.pop(context);
+      order: saved,
+      settings: ref.read(effectivePrinterSettingsProvider),
+      newItems: newItems,
+      addition: widget.order != null,
+      tableName: widget.table?.name,
+      cashier: ref.read(appUserProvider).value?.name,
+    );
+    messenger.showSnackBar(const SnackBar(content: Text('Order disimpan')));
+    nav.pop();
   }
 
   bool _paying = false;
@@ -438,53 +462,29 @@ class _PosPageState extends ConsumerState<PosPage>
     // }
 
     // ambil semua yang dibutuhkan SEBELUM halaman ditutup (ref tidak aman sesudahnya)
-    final cfg = ref.read(printerSettingsProvider).value;
+    final cfg = ref.read(effectivePrinterSettingsProvider);
     final tableName = widget.table?.name;
     final cashier = ref.read(appUserProvider).value?.name;
     final change = r.method == PayMethod.cash ? r.paid - paid.total : 0;
 
+    // popup: kasir memilih cetak struk order dan/atau struk dapur (tidak ada cetak otomatis)
+    if (mounted) {
+      await showPrintAfterPayDialog(
+      context,
+      order: paid,
+      settings: cfg,
+      tableName: tableName,
+      cashier: cashier,
+      change: change,
+    );
+    }
     if (foodcourt) {
-      _resetForNext(); // layar kasir tetap terbuka untuk pelanggan berikutnya
+      if (mounted) _resetForNext(); // layar kasir tetap terbuka untuk pelanggan berikutnya
     } else {
       nav.pop();
     }
     final queueText = paid.queueNo == null ? '' : ' • Nomor ${paid.queueNo}';
-    say(
-      change > 0
-          ? 'Pembayaran berhasil$queueText • Kembalian ${rupiah.format(change)}'
-          : 'Pembayaran berhasil$queueText',
-    );
-
-    if (cfg != null && cfg.autoPrint) {
-      await Future<void>.delayed(Duration(seconds: foodcourt ? 1 : 2));
-      say('Mencetak struk...', sec: 30);
-      try {
-        // satu printer: struk dapur dulu, lalu struk pelanggan
-        final withKitchen = foodcourt && cfg.kitchenSlip;
-        if (withKitchen) {
-          await printKitchenSlip(
-            settings: cfg,
-            order: paid,
-            cashier: cashier,
-          ).timeout(const Duration(seconds: 20));
-          await Future<void>.delayed(const Duration(seconds: 1));
-        }
-        await printOrderReceipt(
-          settings: cfg,
-          order: paid,
-          tableName: tableName,
-          cashier: cashier,
-        ).timeout(const Duration(seconds: 20));
-        say(
-          withKitchen
-              ? 'Struk dapur dan struk pelanggan tercetak'
-              : 'Struk tercetak',
-          sec: 3,
-        );
-      } catch (e) {
-        say('Struk gagal dicetak: $e', sec: 8);
-      }
-    }
+    say('Pembayaran berhasil$queueText');
   }
 
   // ------------------------------------------------------------------ tampilan

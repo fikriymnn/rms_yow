@@ -19,8 +19,14 @@ const kApiUrl = 'https://rms-api.fztama.my.id';
 /// Nomor WhatsApp CS untuk perpanjangan, format internasional tanpa + dan tanpa spasi,
 /// mis. 6281234567890. Isi defaultValue di bawah (atau --dart-define=CS_WHATSAPP=...).
 /// Kosong = tombol WhatsApp hanya menampilkan petunjuk menghubungi CS.
-const kCsWhatsapp = String.fromEnvironment('CS_WHATSAPP', defaultValue: '');
-const kCsName = String.fromEnvironment('CS_NAME', defaultValue: 'CS Kovalen');
+const kCsWhatsapp = String.fromEnvironment(
+  'CS_WHATSAPP',
+  defaultValue: '6285974930681',
+);
+const kCsName = String.fromEnvironment(
+  'CS_NAME',
+  defaultValue: 'CS Kovalen RMS',
+);
 
 /// Aplikasi boleh dipakai offline paling lama sekian hari sejak status langganan terakhir dicek.
 const kOfflineGraceDays = 7;

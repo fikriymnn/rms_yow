@@ -85,7 +85,8 @@ List<RLine> buildReceipt({
       : 'Dine-in ${tableName ?? ''}'.trim();
 
   center(s.shopName, bold: true);
-  center(s.shopAddress);
+  if (s.shopAddress.trim().isNotEmpty) center(s.shopAddress);
+  if (s.shopPhone.trim().isNotEmpty) center('Telp. ${s.shopPhone}');
   add(line);
   if (hasQueue) {
     center('NOMOR ANTRIAN', bold: true);
@@ -133,16 +134,22 @@ List<RLine> buildReceipt({
   if (order.status == OrderStatus.refunded)
     center('*** REFUND ***', bold: true);
   if (copy) center('*** SALINAN ***', bold: true);
-  center(s.footer);
+  if (s.footer.trim().isNotEmpty) center(s.footer);
   return out;
 }
 
-/// Struk dapur: nomor antrian dan item beserta catatan, tanpa harga.
+/// Struk dapur: nomor antrian / meja dan item beserta catatan, tanpa harga.
+/// [items]: hanya item ini (mis. tambahan saat Open Bill); null = semua item order.
+/// [addition]: tandai sebagai pesanan tambahan.
 List<RLine> buildKitchenSlip({
   required Order order,
   required PrinterSettings s,
   String? cashier,
+  String? tableName,
+  List<OrderItem>? items,
+  bool addition = false,
 }) {
+  final list = items ?? order.items;
   final w = s.cols;
   final out = <RLine>[];
   void add(String t, {bool bold = false}) =>
@@ -159,17 +166,23 @@ List<RLine> buildKitchenSlip({
     order.paidAt ?? order.createdAt,
   );
 
+  final hasQueue = queue != null && queue.isNotEmpty;
   center('*** DAPUR ***', bold: true);
-  if (queue != null && queue.isNotEmpty) {
+  if (addition) center('+ PESANAN TAMBAHAN +', bold: true);
+  if (hasQueue) {
     center('NOMOR ANTRIAN', bold: true);
     center('>>> $queue <<<', bold: true);
+  } else if (order.type == OrderType.takeaway) {
+    center('TAKEAWAY', bold: true);
+  } else if (tableName != null && tableName.isNotEmpty) {
+    center('MEJA $tableName', bold: true);
   }
   add(line);
   add('No   : ${order.number}');
-  add('Jam  : ${DateFormat('dd/MM/yy HH:mm').format(d)}');
+  add('Jam  : ${DateFormat('dd/MM/yy HH:mm').format(addition ? DateTime.now() : d)}');
   if (cashier != null && cashier.isNotEmpty) add('Kasir: $cashier');
   add(line);
-  for (final it in order.items) {
+  for (final it in list) {
     for (final l in _wrap('${it.qty} x ${it.name}', w)) {
       add(l, bold: true);
     }
@@ -180,7 +193,7 @@ List<RLine> buildKitchenSlip({
     }
   }
   add(line);
-  add('Total item: ${order.items.fold<int>(0, (s, i) => s + i.qty)}');
+  add('Total item: ${list.fold<int>(0, (s, i) => s + i.qty)}');
   return out;
 }
 
@@ -191,12 +204,17 @@ List<RLine> testLines(PrinterSettings s) {
   return [
     for (final l in _centerWrap('TES CETAK', w)) RLine(l, bold: true),
     for (final l in _centerWrap(s.shopName, w)) RLine(_ascii(l)),
+    if (s.shopAddress.trim().isNotEmpty)
+      for (final l in _centerWrap(s.shopAddress, w)) RLine(_ascii(l)),
+    if (s.shopPhone.trim().isNotEmpty)
+      for (final l in _centerWrap('Telp. ${s.shopPhone}', w)) RLine(_ascii(l)),
     RLine('-' * w),
     RLine(ruler),
     RLine('-' * w),
     RLine(_lr('Contoh item', '10.000', w)),
     RLine(_lr('TOTAL', '10.000', w), bold: true),
     RLine('Lebar: $w karakter'),
-    for (final l in _centerWrap(s.footer, w)) RLine(_ascii(l)),
+    if (s.footer.trim().isNotEmpty)
+      for (final l in _centerWrap(s.footer, w)) RLine(_ascii(l)),
   ];
 }
