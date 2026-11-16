@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/config/app_config.dart';
@@ -23,6 +24,24 @@ String formatValidUntil(Subscription s) =>
 String formatClientDate(int ms) {
   final d = DateTime.fromMillisecondsSinceEpoch(ms);
   return '${d.day} ${_months[d.month - 1]} ${d.year}';
+}
+
+const _monthsLong = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+/// "16 Desember 2026".
+String formatClientDateLong(int ms) {
+  final d = DateTime.fromMillisecondsSinceEpoch(ms);
+  return '${d.day} ${_monthsLong[d.month - 1]} ${d.year}';
+}
+
+/// Sisa hari langganan menurut jam server (dibulatkan ke atas).
+int daysLeftOf(Subscription s) {
+  final now = s.serverTime > 0 ? s.serverTime : DateTime.now().millisecondsSinceEpoch;
+  final ms = s.validUntil - now;
+  return ms <= 0 ? 0 : (ms / Duration.millisecondsPerDay).ceil();
 }
 
 /// Kupon: huruf besar, tanpa spasi; tanda minus dibiarkan (server mengabaikannya).
@@ -65,7 +84,7 @@ Widget _busy() => const SizedBox(
   child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
 );
 
-/// Layar pertama: aktivasi perangkat untuk satu klien.
+/// Layar pertama: masuk dengan akun restoran (email + password klien).
 class ClientLoginPage extends ConsumerStatefulWidget {
   const ClientLoginPage({super.key});
   @override
@@ -75,22 +94,21 @@ class ClientLoginPage extends ConsumerStatefulWidget {
 class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
-  final _coupon = TextEditingController();
   bool _loading = false;
   bool _showPass = false;
   String? _error;
 
   @override
   void dispose() {
-    for (final c in [_email, _pass, _coupon]) {
+    for (final c in [_email, _pass]) {
       c.dispose();
     }
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (_email.text.trim().isEmpty || _pass.text.isEmpty || _coupon.text.trim().isEmpty) {
-      setState(() => _error = 'Email, password, dan kode aktivasi wajib diisi');
+    if (_email.text.trim().isEmpty || _pass.text.isEmpty) {
+      setState(() => _error = 'Email dan password restoran wajib diisi');
       return;
     }
     setState(() {
@@ -104,7 +122,6 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
             baseUrl: defaultServerUrl(),
             email: _email.text,
             password: _pass.text,
-            coupon: _coupon.text,
             deviceName: await ref.read(deviceNameProvider.future),
           );
     } catch (e) {
@@ -116,8 +133,8 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
 
   @override
   Widget build(BuildContext context) => AuthLayout(
-    title: 'Aktivasi perangkat',
-    subtitle: 'Masuk dengan akun restoran Anda dan kode aktivasi dari CS',
+    title: 'Masuk ke akun restoran',
+    subtitle: 'Gunakan email dan password restoran yang terdaftar',
     child: AutofillGroup(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -138,7 +155,7 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
           TextField(
             controller: _pass,
             obscureText: !_showPass,
-            textInputAction: TextInputAction.next,
+            textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
             decoration: InputDecoration(
               labelText: 'Password restoran',
@@ -150,19 +167,6 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
                 ),
                 onPressed: () => setState(() => _showPass = !_showPass),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _coupon,
-            autocorrect: false,
-            textCapitalization: TextCapitalization.characters,
-            inputFormatters: [_CouponFormatter()],
-            textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: 'Kode aktivasi',
-              hintText: 'XXXX-XXXX-XXXX-XXXX',
-              prefixIcon: Icon(Icons.confirmation_number_outlined),
             ),
             onSubmitted: (_) => _loading ? null : _submit(),
           ),
@@ -176,12 +180,11 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
           FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
             onPressed: _loading ? null : _submit,
-            child: _loading ? _busy() : const Text('Aktifkan'),
+            child: _loading ? _busy() : const Text('Masuk'),
           ),
           const SizedBox(height: 14),
           Text(
-            'Kode aktivasi dari CS bisa dipakai lagi bila perangkat perlu diaktivasi ulang. '
-            'Belum punya? Hubungi $kCsName.',
+            'Belum memiliki akun restoran? Hubungi $kCsName.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
           ),
@@ -233,17 +236,29 @@ class DeviceNameTile extends ConsumerWidget {
   }
 }
 
+/// Buka WhatsApp CS dengan pesan siap kirim. Bila tidak bisa dibuka (nomor belum diatur,
+/// WhatsApp tidak terpasang), tampilkan nomor untuk disalin.
 Future<void> contactCs(BuildContext context, ClientState? c) async {
-  final who = c == null ? '' : '\n\nRestoran: ${c.info.name} (${c.info.code})';
+  final who = c == null ? '' : ' untuk restoran ${c.info.name} (${c.info.code})';
+  final text = 'Halo $kCsName, saya ingin memperpanjang langganan RMS$who. Terima kasih.';
+  if (kCsWhatsapp.isNotEmpty) {
+    final uri = Uri.parse('https://wa.me/$kCsWhatsapp?text=${Uri.encodeComponent(text)}');
+    try {
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {
+      // lanjut ke dialog
+    }
+  }
+  if (!context.mounted) return;
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text('Hubungi $kCsName'),
       content: Text(
         kCsWhatsapp.isEmpty
-            ? 'Sampaikan bahwa Anda ingin memperpanjang langganan RMS.$who'
-            : 'WhatsApp: +$kCsWhatsapp\n'
-                  'Sampaikan bahwa Anda ingin memperpanjang langganan RMS.$who',
+            ? 'Sampaikan kepada $kCsName bahwa Anda ingin memperpanjang langganan RMS$who.'
+            : 'WhatsApp: +$kCsWhatsapp\n\n'
+                  'Sampaikan bahwa Anda ingin memperpanjang langganan RMS$who.',
       ),
       actions: [
         if (kCsWhatsapp.isNotEmpty)
@@ -263,8 +278,54 @@ Future<void> contactCs(BuildContext context, ClientState? c) async {
   );
 }
 
-/// Langganan habis / ditangguhkan / terlalu lama offline. Juga dipakai dari Akun
-/// untuk memasukkan kupon perpanjangan ([blocked] = false).
+/// Dialog setelah kode aktivasi berhasil dipakai.
+Future<void> showActivatedDialog(
+  BuildContext context,
+  ClientInfo info, {
+  required bool reactivated,
+}) {
+  final s = info.subscription;
+  final period = s.lifetime
+      ? 'Langganan ${info.name} kini aktif selamanya.'
+      : 'Langganan ${info.name} kini aktif selama ${daysLeftOf(s)} hari, '
+            'hingga ${formatClientDateLong(s.validUntil)}.';
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      icon: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: const BoxDecoration(
+          color: Color(0xFFD1FAE5),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.check_rounded, size: 34, color: AppColors.success),
+      ),
+      title: Text(
+        reactivated ? 'Selamat, akun Anda aktif kembali!' : 'Langganan berhasil diperpanjang',
+        textAlign: TextAlign.center,
+      ),
+      content: Text(
+        reactivated
+            ? '$period\n\nSilakan masuk untuk mulai menggunakan aplikasi kembali.'
+            : '$period\n\nTerima kasih telah memperpanjang langganan.',
+        textAlign: TextAlign.center,
+        style: GoogleFonts.inter(fontSize: 14, height: 1.5),
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(180, 48)),
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(reactivated ? 'OK, masuk sekarang' : 'OK'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// [blocked] = true: gerbang aplikasi (langganan habis / ditangguhkan / terlalu lama offline).
+/// [blocked] = false: dibuka dari halaman login atau Akun owner untuk perpanjangan.
 class SubscriptionPage extends ConsumerStatefulWidget {
   const SubscriptionPage({super.key, this.blocked = true});
   final bool blocked;
@@ -277,7 +338,6 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
   bool _loading = false;
   bool _checking = false;
   String? _error;
-  String? _info;
 
   @override
   void dispose() {
@@ -287,31 +347,27 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
 
   Future<void> _redeem() async {
     if (_coupon.text.trim().isEmpty) {
-      setState(() => _error = 'Masukkan kode perpanjangan dari CS');
+      setState(() => _error = 'Masukkan kode aktivasi dari $kCsName');
       return;
     }
     setState(() {
       _loading = true;
       _error = null;
-      _info = null;
     });
+    final notifier = ref.read(clientProvider.notifier);
     try {
-      await ref.read(clientProvider.notifier).redeem(_coupon.text);
+      // Status disimpan setelah dialog ditutup, supaya dialog sempat tampil sebelum
+      // gerbang aplikasi berpindah ke halaman login.
+      final info = await notifier.redeem(_coupon.text, apply: false);
       _coupon.clear();
-      final c = ref.read(clientProvider).value;
-      if (mounted) {
-        setState(
-          () => _info = c == null
-              ? 'Berhasil'
-              : c.info.subscription.lifetime
-              ? 'Langganan aktif selamanya'
-              : 'Langganan aktif sampai ${formatClientDate(c.info.subscription.validUntil)}',
-        );
-        if (!widget.blocked) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_info!)));
-          Navigator.of(context).maybePop();
-        }
+      if (!mounted) {
+        await notifier.applyInfo(info);
+        return;
       }
+      setState(() => _loading = false);
+      await showActivatedDialog(context, info, reactivated: widget.blocked);
+      await notifier.applyInfo(info);
+      if (mounted && !widget.blocked) Navigator.of(context).maybePop();
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
     } finally {
@@ -325,9 +381,8 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
     if (!mounted) return;
     setState(() => _checking = false);
     if (ref.read(clientBlockProvider) != BlockReason.none) {
-      setState(() => _info = null);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Status belum berubah')),
+        const SnackBar(content: Text('Status langganan belum berubah')),
       );
     }
   }
@@ -338,8 +393,8 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Keluar dari akun restoran?'),
         content: const Text(
-          'Perangkat perlu diaktivasi ulang dengan kode baru dari CS. '
-          'Data yang belum terkirim tetap tersimpan di perangkat.',
+          'Anda perlu masuk lagi dengan email dan password restoran. '
+          'Data yang belum terkirim tetap tersimpan di perangkat ini.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
@@ -350,78 +405,175 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
     if (ok == true) await ref.read(clientProvider.notifier).forget();
   }
 
+  Widget _statusCard({
+    required IconData icon,
+    required Color fg,
+    required Color bg,
+    required String title,
+    required String message,
+  }) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: fg, size: 26),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                message,
+                style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: AppColors.ink),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _orDivider(String text) => Row(
+    children: [
+      const Expanded(child: Divider()),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Text(
+          text,
+          style: GoogleFonts.inter(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: AppColors.muted,
+          ),
+        ),
+      ),
+      const Expanded(child: Divider()),
+    ],
+  );
+
+  Widget _whatsappButton(ClientState? c, {required bool primary}) {
+    final style = primary
+        ? FilledButton.styleFrom(
+            minimumSize: const Size(0, 52),
+            backgroundColor: const Color(0xFF25D366),
+            foregroundColor: Colors.white,
+          )
+        : null;
+    const icon = Icon(Icons.chat_outlined);
+    final label = Text(primary ? 'Hubungi CS via WhatsApp' : 'Belum punya kode? Hubungi CS');
+    return primary
+        ? FilledButton.icon(
+            style: style,
+            onPressed: () => contactCs(context, c),
+            icon: icon,
+            label: label,
+          )
+        : OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+            onPressed: () => contactCs(context, c),
+            icon: icon,
+            label: label,
+          );
+  }
+
+  List<Widget> _codeForm(String button) => [
+    TextField(
+      controller: _coupon,
+      autocorrect: false,
+      textCapitalization: TextCapitalization.characters,
+      inputFormatters: [_CouponFormatter()],
+      textInputAction: TextInputAction.done,
+      decoration: const InputDecoration(
+        labelText: 'Kode aktivasi',
+        hintText: 'XXXX-XXXX-XXXX-XXXX',
+        prefixIcon: Icon(Icons.confirmation_number_outlined),
+      ),
+      onSubmitted: (_) => _loading ? null : _redeem(),
+    ),
+    if (_error != null) ...[const SizedBox(height: 12), AuthErrorBox(_error!)],
+    const SizedBox(height: 12),
+    FilledButton(
+      style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+      onPressed: _loading ? null : _redeem,
+      child: _loading ? _busy() : Text(button),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(clientProvider).value;
     final reason = ref.watch(clientBlockProvider);
-    final (title, message) = switch (reason) {
-      BlockReason.suspended => (
-        'Akun ditangguhkan',
-        'Akun restoran ${c?.info.name ?? ''} sedang ditangguhkan. Hubungi $kCsName.',
+    final name = c?.info.name ?? 'restoran Anda';
+    final sub = c?.info.subscription;
+
+    if (!widget.blocked) return _extendPage(c, sub);
+
+    final card = switch (reason) {
+      BlockReason.suspended => _statusCard(
+        icon: Icons.pause_circle_outline,
+        fg: AppColors.danger,
+        bg: AppColors.roseSoft,
+        title: 'Akun sedang ditangguhkan',
+        message:
+            'Mohon maaf, akun $name sedang ditangguhkan sehingga aplikasi belum dapat '
+            'digunakan. Silakan hubungi $kCsName untuk informasi lebih lanjut.',
       ),
-      BlockReason.offlineTooLong => (
-        'Perlu terhubung ke internet',
-        'Status langganan belum diperiksa lebih dari $kOfflineGraceDays hari. '
-            'Sambungkan perangkat ke internet lalu tekan "Periksa lagi".',
+      BlockReason.offlineTooLong => _statusCard(
+        icon: Icons.wifi_off_rounded,
+        fg: AppColors.warning,
+        bg: const Color(0xFFFEF3C7),
+        title: 'Perlu terhubung ke internet',
+        message:
+            'Status langganan belum diperiksa lebih dari $kOfflineGraceDays hari. '
+            'Sambungkan perangkat ke internet, lalu ketuk "Periksa lagi".',
       ),
-      BlockReason.expired => (
-        'Langganan berakhir',
-        'Langganan ${c?.info.name ?? 'restoran Anda'} berakhir'
-            '${c == null ? '' : ' pada ${formatClientDate(c.info.subscription.validUntil)}'}. '
-            'Hubungi $kCsName untuk perpanjangan, lalu masukkan kode yang diberikan.',
-      ),
-      BlockReason.none => (
-        widget.blocked ? 'Langganan aktif' : 'Perpanjang langganan',
-        c == null
-            ? ''
-            : c.info.subscription.lifetime
-            ? 'Langganan aktif selamanya. '
-            : 'Aktif sampai ${formatClientDate(c.info.subscription.validUntil)}. '
-                  'Masukkan kode dari CS untuk menambah masa aktif.',
+      _ => _statusCard(
+        icon: Icons.event_busy_outlined,
+        fg: AppColors.danger,
+        bg: AppColors.roseSoft,
+        title: 'Masa aktif langganan telah berakhir',
+        message:
+            'Mohon maaf, langganan $name telah berakhir'
+            '${sub == null || sub.validUntil <= 0 ? '' : ' pada ${formatClientDateLong(sub.validUntil)}'}'
+            ' sehingga aplikasi untuk sementara tidak dapat digunakan. '
+            'Jika belum melakukan pemesanan perpanjangan, silakan hubungi $kCsName.',
       ),
     };
+    final canRedeem = reason == BlockReason.expired || reason == BlockReason.none;
 
-    final body = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(message, style: GoogleFonts.inter(fontSize: 14, height: 1.45)),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
-          onPressed: () => contactCs(context, c),
-          icon: const Icon(Icons.support_agent_outlined),
-          label: Text('Hubungi $kCsName'),
-        ),
-        if (reason != BlockReason.offlineTooLong &&
-            reason != BlockReason.suspended) ...[
+    return AuthLayout(
+      title: reason == BlockReason.suspended ? 'Akun tidak aktif' : 'Langganan tidak aktif',
+      subtitle: c?.info.name,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          card,
           const SizedBox(height: 16),
-          TextField(
-            controller: _coupon,
-            autocorrect: false,
-            textCapitalization: TextCapitalization.characters,
-            inputFormatters: [_CouponFormatter()],
-            decoration: const InputDecoration(
-              labelText: 'Kode perpanjangan',
-              hintText: 'XXXX-XXXX-XXXX-XXXX',
-              prefixIcon: Icon(Icons.confirmation_number_outlined),
+          if (reason != BlockReason.offlineTooLong) _whatsappButton(c, primary: true),
+          if (canRedeem) ...[
+            const SizedBox(height: 22),
+            _orDivider('Sudah memiliki kode aktivasi?'),
+            const SizedBox(height: 8),
+            Text(
+              'Masukkan kode dari $kCsName di bawah ini untuk mengaktifkan kembali akun Anda.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted, height: 1.45),
             ),
-            onSubmitted: (_) => _loading ? null : _redeem(),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
-            onPressed: _loading ? null : _redeem,
-            child: _loading ? _busy() : const Text('Perpanjang'),
-          ),
-        ],
-        if (_error != null) ...[const SizedBox(height: 12), AuthErrorBox(_error!)],
-        if (_info != null) ...[
-          const SizedBox(height: 12),
-          Text(_info!, style: GoogleFonts.inter(color: AppColors.primary)),
-        ],
-        if (widget.blocked) ...[
-          const SizedBox(height: 8),
+            const SizedBox(height: 14),
+            ..._codeForm('Aktifkan'),
+          ],
+          const SizedBox(height: 10),
           TextButton.icon(
             onPressed: _checking ? null : _recheck,
             icon: const Icon(Icons.refresh),
@@ -432,15 +584,62 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
             child: const Text('Keluar dari akun restoran'),
           ),
         ],
-      ],
+      ),
     );
+  }
 
-    if (!widget.blocked) {
-      return Scaffold(
-        appBar: AppBar(title: Text(title)),
-        body: ListView(padding: const EdgeInsets.all(16), children: [body]),
-      );
-    }
-    return AuthLayout(title: title, subtitle: c?.info.name, child: body);
+  Widget _extendPage(ClientState? c, Subscription? sub) {
+    final status = sub == null
+        ? null
+        : sub.lifetime
+        ? _statusCard(
+            icon: Icons.all_inclusive_rounded,
+            fg: AppColors.primary,
+            bg: AppColors.primarySoft,
+            title: 'Langganan aktif selamanya',
+            message: 'Langganan ${c!.info.name} tidak memiliki batas waktu.',
+          )
+        : sub.inGrace
+        ? _statusCard(
+            icon: Icons.hourglass_bottom_rounded,
+            fg: AppColors.warning,
+            bg: const Color(0xFFFEF3C7),
+            title: 'Masa tenggang',
+            message:
+                'Langganan ${c!.info.name} berakhir pada ${formatClientDateLong(sub.validUntil)}. '
+                'Segera perpanjang agar aplikasi tetap dapat digunakan.',
+          )
+        : _statusCard(
+            icon: Icons.verified_outlined,
+            fg: AppColors.success,
+            bg: const Color(0xFFD1FAE5),
+            title: 'Langganan aktif',
+            message:
+                'Langganan ${c!.info.name} aktif hingga ${formatClientDateLong(sub.validUntil)} '
+                '(${daysLeftOf(sub)} hari lagi).',
+          );
+    return Scaffold(
+      appBar: AppBar(title: const Text('Perpanjang langganan')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (status != null) status,
+              const SizedBox(height: 20),
+              Text(
+                'Masukkan kode aktivasi dari $kCsName untuk menambah masa aktif langganan.',
+                style: GoogleFonts.inter(fontSize: 14, height: 1.45),
+              ),
+              const SizedBox(height: 14),
+              ..._codeForm('Perpanjang'),
+              const SizedBox(height: 22),
+              _whatsappButton(c, primary: false),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

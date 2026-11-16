@@ -51,7 +51,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Ganti akun restoran?'),
         content: const Text(
-          'Perangkat perlu diaktivasi ulang dengan kode baru dari CS.',
+          'Anda akan keluar dari akun restoran ini dan perlu masuk lagi '
+          'dengan email dan password restoran.',
         ),
         actions: [
           TextButton(
@@ -129,7 +130,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
           const SizedBox(height: 16),
           const DeviceNameTile(),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          _SubscriptionTile(enabled: !_loading),
+          const SizedBox(height: 4),
           TextButton(
             onPressed: _loading ? null : _switchClient,
             child: const Text('Bukan restoran ini? Ganti akun restoran'),
@@ -146,4 +149,56 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
     ),
   );
+}
+
+/// Info masa aktif + tombol perpanjang langganan di halaman login.
+class _SubscriptionTile extends ConsumerWidget {
+  const _SubscriptionTile({required this.enabled});
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = ref.watch(clientProvider).value;
+    if (c == null) return const SizedBox.shrink();
+    final s = c.info.subscription;
+    final text = s.lifetime
+        ? 'Langganan aktif selamanya'
+        : s.inGrace
+        ? 'Masa tenggang • berakhir ${formatClientDate(s.validUntil)}'
+        : 'Aktif hingga ${formatClientDate(s.validUntil)} • ${daysLeftOf(s)} hari lagi';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+      decoration: BoxDecoration(
+        color: s.inGrace ? const Color(0xFFFEF3C7) : AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            s.inGrace ? Icons.hourglass_bottom_rounded : Icons.workspace_premium_outlined,
+            size: 20,
+            color: s.inGrace ? AppColors.warning : AppColors.primary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (!s.lifetime)
+            TextButton(
+              onPressed: enabled
+                  ? () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SubscriptionPage(blocked: false),
+                      ),
+                    )
+                  : null,
+              child: const Text('Perpanjang'),
+            ),
+        ],
+      ),
+    );
+  }
 }

@@ -461,7 +461,7 @@ class AccountPage extends ConsumerWidget {
       title: 'Keamanan & privasi',
       child: Column(
         children: [
-          if (client != null)
+          if (client != null && isOwner)
             _actionTile(
               Icons.workspace_premium_outlined,
               'Langganan ${client.info.name}',

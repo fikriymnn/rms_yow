@@ -16,8 +16,10 @@ const kApiUrl = 'https://rms-api.fztama.my.id';
 // Lokal - HP fisik di WiFi yang sama (ganti dengan IP komputer: ipconfig -> IPv4)
 // const kApiUrl = 'http://192.168.1.10:8000';
 
-/// Nomor WhatsApp CS untuk perpanjangan, format internasional tanpa +, mis. 6281234567890.
-const kCsWhatsapp = String.fromEnvironment('CS_WHATSAPP');
+/// Nomor WhatsApp CS untuk perpanjangan, format internasional tanpa + dan tanpa spasi,
+/// mis. 6281234567890. Isi defaultValue di bawah (atau --dart-define=CS_WHATSAPP=...).
+/// Kosong = tombol WhatsApp hanya menampilkan petunjuk menghubungi CS.
+const kCsWhatsapp = String.fromEnvironment('CS_WHATSAPP', defaultValue: '');
 const kCsName = String.fromEnvironment('CS_NAME', defaultValue: 'CS Kovalen');
 
 /// Aplikasi boleh dipakai offline paling lama sekian hari sejak status langganan terakhir dicek.

@@ -107,12 +107,12 @@ class ClientNotifier extends AsyncNotifier<ClientState?> {
     }
   }
 
-  /// Email + password klien + kupon dari CS (bisa dipakai ulang selama berlaku).
+  /// Email + password klien. Berhasil walau langganan habis: gerbang aplikasi lalu
+  /// menampilkan layar langganan untuk memasukkan kode aktivasi.
   Future<void> activate({
     required String baseUrl,
     required String email,
     required String password,
-    required String coupon,
     required String deviceName,
   }) async {
     final base = normalizeBaseUrl(baseUrl);
@@ -123,7 +123,6 @@ class ClientNotifier extends AsyncNotifier<ClientState?> {
         data: {
           'email': email.trim(),
           'password': password,
-          'coupon': coupon.trim(),
           'device_name': deviceName.trim(),
           'platform': clientPlatform(),
           'install_id': installId,
@@ -216,8 +215,10 @@ class ClientNotifier extends AsyncNotifier<ClientState?> {
     unawaited(refreshStatus());
   }
 
-  /// Perpanjangan dengan kupon baru dari CS.
-  Future<void> redeem(String coupon) async {
+  /// Perpanjangan dengan kode aktivasi dari CS. Mengembalikan status terbaru.
+  /// [apply] = false: status belum disimpan (mis. tampilkan dialog sukses dulu sebelum
+  /// gerbang aplikasi berpindah ke halaman login), simpan nanti dengan [applyInfo].
+  Future<ClientInfo> redeem(String coupon, {bool apply = true}) async {
     final c = state.value;
     if (c == null) throw ApiException(null, 'Perangkat belum diaktivasi');
     final res = await _send(
@@ -234,13 +235,15 @@ class ClientNotifier extends AsyncNotifier<ClientState?> {
     if (res.statusCode != 200) {
       throw ApiException(res.statusCode, apiDetail(res.data, res.statusCode));
     }
-    await _save(
-      c.copyWith(
-        info: ClientInfo.fromJson(Map<String, dynamic>.from(res.data as Map)),
-        checkedAt: _now(),
-        blockedByServer: false,
-      ),
-    );
+    final info = ClientInfo.fromJson(Map<String, dynamic>.from(res.data as Map));
+    if (apply) await applyInfo(info);
+    return info;
+  }
+
+  Future<void> applyInfo(ClientInfo info) async {
+    final c = state.value;
+    if (c == null) return;
+    await _save(c.copyWith(info: info, checkedAt: _now(), blockedByServer: false));
   }
 
   /// Keluar dari akun klien di perangkat ini (sesi RMS ikut keluar).
