@@ -24,6 +24,7 @@ class MenuProposal {
     this.description = '',
     this.finalPrice,
     this.recipe, // null = resep tidak diubah
+    this.noRecipe, // true = menu tanpa resep; null = tidak diubah
     this.status = ProposalStatus.pending,
     this.decidedBy,
     this.decidedByName,
@@ -40,6 +41,7 @@ class MenuProposal {
   final int proposedPrice;
   final int? finalPrice;
   final List<RecipeLine>? recipe;
+  final bool? noRecipe;
   final ProposalStatus status;
   final String submittedBy;
   final String submittedByName;
@@ -68,6 +70,7 @@ class MenuProposal {
     proposedPrice: proposedPrice,
     finalPrice: finalPrice ?? this.finalPrice,
     recipe: recipe,
+    noRecipe: noRecipe,
     status: status ?? this.status,
     submittedBy: submittedBy,
     submittedByName: submittedByName,
@@ -111,6 +114,7 @@ class MenuProposal {
               RecipeLine.fromMap(Map<String, dynamic>.from(e as Map)),
           ]
         : null,
+    noRecipe: m['noRecipe'] as bool?,
     status: ProposalStatus.values.firstWhere(
       (s) => s.name == m['status'],
       orElse: () => ProposalStatus.pending,
@@ -134,6 +138,7 @@ class MenuProposal {
     'proposedPrice': proposedPrice,
     'finalPrice': finalPrice,
     'recipe': recipe?.map((l) => l.toMap()).toList(),
+    if (noRecipe != null) 'noRecipe': noRecipe,
     'status': status.name,
     'submittedBy': submittedBy,
     'submittedByName': submittedByName,

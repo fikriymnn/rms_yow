@@ -6,6 +6,7 @@ class MenuItem {
     required this.price,
     this.available = true,
     this.description = '',
+    this.noRecipe = false,
   });
 
   final String id;
@@ -15,12 +16,16 @@ class MenuItem {
   final bool available;
   final String description;
 
+  /// Menu tanpa resep: tidak memotong stok bahan & tidak dihitung HPP-nya.
+  final bool noRecipe;
+
   MenuItem copyWith({
     String? name,
     String? category,
     int? price,
     bool? available,
     String? description,
+    bool? noRecipe,
   }) =>
       MenuItem(
         id: id,
@@ -29,6 +34,7 @@ class MenuItem {
         price: price ?? this.price,
         available: available ?? this.available,
         description: description ?? this.description,
+        noRecipe: noRecipe ?? this.noRecipe,
       );
 
   factory MenuItem.fromMap(Map<String, dynamic> m) => MenuItem(
@@ -38,6 +44,7 @@ class MenuItem {
         price: (m['price'] as num?)?.toInt() ?? 0,
         available: m['available'] as bool? ?? true,
         description: m['description'] as String? ?? '',
+        noRecipe: m['noRecipe'] as bool? ?? false,
       );
 
   Map<String, dynamic> toMap() => {
@@ -47,5 +54,6 @@ class MenuItem {
         'price': price,
         'available': available,
         'description': description,
+        'noRecipe': noRecipe,
       };
 }

@@ -41,14 +41,16 @@ class _RecipesTabState extends ConsumerState<RecipesTab> {
       );
     }
     bool has(MenuItem m) => (recipes[m.id]?.lines.isNotEmpty ?? false);
-    final noRecipe = menu.where((m) => !has(m)).length;
+    // menu bertanda "tanpa resep" bukan kekurangan: tidak dihitung "belum ada resep"
+    final noRecipe = menu.where((m) => !m.noRecipe && !has(m)).length;
+    final withoutRecipe = menu.where((m) => m.noRecipe).length;
     final shown = menu
         .where((m) => _query.isEmpty || m.name.toLowerCase().contains(_query))
         .toList();
 
     Widget card(MenuItem m) {
       final h = hpp[m.id] ?? 0;
-      final ok = has(m);
+      final ok = has(m) && !m.noRecipe;
       final pct = _marginPct(m.price, h);
       return Material(
         color: AppColors.surface,
@@ -94,7 +96,9 @@ class _RecipesTabState extends ConsumerState<RecipesTab> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                ok
+                m.noRecipe
+                    ? const StatusPill('Tanpa resep', tone: Tone.neutral)
+                    : ok
                     ? StatusPill('Margin $pct%', tone: _marginTone(pct))
                     : const StatusPill('Belum ada resep', tone: Tone.warning),
                 const Icon(
@@ -127,6 +131,12 @@ class _RecipesTabState extends ConsumerState<RecipesTab> {
               value: '$noRecipe',
               tone: noRecipe > 0 ? Tone.warning : Tone.success,
             ),
+            if (withoutRecipe > 0)
+              StatTile(
+                icon: Icons.no_food_outlined,
+                label: 'Tanpa resep',
+                value: '$withoutRecipe',
+              ),
           ],
         ),
         const SizedBox(height: 12),
@@ -327,10 +337,63 @@ class RecipeEditorPage extends ConsumerWidget {
             ),
     );
 
+    final cur =
+        ref
+            .watch(menuItemsProvider)
+            .value
+            ?.where((m) => m.id == menu.id)
+            .firstOrNull ??
+        menu;
+    final canToggle = ref.watch(appUserProvider).value?.can('menu.update') ?? false;
+    final head = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (cur.noRecipe) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.no_food_outlined, size: 18, color: AppColors.muted),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Menu ini ditandai tanpa resep: penjualannya tidak memotong stok bahan '
+                    'dan HPP tidak dihitung.',
+                    style: GoogleFonts.inter(fontSize: 12.5, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        summary,
+      ],
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Resep ${menu.name}'),
         actions: [
+          if (canToggle)
+            PopupMenuButton<bool>(
+              tooltip: 'Pengaturan resep',
+              onSelected: (noRecipe) => ref
+                  .read(menuRepositoryProvider)
+                  .save(cur.copyWith(noRecipe: noRecipe)),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: !cur.noRecipe,
+                  child: Text(cur.noRecipe ? 'Pakai resep' : 'Tandai tanpa resep'),
+                ),
+              ],
+            ),
           IconButton(
             tooltip: 'Riwayat resep',
             icon: const Icon(Icons.history),
@@ -357,7 +420,7 @@ class RecipeEditorPage extends ConsumerWidget {
                   width: 360,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: summary,
+                    child: head,
                   ),
                 ),
                 Expanded(
@@ -371,7 +434,7 @@ class RecipeEditorPage extends ConsumerWidget {
           }
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            children: [summary, const SizedBox(height: 12), lines],
+            children: [head, const SizedBox(height: 12), lines],
           );
         },
       ),

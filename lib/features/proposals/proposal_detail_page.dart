@@ -278,7 +278,11 @@ class ProposalDetailView extends ConsumerWidget {
                 title: 'Resep per porsi',
                 child: p.recipe == null
                     ? Text(
-                        'Resep tidak diubah pada usulan ini.',
+                        p.noRecipe == true
+                            ? 'Menu tanpa resep: penjualan tidak memotong stok bahan.'
+                            : p.isChange
+                            ? 'Resep tidak diubah pada usulan ini.'
+                            : 'Tanpa resep.',
                         style: GoogleFonts.inter(
                           fontSize: 13.5,
                           color: AppColors.muted,

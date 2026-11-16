@@ -287,3 +287,9 @@ final clientBlockProvider = Provider<BlockReason>((ref) {
   final c = ref.watch(clientProvider).value;
   return c == null ? BlockReason.none : blockReasonOf(c);
 });
+
+/// Modul sewaan klien aktif? (Super Admin → Modul). Belum aktivasi / data lama = aktif.
+final moduleEnabledProvider = Provider.family<bool, String>((ref, key) {
+  final c = ref.watch(clientProvider).value;
+  return c == null || c.info.hasModule(key);
+});

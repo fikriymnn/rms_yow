@@ -1247,7 +1247,7 @@ class _PhotoBoxState extends ConsumerState<_PhotoBox> {
           if (snap.hasError) {
             return _placeholder(
               Icons.hide_image_outlined,
-              'Foto tidak tersedia (mungkin sudah dihapus sesuai masa simpan)',
+              'Foto tidak tersedia (foto disimpan 2 hari, lalu dihapus otomatis)',
             );
           }
           final bytes = snap.data!;

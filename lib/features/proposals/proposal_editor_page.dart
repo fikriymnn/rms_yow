@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_extra.dart';
 import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
+import '../client/client_providers.dart';
 import '../inventory/inventory_models.dart';
 import '../inventory/inventory_providers.dart';
 import '../menu/menu_item.dart';
@@ -35,6 +36,14 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
   late bool _withRecipe =
       widget.existing == null || widget.existing!.recipe != null;
   late List<RecipeLine> _lines = [...?widget.existing?.recipe];
+  // menu baru tanpa resep (mis. minuman kemasan): tidak memotong stok, tanpa food cost
+  late bool _noRecipe = widget.existing?.noRecipe ?? false;
+
+  bool get _recipesOn => ref.read(moduleEnabledProvider('recipes'));
+
+  /// Usulan ini membawa resep?
+  bool get _sendsRecipe =>
+      _recipesOn && (_kind == 'new' ? !_noRecipe : _withRecipe);
 
   @override
   void dispose() {
@@ -128,9 +137,11 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
       _toast('Harga usulan harus diisi');
       return;
     }
-    final withRecipe = _kind == 'new' || _withRecipe;
-    if (_kind == 'new' && _lines.isEmpty) {
-      _toast('Resep wajib diisi untuk menu baru (untuk menghitung food cost)');
+    final withRecipe = _sendsRecipe;
+    if (_kind == 'new' && withRecipe && _lines.isEmpty) {
+      _toast(
+        'Isi resep untuk menghitung food cost, atau nyalakan "Menu ini tanpa resep"',
+      );
       return;
     }
     final existing = widget.existing;
@@ -146,6 +157,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
             description: _desc.text.trim(),
             proposedPrice: price,
             recipe: withRecipe ? List.of(_lines) : null,
+            noRecipe: _kind == 'new' && _recipesOn ? _noRecipe : null,
             submittedBy: user.uid,
             submittedByName: user.name,
             createdAt:
@@ -170,7 +182,8 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
             : master
                   .where((m) => m.id == widget.existing!.targetId)
                   .firstOrNull);
-    final showRecipe = _kind == 'new' || _withRecipe;
+    final recipesOn = ref.watch(moduleEnabledProvider('recipes'));
+    final showRecipe = _sendsRecipe;
     final cost = foodCostOf(_lines, avg);
     final price = int.tryParse(_price.text.trim()) ?? 0;
     final missingPrice = _lines.any((l) => avg[l.ingredientId] == null);
@@ -266,6 +279,16 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_kind == 'new')
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Menu ini tanpa resep'),
+              subtitle: const Text(
+                'Mis. minuman kemasan: penjualan tidak memotong stok bahan.',
+              ),
+              value: _noRecipe,
+              onChanged: (v) => setState(() => _noRecipe = v),
+            ),
           if (_kind == 'change')
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -353,8 +376,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
         kindCard,
         const SizedBox(height: 12),
         infoCard,
-        const SizedBox(height: 12),
-        recipeCard,
+        if (recipesOn) ...[const SizedBox(height: 12), recipeCard],
       ],
     );
 

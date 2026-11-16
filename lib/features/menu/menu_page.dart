@@ -7,6 +7,7 @@ import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
+import '../client/client_providers.dart';
 import 'menu_availability.dart';
 import 'menu_item.dart';
 import 'menu_providers.dart';
@@ -237,9 +238,12 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final name = TextEditingController(text: existing?.name);
     final cat = TextEditingController(text: existing?.category);
     final price = TextEditingController(text: existing?.price.toString());
+    final recipesOn = ref.read(moduleEnabledProvider('recipes'));
+    var useRecipe = !(existing?.noRecipe ?? false);
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
         title: Text(existing == null ? 'Menu baru' : 'Edit menu'),
         content: SizedBox(
           width: 380,
@@ -264,6 +268,20 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   prefixText: 'Rp ',
                 ),
               ),
+              if (recipesOn) ...[
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Pakai resep'),
+                  subtitle: Text(
+                    useRecipe
+                        ? 'Stok bahan dipotong sesuai resep dan HPP dihitung.'
+                        : 'Tanpa resep: tidak memotong stok bahan (mis. minuman kemasan).',
+                  ),
+                  value: useRecipe,
+                  onChanged: (v) => setLocal(() => useRecipe = v),
+                ),
+              ],
             ],
           ),
         ),
@@ -292,6 +310,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                         name: name.text.trim(),
                         category: cat.text.trim(),
                         price: int.tryParse(price.text) ?? 0,
+                        noRecipe: recipesOn ? !useRecipe : null,
                       );
               repo.save(item);
               Navigator.pop(ctx);
@@ -299,6 +318,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
             child: const Text('Simpan'),
           ),
         ],
+      ),
       ),
     );
   }

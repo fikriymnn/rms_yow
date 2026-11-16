@@ -31,8 +31,9 @@ Future<bool> askConsentAgreement(
                 '• Membaca lokasi GPS saat tombol absen ditekan.\n'
                 '• Mengambil foto wajah (selfie) dan memeriksa bahwa wajah ada di depan kamera.\n\n'
                 'Data ini hanya dipakai untuk memverifikasi absensi. Yang dapat melihatnya: '
-                'karyawan yang bersangkutan, manager outlet, dan owner. Foto dihapus otomatis setelah '
-                'masa simpan (saat ini 90 hari), sedangkan catatan jam masuk dan pulang tetap ada.\n\n'
+                'karyawan yang bersangkutan, manager outlet, dan owner. Foto hanya disimpan sementara '
+                'dan dihapus otomatis dari server setelah 2 hari, sedangkan catatan jam masuk dan '
+                'pulang tetap ada.\n\n'
                 'Persetujuan dicatat di server (waktu dan versi teks ini).',
               ),
               const SizedBox(height: 12),
