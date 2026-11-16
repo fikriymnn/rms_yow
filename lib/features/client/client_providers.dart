@@ -199,7 +199,7 @@ class ClientNotifier extends AsyncNotifier<ClientState?> {
           ),
         );
       } else if (res.statusCode == 401) {
-        await forget(); // perangkat dicabut CS
+        await forget(notifyServer: false); // perangkat dicabut CS
       }
     } catch (_) {
       // offline
@@ -228,7 +228,7 @@ class ClientNotifier extends AsyncNotifier<ClientState?> {
       ),
     );
     if (res.statusCode == 401) {
-      await forget();
+      await forget(notifyServer: false);
       throw ApiException(401, 'Perangkat ini sudah dicabut. Aktivasi ulang.');
     }
     if (res.statusCode != 200) {
@@ -244,10 +244,30 @@ class ClientNotifier extends AsyncNotifier<ClientState?> {
   }
 
   /// Keluar dari akun klien di perangkat ini (sesi RMS ikut keluar).
-  Future<void> forget() async {
+  /// [notifyServer]: beri tahu server agar perangkat ini tidak aktif lagi (jatah perangkat
+  /// kembali). Tidak perlu bila server sudah menolak token perangkat (401).
+  Future<void> forget({bool notifyServer = true}) async {
     try {
       await ref.read(sessionProvider.notifier).logout();
     } catch (_) {}
+    final c = state.value;
+    if (notifyServer && c != null) {
+      try {
+        await Dio(
+          BaseOptions(
+            baseUrl: c.baseUrl,
+            connectTimeout: const Duration(seconds: 4),
+            receiveTimeout: const Duration(seconds: 6),
+            validateStatus: (_) => true,
+          ),
+        ).post<dynamic>(
+          '/client/deactivate',
+          options: Options(headers: {'X-Device-Token': c.deviceToken}),
+        );
+      } catch (_) {
+        // offline: perangkat tetap tercatat aktif sampai dicabut CS / aktivasi ulang di sini
+      }
+    }
     final meta = ref.read(metaDbProvider);
     await meta.removeMeta(_kMetaKey);
     await meta.removeMeta('active_outlet');
