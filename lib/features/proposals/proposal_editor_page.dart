@@ -12,6 +12,7 @@ import '../auth/auth_providers.dart';
 import '../client/client_providers.dart';
 import '../inventory/inventory_models.dart';
 import '../inventory/inventory_providers.dart';
+import '../menu/category_field.dart';
 import '../menu/menu_item.dart';
 import '../menu/menu_providers.dart';
 import 'menu_proposal.dart';
@@ -153,7 +154,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
             kind: _kind,
             targetId: _kind == 'change' ? target!.id : null,
             name: _name.text.trim(),
-            category: _cat.text.trim(),
+            category: normalizeCategory(_cat.text, ref.read(menuCategoriesProvider)),
             description: _desc.text.trim(),
             proposedPrice: price,
             recipe: withRecipe ? List.of(_lines) : null,
@@ -242,9 +243,9 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
             decoration: const InputDecoration(labelText: 'Nama menu'),
           ),
           const SizedBox(height: 12),
-          TextField(
+          CategoryField(
             controller: _cat,
-            decoration: const InputDecoration(labelText: 'Kategori'),
+            categories: ref.watch(menuCategoriesProvider),
           ),
           const SizedBox(height: 12),
           TextField(

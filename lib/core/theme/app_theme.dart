@@ -19,7 +19,7 @@ abstract final class AppTheme {
       secondary: AppColors.rose,
       onSecondary: Colors.white,
       secondaryContainer: AppColors.roseSoft,
-      onSecondaryContainer: const Color(0xFF881337),
+      onSecondaryContainer: const Color(0xFF5C0816),
       surface: AppColors.surface,
       onSurface: AppColors.ink,
       onSurfaceVariant: AppColors.muted,

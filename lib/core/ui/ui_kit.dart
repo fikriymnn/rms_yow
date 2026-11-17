@@ -199,7 +199,7 @@ class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 36, color: const Color(0xFFC4B5FD)),
+          Icon(icon, size: 36, color: const Color(0xFFE8B4BC)),
           const SizedBox(height: 8),
           Text(
             title,

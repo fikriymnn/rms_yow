@@ -8,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
 import '../client/client_providers.dart';
+import 'category_field.dart';
 import 'menu_availability.dart';
 import 'menu_item.dart';
 import 'menu_providers.dart';
@@ -239,6 +240,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final cat = TextEditingController(text: existing?.category);
     final price = TextEditingController(text: existing?.price.toString());
     final recipesOn = ref.read(moduleEnabledProvider('recipes'));
+    final categories = ref.read(menuCategoriesProvider);
     var useRecipe = !(existing?.noRecipe ?? false);
     await showDialog<void>(
       context: context,
@@ -255,10 +257,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                 decoration: const InputDecoration(labelText: 'Nama'),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: cat,
-                decoration: const InputDecoration(labelText: 'Kategori'),
-              ),
+              CategoryField(controller: cat, categories: categories),
               const SizedBox(height: 12),
               TextField(
                 controller: price,
@@ -308,7 +307,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                           ))
                       .copyWith(
                         name: name.text.trim(),
-                        category: cat.text.trim(),
+                        category: normalizeCategory(cat.text, categories),
                         price: int.tryParse(price.text) ?? 0,
                         noRecipe: recipesOn ? !useRecipe : null,
                       );

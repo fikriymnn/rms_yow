@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/sync/local_first_repository.dart';
+import 'category_field.dart';
 import 'menu_availability.dart';
 import 'menu_item.dart';
 
@@ -43,6 +44,13 @@ final menuMasterProvider = StreamProvider<List<MenuItem>>(
 
 final availabilityStreamProvider = StreamProvider<List<MenuAvailability>>(
   (ref) => ref.watch(availabilityRepositoryProvider).watchAll(),
+);
+
+/// Kategori yang sudah dipakai menu (untuk pilihan saat menambah/mengubah menu).
+final menuCategoriesProvider = Provider<List<String>>(
+  (ref) => categoriesOf(
+    (ref.watch(menuMasterProvider).value ?? <MenuItem>[]).map((m) => m.category),
+  ),
 );
 
 /// menuItemId -> tersedia di outlet ini (default: tersedia)

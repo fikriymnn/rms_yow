@@ -96,7 +96,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                 height: 46,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.primary, Color(0xFFA78BFA)],
+                    colors: [AppColors.primary, Color(0xFFA8323F)],
                   ),
                   borderRadius: BorderRadius.circular(14),
                 ),

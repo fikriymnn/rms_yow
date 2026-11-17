@@ -529,7 +529,7 @@ class _Brand extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             gradient: const LinearGradient(
-              colors: [AppColors.primary, Color(0xFFA78BFA)],
+              colors: [AppColors.primary, Color(0xFFA8323F)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

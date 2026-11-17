@@ -417,7 +417,7 @@ class _WeekBars extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: i == 6
                           ? AppColors.primary
-                          : const Color(0xFFC4B5FD),
+                          : const Color(0xFFE8B4BC),
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(8),
                       ),

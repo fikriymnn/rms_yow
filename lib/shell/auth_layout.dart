@@ -112,26 +112,38 @@ class _Logo extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: const LinearGradient(
-            colors: [AppColors.primary, Color(0xFFA78BFA)],
-          ),
-        ),
-        child: const Icon(Icons.restaurant, color: Colors.white),
+      // logo RMS (K Kovalen + sendok-garpu), versi untuk latar gelap
+      Image.asset(
+        'assets/brand/rms-symbol-dark.png',
+        width: 52,
+        height: 52,
+        filterQuality: FilterQuality.medium,
       ),
       const SizedBox(width: 12),
-      Text(
-        'RMS',
-        style: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 26,
-          fontWeight: FontWeight.w800,
-          letterSpacing: .5,
-        ),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'RMS',
+            style: GoogleFonts.montserrat(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2,
+              height: 1,
+            ),
+          ),
+          Text(
+            'BY KOVALEN TEKNOLOGI',
+            style: GoogleFonts.montserrat(
+              color: const Color(0xFFE8B4BC),
+              fontSize: 8.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.6,
+            ),
+          ),
+        ],
       ),
     ],
   );
@@ -194,7 +206,7 @@ class _BrandPanel extends StatelessWidget {
               color: Colors.white.withValues(alpha: .1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: const Color(0xFFC4B5FD), size: 20),
+            child: Icon(icon, color: const Color(0xFFE8B4BC), size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
