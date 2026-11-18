@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:rms_yow/features/attendance/attendance_admin_page.dart';
 import 'package:rms_yow/features/attendance/consent.dart';
 
 import '../../core/api/api_client.dart';
@@ -10,9 +9,6 @@ import '../../core/form_dialog.dart';
 import '../../core/sync/sync_controller.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
-import '../admin/outlets_admin_page.dart';
-import '../admin/users_admin_page.dart';
-import '../roles/roles_admin_page.dart';
 import 'auth_providers.dart';
 import 'outlet_picker_page.dart';
 import 'package:rms_yow/features/attendance/pin_dialogs.dart';
@@ -21,7 +17,6 @@ import 'package:rms_yow/features/update/update_ui.dart';
 import '../client/client_pages.dart';
 import '../client/client_providers.dart';
 import '../payroll/my_payslips_page.dart';
-import '../payroll/payroll_page.dart';
 import 'package:rms_yow/core/ui/motion.dart';
 import 'package:rms_yow/shell/app_bar.dart';
 
@@ -405,72 +400,6 @@ class AccountPage extends ConsumerWidget {
       ),
     );
 
-    final adminCard =
-        (isOwner ||
-            u.canAny(const ['users.read', 'attendance.read_all', 'payroll.manage']))
-        ? SectionCard(
-            title: 'Pengelolaan',
-            child: Column(
-              children: [
-                if (isOwner)
-                  _actionTile(
-                    Icons.store_mall_directory_outlined,
-                    'Kelola outlet',
-                    'Alamat, lokasi, dan radius absensi',
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const OutletsAdminPage(),
-                      ),
-                    ),
-                  ),
-                if (isOwner)
-                  _actionTile(
-                    Icons.admin_panel_settings_outlined,
-                    'Master role',
-                    'Buat role dan atur hak akses tiap fitur',
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RolesAdminPage()),
-                    ),
-                  ),
-                if (u.can('users.read'))
-                  _actionTile(
-                    Icons.people_outline,
-                    'Kelola pengguna',
-                    'Tambah, ubah, dan nonaktifkan akun',
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const UsersAdminPage()),
-                    ),
-                  ),
-                if (u.can('payroll.manage'))
-                  _actionTile(
-                    Icons.payments_outlined,
-                    'Penggajian',
-                    'Atur gaji karyawan dan terbitkan slip gaji',
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PayrollPage()),
-                    ),
-                  ),
-                if (u.can('attendance.read_all'))
-                  _actionTile(
-                    Icons.fact_check_outlined,
-                    'Tinjauan absensi',
-                    'Foto, jarak, koreksi, dan rekap jam',
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AttendanceAdminPage(),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          )
-        : null;
-
     final client = ref.watch(clientProvider).value;
     final securityCard = SectionCard(
       title: 'Keamanan & privasi',
@@ -568,7 +497,7 @@ class AccountPage extends ConsumerWidget {
     );
 
     final left = [outletCard, syncCard];
-    final right = [if (adminCard != null) adminCard, securityCard];
+    final right = [securityCard];
 
     return Scaffold(
       appBar: RmsAppBar(title: const Text('Akun')),

@@ -30,6 +30,7 @@ import 'features/menu/menu_page.dart';
 import 'features/tables/tables_page.dart';
 import 'features/kds/kds_page.dart';
 import 'features/auth/account_page.dart';
+import 'features/admin/master_data_page.dart';
 import 'features/auth/outlet_picker_page.dart';
 import 'features/proposals/proposal_providers.dart';
 import 'features/proposals/proposals_page.dart';
@@ -342,6 +343,15 @@ class _HomeShellState extends ConsumerState<HomeShell>
         group: 'Manajemen',
         rank: 18,
       ),
+      if (canOpenMasterData(user))
+        const _Dest(
+          'Data Master',
+          Icons.dataset_outlined,
+          MasterDataPage(),
+          null,
+          group: 'Manajemen',
+          rank: 19,
+        ),
       if (!kIsWeb)
         _Dest(
           'Absensi',
