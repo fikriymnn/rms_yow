@@ -1,23 +1,26 @@
 /// Satu aksi pada sebuah fitur, mis. fitur "menu" punya aksi create/read/...
 class PermAction {
-  const PermAction(this.key, this.label, this.permission);
+  const PermAction(this.key, this.label, this.permission, [this.help = '']);
   final String key;
   final String label;
   final String permission; // "menu.create"
+  final String help; // petunjuk singkat kegunaan izin ini
 
   factory PermAction.fromJson(Map<String, dynamic> m) => PermAction(
     m['key'] as String,
     m['label'] as String,
     m['permission'] as String,
+    m['help'] as String? ?? '',
   );
 }
 
 class PermFeature {
-  const PermFeature(this.key, this.label, this.group, this.actions);
+  const PermFeature(this.key, this.label, this.group, this.actions, [this.description = '']);
   final String key;
   final String label;
   final String group;
   final List<PermAction> actions;
+  final String description; // penjelasan fitur
 
   factory PermFeature.fromJson(Map<String, dynamic> m) => PermFeature(
     m['key'] as String,
@@ -27,6 +30,7 @@ class PermFeature {
       for (final a in m['actions'] as List<dynamic>)
         PermAction.fromJson(a as Map<String, dynamic>),
     ],
+    m['description'] as String? ?? '',
   );
 }
 

@@ -400,11 +400,13 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
     }
   }
 
-  String? _chainNote(AppUser? u) {
+  String? _chainNote(AppUser? u, Map<String, String>? labels) {
     if (u == null || u.can('purchase_orders.direct_order')) return null;
+    final l1 = labels?['l1'] ?? 'penyetuju tingkat 1';
+    final last = labels?['final'] ?? 'owner';
     return u.can('approvals.approve_l1')
-        ? 'Pengajuan diteruskan langsung ke owner.'
-        : 'Pengajuan diteruskan ke manager atau head chef, lalu ke owner.';
+        ? 'Pengajuan diteruskan langsung ke $last.'
+        : 'Pengajuan diteruskan ke $l1, lalu ke $last.';
   }
 
   Widget _lineTile(int i) {
@@ -468,7 +470,10 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
     required int total,
     required bool card,
   }) {
-    final chain = _chainNote(ref.watch(appUserProvider).value);
+    final chain = _chainNote(
+      ref.watch(appUserProvider).value,
+      ref.watch(approverLabelsProvider).value,
+    );
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,

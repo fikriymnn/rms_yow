@@ -13,7 +13,7 @@ extension ApprovalUi on ApprovalRequest {
 
   String get shortStatus => switch (status) {
     'pending_l1' => 'Menunggu tingkat 1',
-    'pending_owner' => 'Menunggu owner',
+    'pending_owner' => statusLabel,
     _ => statusLabel,
   };
 

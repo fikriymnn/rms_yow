@@ -261,7 +261,7 @@ class ApprovalDetailView extends ConsumerWidget {
     } else if (s == 'pending_l1') {
       steps.add(
         _Step(
-          'Menunggu manager / head chef',
+          a.statusLabel,
           null,
           '',
           Tone.warning,

@@ -207,3 +207,10 @@ Future<ApprovalRequest> submitCharge(
   _refresh(ref);
   return ApprovalRequest.fromJson(m);
 }
+
+
+/// Nama role penyetuju untuk outlet pengguna: {"l1": "Manager / Head Chef", "final": "Owner"}.
+final approverLabelsProvider = FutureProvider.autoDispose<Map<String, String>>((ref) async {
+  final m = await ref.read(apiClientProvider).get('/approvals/approvers') as Map;
+  return {for (final e in m.entries) '${e.key}': '${e.value}'};
+});

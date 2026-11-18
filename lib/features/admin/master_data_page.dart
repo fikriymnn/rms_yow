@@ -7,6 +7,7 @@ import '../../core/ui/motion.dart';
 import '../../shell/app_bar.dart';
 import '../attendance/attendance_admin_page.dart';
 import '../auth/auth_providers.dart';
+import '../help/help_page.dart';
 import '../payroll/payroll_page.dart';
 import '../roles/roles_admin_page.dart';
 import 'outlets_admin_page.dart';
@@ -84,7 +85,19 @@ class MasterDataPage extends ConsumerWidget {
 
     var k = 0;
     return Scaffold(
-      appBar: const RmsAppBar(title: Text('Data Master')),
+      appBar: RmsAppBar(
+        title: const Text('Data Master'),
+        actions: [
+          IconButton(
+            tooltip: 'Panduan',
+            icon: const Icon(Icons.menu_book_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const HelpPage()),
+            ),
+          ),
+        ],
+      ),
       body: LayoutBuilder(
         builder: (context, c) {
           final cols = c.maxWidth >= 900 ? 3 : (c.maxWidth >= 560 ? 2 : 1);

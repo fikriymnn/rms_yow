@@ -16,6 +16,7 @@ import 'package:rms_yow/features/attendance/pin_dialogs.dart';
 import 'package:rms_yow/features/update/update_service.dart';
 import 'package:rms_yow/features/update/update_ui.dart';
 import '../client/client_pages.dart';
+import '../help/help_page.dart';
 import '../client/client_providers.dart';
 import '../payroll/my_payslips_page.dart';
 import 'package:rms_yow/core/ui/motion.dart';
@@ -484,6 +485,15 @@ class AccountPage extends ConsumerWidget {
                 }
               },
             ),
+          _actionTile(
+            Icons.menu_book_outlined,
+            'Panduan penggunaan',
+            'Cara memakai fitur & mengatur hak akses',
+            () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const HelpPage()),
+            ),
+          ),
           _actionTile(
             Icons.system_update_outlined,
             'Cek pembaruan',

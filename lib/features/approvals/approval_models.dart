@@ -17,6 +17,7 @@ class ApprovalRequest {
     this.canApprove = false,
     this.canReject = false,
     this.canWithdraw = false,
+    this.waitingFor = '',
   });
 
   final String id;
@@ -37,11 +38,14 @@ class ApprovalRequest {
   final bool canReject;
   final bool canWithdraw;
 
+  /// Nama role yang ditunggu, mengikuti nama role klien (mis. "Manager / Head Chef").
+  final String waitingFor;
+
   bool get isPending => status == 'pending_l1' || status == 'pending_owner';
 
   String get statusLabel => switch (status) {
-    'pending_l1' => 'Menunggu manager / head chef',
-    'pending_owner' => 'Menunggu owner',
+    'pending_l1' => 'Menunggu ${waitingFor.isEmpty ? 'persetujuan tingkat 1' : waitingFor}',
+    'pending_owner' => 'Menunggu ${waitingFor.isEmpty ? 'owner' : waitingFor}',
     'approved' => 'Disetujui',
     'rejected' => 'Ditolak',
     'withdrawn' => 'Ditarik',
@@ -66,6 +70,7 @@ class ApprovalRequest {
     canApprove: m['can_approve'] == true,
     canReject: m['can_reject'] == true,
     canWithdraw: m['can_withdraw'] == true,
+    waitingFor: m['waiting_for'] as String? ?? '',
   );
 }
 

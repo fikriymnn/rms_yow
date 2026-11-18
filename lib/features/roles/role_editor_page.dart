@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
+import '../help/help_page.dart';
 import 'role_models.dart';
 import 'role_providers.dart';
 import 'package:rms_yow/core/ui/motion.dart';
@@ -345,9 +346,45 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Pilih aksi yang boleh dilakukan role ini pada tiap fitur. '
-                'Perubahan berlaku otomatis di perangkat pengguna dalam sekitar 1 menit.',
+                'Buka tiap fitur lalu centang aksi yang boleh dilakukan role ini. Setiap aksi ada '
+                'penjelasan singkatnya. Perubahan berlaku di perangkat pengguna dalam sekitar 1 menit.',
                 style: TextStyle(color: AppColors.muted, fontSize: 12.5),
+              ),
+              const SizedBox(height: 10),
+              Material(
+                color: AppColors.sageSoft,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const HelpPage(initialTopic: 'roles'),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.menu_book_outlined, color: AppColors.sageInk),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Bingung memilih? Baca panduan hak akses, termasuk beda '
+                            '"Menyetujui tingkat 1" dan "Menyetujui akhir".',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              height: 1.4,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.sageInk,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.sageInk),
+                      ],
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               catalog.when(
@@ -493,28 +530,35 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
 
   Widget _featureCard(PermFeature f) {
     final all = f.actions.every((a) => _perms.contains(a.permission));
+    final on = f.actions.where((a) => _perms.contains(a.permission)).length;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: on > 0 ? AppColors.ink : AppColors.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+          childrenPadding: const EdgeInsets.fromLTRB(4, 0, 8, 10),
+          initiallyExpanded: f.key == 'approvals',
+          title: Text(
+            f.label,
+            style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              f.description.isEmpty ? '$on dari ${f.actions.length} aksi aktif' : f.description,
+              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, height: 1.4, color: AppColors.muted),
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Text(
-                  f.label,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              StatusPill('$on/${f.actions.length}', tone: on > 0 ? Tone.info : Tone.neutral),
               if (!_readOnly)
                 TextButton(
                   onPressed: () => _toggleAll(f, !all),
@@ -522,19 +566,57 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
                 ),
             ],
           ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              for (final a in f.actions)
-                FilterChip(
-                  label: Text(a.label),
-                  selected: _perms.contains(a.permission),
-                  onSelected: _readOnly ? null : (v) => _toggle(f, a, v),
+          children: [
+            for (final a in f.actions) _actionRow(f, a),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Satu izin: kotak centang + nama + petunjuk kegunaannya.
+  Widget _actionRow(PermFeature f, PermAction a) {
+    final checked = _perms.contains(a.permission);
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: _readOnly ? null : () => _toggle(f, a, !checked),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 6, 8, 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: checked,
+              onChanged: _readOnly ? null : (v) => _toggle(f, a, v ?? false),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      a.label,
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                    if (a.help.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        a.help,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.5,
+                          height: 1.45,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-            ],
-          ),
-        ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
