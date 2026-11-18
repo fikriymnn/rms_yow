@@ -10,6 +10,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
 import 'payroll_models.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 /// Aturan potongan keterlambatan bertingkat per outlet (owner / manager).
 ///
@@ -168,7 +170,7 @@ class _LateRulesPageState extends ConsumerState<LateRulesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Potongan terlambat')),
+      appBar: RmsAppBar(title: const Text('Potongan terlambat')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
@@ -190,13 +192,13 @@ class _LateRulesPageState extends ConsumerState<LateRulesPage> {
             'Atur potongan berdasarkan lama keterlambatan dari jadwal masuk outlet. '
             'Satu kali terlambat dikenai tingkat tertinggi yang terlewati. '
             'Berlaku untuk karyawan yang "Potongan keterlambatan"-nya aktif.',
-            style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.muted, height: 1.4),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.muted, height: 1.4),
           ),
           const SizedBox(height: 16),
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(32),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: AppLoader()),
             )
           else ...[
             for (var i = 0; i < _rows.length; i++)
@@ -254,11 +256,11 @@ class _LateRulesPageState extends ConsumerState<LateRulesPage> {
             const SizedBox(height: 16),
             SectionCard(
               title: 'Ringkasan',
-              child: Text(_preview(), style: GoogleFonts.inter(fontSize: 13, height: 1.5)),
+              child: Text(_preview(), style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.5)),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!, style: GoogleFonts.inter(color: AppColors.danger, fontWeight: FontWeight.w600)),
+              Text(_error!, style: GoogleFonts.plusJakartaSans(color: AppColors.danger, fontWeight: FontWeight.w600)),
             ],
             const SizedBox(height: 16),
             FilledButton(

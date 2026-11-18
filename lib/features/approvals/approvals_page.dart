@@ -11,6 +11,8 @@ import 'approval_detail_page.dart';
 import 'approval_models.dart';
 import 'approval_providers.dart';
 import 'approval_ui.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class ApprovalsPage extends ConsumerStatefulWidget {
   const ApprovalsPage({super.key});
@@ -56,7 +58,7 @@ class _ApprovalsPageState extends ConsumerState<ApprovalsPage> {
         final list = DefaultTabController(
           length: tabs.length,
           child: Scaffold(
-            appBar: AppBar(
+            appBar: RmsAppBar(
               title: const Text('Persetujuan'),
               bottom: TabBar(tabs: [for (final t in tabs) Tab(text: t.$1)]),
             ),
@@ -79,7 +81,7 @@ class _ApprovalsPageState extends ConsumerState<ApprovalsPage> {
             const VerticalDivider(width: 1),
             Expanded(
               child: Scaffold(
-                appBar: AppBar(title: const Text('Detail pengajuan')),
+                appBar: RmsAppBar(title: const Text('Detail pengajuan')),
                 body: _selected == null
                     ? const EmptyState(
                         icon: Icons.touch_app_outlined,
@@ -120,7 +122,7 @@ class _ApprovalList extends ConsumerWidget {
         await ref.read(approvalsListProvider(scope).future);
       },
       child: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SkeletonList(),
         error: (e, _) => ListView(
           children: [
             Padding(
@@ -208,7 +210,7 @@ class _ApprovalTile extends StatelessWidget {
                       a.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -216,7 +218,7 @@ class _ApprovalTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${a.requestedByName} • ${a.outletName} • ${fmt.format(DateTime.fromMillisecondsSinceEpoch(a.createdAt))}',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         color: AppColors.muted,
                       ),

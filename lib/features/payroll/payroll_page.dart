@@ -12,6 +12,8 @@ import '../auth/auth_providers.dart';
 import 'late_rules_page.dart';
 import 'payroll_models.dart';
 import 'payslip_view.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 /// Angka rupiah dari isian (abaikan titik, spasi, "Rp").
 int parseMoney(String s) => int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
@@ -69,7 +71,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
     final cur = await api.get('/payroll/settings') as Map;
     if (!mounted) return;
     var day = (cur['period_start_day'] as num?)?.toInt() ?? 1;
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
@@ -122,7 +124,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
     if (!mounted) return;
     var (start, end) = suggestedPeriod(startDay, DateTime.now());
     String? outletId = _outletId ?? (_outlets.length == 1 ? _outlets.first.id : null);
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
@@ -178,7 +180,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
                   Text(
                     'Slip dibuat untuk karyawan yang gajinya sudah diatur, dihitung dari absensi periode ini. '
                     'Masih bisa diubah sebelum diterbitkan.',
-                    style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.muted),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.muted),
                   ),
                 ],
               ),
@@ -211,7 +213,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
   }
 
   Future<void> _editProfile(PayEmployee e) async {
-    final saved = await showDialog<bool>(
+    final saved = await showAppDialog<bool>(
       context: context,
       builder: (_) => _ProfileDialog(employee: e),
     );
@@ -254,9 +256,9 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(periodText(r.periodStart, r.periodEnd),
-                            style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700)),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
                         Text('${r.outletName} • ${r.count} karyawan • ${rupiah.format(r.totalNet)}',
-                            style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.muted)),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.muted)),
                       ],
                     ),
                   ),
@@ -287,7 +289,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
         if (i == 0) {
           return Text(
             'Nominal gaji hanya terlihat oleh pengelola. Karyawan hanya melihat slip gaji yang sudah diterbitkan.',
-            style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.muted),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.muted),
           );
         }
         final e = emps[i - 1];
@@ -298,7 +300,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
             borderRadius: BorderRadius.circular(14),
             side: const BorderSide(color: AppColors.border),
           ),
-          title: Text(e.name, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+          title: Text(e.name, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
           subtitle: Text(p == null ? e.roleLabel : '${e.roleLabel} • ${summary(p)}'),
           trailing: p == null
               ? const StatusPill('Belum diatur', tone: Tone.warning)
@@ -315,7 +317,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: RmsAppBar(
           title: const Text('Penggajian'),
           actions: [
             IconButton(
@@ -364,7 +366,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
                     return EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', message: errorText(snap.error!));
                   }
                   final d = snap.data;
-                  if (d == null) return const Center(child: CircularProgressIndicator());
+                  if (d == null) return const Center(child: AppLoader());
                   return TabBarView(children: [_runsTab(d.$1), _employeesTab(d.$2)]);
                 },
               ),
@@ -518,7 +520,7 @@ class _ProfileDialogState extends ConsumerState<_ProfileDialog> {
               if (_pph) _money(_pphAmt, 'Potongan PPh 21 per periode'),
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(_error!, style: GoogleFonts.inter(color: AppColors.danger, fontWeight: FontWeight.w600)),
+                Text(_error!, style: GoogleFonts.plusJakartaSans(color: AppColors.danger, fontWeight: FontWeight.w600)),
               ],
             ],
           ),
@@ -564,7 +566,7 @@ class _PayRunPageState extends ConsumerState<PayRunPage> {
   }
 
   Future<bool> _confirm(String title, String body, String ok) async =>
-      await showDialog<bool>(
+      await showAppDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(title),
@@ -585,7 +587,7 @@ class _PayRunPageState extends ConsumerState<PayRunPage> {
       builder: (context, snap) {
         final r = snap.data;
         return Scaffold(
-          appBar: AppBar(
+          appBar: RmsAppBar(
             title: Text(r == null ? 'Periode gaji' : periodText(r.periodStart, r.periodEnd)),
             actions: [
               if (r != null && r.isDraft)
@@ -646,7 +648,7 @@ class _PayRunPageState extends ConsumerState<PayRunPage> {
           body: snap.hasError
               ? EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', message: errorText(snap.error!))
               : r == null
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: AppLoader())
               : ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
@@ -682,10 +684,10 @@ class _PayRunPageState extends ConsumerState<PayRunPage> {
                             borderRadius: BorderRadius.circular(14),
                             side: const BorderSide(color: AppColors.border),
                           ),
-                          title: Text(s.userName, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                          title: Text(s.userName, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
                           subtitle: Text('${s.days} hari hadir • ${kSchemeLabels[s.scheme] ?? s.scheme}'),
                           trailing: Text(rupiah.format(s.net),
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: AppColors.primary)),
+                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: AppColors.primary)),
                           onTap: () async {
                             await Navigator.push(
                               context,
@@ -740,7 +742,7 @@ class _PayslipEditPageState extends ConsumerState<PayslipEditPage> {
     final label = TextEditingController(text: line?.label);
     final amount = TextEditingController(text: _plain(line?.amount ?? 0));
     const presets = ['Service charge', 'Bonus', 'Insentif', 'Kasbon', 'Potongan lain'];
-    final res = await showDialog<String>(
+    final res = await showAppDialog<String>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
@@ -822,7 +824,7 @@ class _PayslipEditPageState extends ConsumerState<PayslipEditPage> {
 
   Future<void> _editNote() async {
     final c = TextEditingController(text: _slip.note);
-    final v = await showDialog<String>(
+    final v = await showAppDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Catatan di slip'),
@@ -841,7 +843,7 @@ class _PayslipEditPageState extends ConsumerState<PayslipEditPage> {
     final draft = widget.run.isDraft;
     final period = periodText(widget.run.periodStart, widget.run.periodEnd);
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: const Text('Slip gaji'),
         actions: [
           IconButton(
@@ -858,7 +860,7 @@ class _PayslipEditPageState extends ConsumerState<PayslipEditPage> {
             Text(
               'Komponen dari pengaturan gaji & absensi dihitung otomatis. Tambahkan komponen lain '
               '(service charge, bonus, kasbon, dll.) di bawah.',
-              style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.muted),
+              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.muted),
             ),
             const SizedBox(height: 10),
             Wrap(

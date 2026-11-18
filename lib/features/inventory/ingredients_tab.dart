@@ -15,6 +15,7 @@ import '../approvals/approvals_page.dart';
 import '../approvals/pending_requests_card.dart';
 import 'inventory_models.dart';
 import 'inventory_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 class IngredientsTab extends ConsumerStatefulWidget {
   const IngredientsTab({super.key});
@@ -80,7 +81,7 @@ class _IngredientsTabState extends ConsumerState<IngredientsTab> {
                     i.name.trim().isEmpty
                         ? '?'
                         : i.name.trim()[0].toUpperCase(),
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
@@ -96,7 +97,7 @@ class _IngredientsTabState extends ConsumerState<IngredientsTab> {
                         i.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -106,7 +107,7 @@ class _IngredientsTabState extends ConsumerState<IngredientsTab> {
                           sub,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: AppColors.muted,
                           ),
@@ -175,7 +176,7 @@ class _IngredientsTabState extends ConsumerState<IngredientsTab> {
                       ? 'Ketuk untuk mengedit • tekan lama untuk menghapus'
                       : 'Ketuk bahan untuk mengajukan perubahan (perlu persetujuan)',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: AppColors.muted,
                   ),
@@ -300,7 +301,7 @@ class _IngredientsTabState extends ConsumerState<IngredientsTab> {
       return;
     }
     if (!context.mounted) return;
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Hapus ${i.name}?'),

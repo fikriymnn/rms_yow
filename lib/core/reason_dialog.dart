@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 /// Dialog alasan wajib (min. 3 karakter). Return null jika dibatalkan.
 Future<String?> askReason(BuildContext context, String title) {
   final c = TextEditingController();
-  return showDialog<String>(
+  return showAppDialog<String>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) => AlertDialog(

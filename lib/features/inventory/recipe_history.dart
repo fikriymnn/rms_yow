@@ -112,7 +112,7 @@ Future<void> showRecipeHistory(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               'Riwayat resep $menuName',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
               ),
@@ -137,7 +137,7 @@ Future<void> showRecipeHistory(
                       Expanded(
                         child: Text(
                           r.byName,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
@@ -145,7 +145,7 @@ Future<void> showRecipeHistory(
                       ),
                       Text(
                         fmt.format(DateTime.fromMillisecondsSinceEpoch(r.at)),
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           color: AppColors.muted,
                         ),
@@ -170,7 +170,7 @@ Future<void> showRecipeHistory(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Text(
                         line,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
                           color: _changeColor(line),

@@ -66,14 +66,14 @@ class PendingRequestsCard extends ConsumerWidget {
                               a.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
                               '${a.requestedByName} • ${a.outletName}',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 color: AppColors.muted,
                               ),

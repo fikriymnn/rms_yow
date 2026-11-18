@@ -9,6 +9,8 @@ import 'package:rms_yow/core/ui/ui_kit.dart';
 import '../../core/api/api_exception.dart';
 import 'notification_providers.dart';
 import 'notification_router.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -56,7 +58,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final async = ref.watch(notificationsListProvider);
     final fmt = DateFormat('d MMM HH:mm');
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifikasi')),
+      appBar: RmsAppBar(title: const Text('Notifikasi')),
       body: Column(
         children: [
           const _PermissionBanner(),
@@ -67,7 +69,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                 await ref.read(notificationsListProvider.future);
               },
               child: async.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const SkeletonList(),
                 error: (e, _) => ListView(
                   children: [
                     Padding(
@@ -136,7 +138,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                                             children: [
                                               Text(
                                                 n.title,
-                                                style: GoogleFonts.inter(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
                                                 ),
@@ -144,7 +146,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                                               const SizedBox(height: 2),
                                               Text(
                                                 n.body,
-                                                style: GoogleFonts.inter(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 13,
                                                   color: AppColors.muted,
                                                 ),
@@ -156,10 +158,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                                                     n.createdAt,
                                                   ),
                                                 ),
-                                                style: GoogleFonts.inter(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11.5,
                                                   color: const Color(
-                                                    0xFF9CA3AF,
+                                                    0xFF8C857E,
                                                   ),
                                                 ),
                                               ),

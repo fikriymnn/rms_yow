@@ -24,6 +24,8 @@ import '../tables/dining_table.dart';
 import '../tables/table_hold.dart';
 import '../charges/charge_providers.dart';
 import '../orders/queue_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class PosPage extends ConsumerStatefulWidget {
   const PosPage({
@@ -117,7 +119,7 @@ class _PosPageState extends ConsumerState<PosPage>
     final sub = _order.subtotal;
     final c = TextEditingController();
     var pct = false;
-    final v = await showDialog<int>(
+    final v = await showAppDialog<int>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
@@ -241,7 +243,7 @@ class _PosPageState extends ConsumerState<PosPage>
 
   Future<void> _note(int i) async {
     final c = TextEditingController(text: _order.items[i].note);
-    final v = await showDialog<String>(
+    final v = await showAppDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Catatan'),
@@ -401,7 +403,7 @@ class _PosPageState extends ConsumerState<PosPage>
     }
     final foodcourt = widget.foodcourt;
     final r =
-        await showDialog<
+        await showAppDialog<
           ({PayMethod method, int paid, bool hold, String? queueNo})
         >(
           context: context,
@@ -504,11 +506,11 @@ class _PosPageState extends ConsumerState<PosPage>
       children: [
         Text(
           title,
-          style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700),
+          style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         Text(
           _order.number,
-          style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.muted),
+          style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: AppColors.muted),
         ),
       ],
     );
@@ -516,7 +518,7 @@ class _PosPageState extends ConsumerState<PosPage>
     if (wide) {
       final cartW = w >= 1100 ? 420.0 : 360.0;
       return Scaffold(
-        appBar: AppBar(title: titleWidget, actions: _actions()),
+        appBar: RmsAppBar(title: titleWidget, actions: _actions()),
         body: Row(
           children: [
             Expanded(child: _menuPane(menu, extent: w >= 1100 ? 210 : 190)),
@@ -533,7 +535,7 @@ class _PosPageState extends ConsumerState<PosPage>
       );
     }
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: titleWidget,
         actions: _actions(),
         bottom: TabBar(
@@ -590,7 +592,7 @@ class _PosPageState extends ConsumerState<PosPage>
                     ),
                     child: Text(
                       '$qty item',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -600,7 +602,7 @@ class _PosPageState extends ConsumerState<PosPage>
                   const SizedBox(width: 12),
                   Text(
                     'Lihat pesanan',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -609,7 +611,7 @@ class _PosPageState extends ConsumerState<PosPage>
                   const Spacer(),
                   Text(
                     rupiah.format(o.total),
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
@@ -628,9 +630,9 @@ class _PosPageState extends ConsumerState<PosPage>
   static const _palette = <({Color bg, Color fg})>[
     (bg: AppColors.primarySoft, fg: AppColors.primary),
     (bg: AppColors.roseSoft, fg: AppColors.rose),
-    (bg: Color(0xFFFEF3C7), fg: Color(0xFFB45309)),
-    (bg: Color(0xFFD1FAE5), fg: Color(0xFF047857)),
-    (bg: Color(0xFFDBEAFE), fg: Color(0xFF1D4ED8)),
+    (bg: Color(0xFFF7EBD6), fg: Color(0xFF8A5A12)),
+    (bg: Color(0xFFE7EDE3), fg: Color(0xFF4A5C44)),
+    (bg: Color(0xFFF1EDE7), fg: Color(0xFF1D4ED8)),
   ];
 
   Widget _menuCard(MenuItem m) {
@@ -673,7 +675,7 @@ class _PosPageState extends ConsumerState<PosPage>
                     ),
                     child: Text(
                       initial,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                         color: tone.fg,
@@ -693,7 +695,7 @@ class _PosPageState extends ConsumerState<PosPage>
                       ),
                       child: Text(
                         '×$inCart',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -708,7 +710,7 @@ class _PosPageState extends ConsumerState<PosPage>
                   m.name,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     height: 1.25,
@@ -717,7 +719,7 @@ class _PosPageState extends ConsumerState<PosPage>
               ),
               Text(
                 rupiah.format(m.price),
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: AppColors.primary,
@@ -836,14 +838,14 @@ class _PosPageState extends ConsumerState<PosPage>
                     children: [
                       Text(
                         it.name,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         '${rupiah.format(it.price)} × ${it.qty}',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           color: AppColors.muted,
                         ),
@@ -853,7 +855,7 @@ class _PosPageState extends ConsumerState<PosPage>
                 ),
                 Text(
                   rupiah.format(it.total),
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -865,7 +867,7 @@ class _PosPageState extends ConsumerState<PosPage>
                 margin: const EdgeInsets.only(top: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: const Color(0xFFF7EBD6),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -874,16 +876,16 @@ class _PosPageState extends ConsumerState<PosPage>
                     const Icon(
                       Icons.sticky_note_2_outlined,
                       size: 14,
-                      color: Color(0xFFB45309),
+                      color: Color(0xFF8A5A12),
                     ),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         it.note,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           fontStyle: FontStyle.italic,
-                          color: const Color(0xFF92400E),
+                          color: const Color(0xFF8A5A12),
                         ),
                       ),
                     ),
@@ -983,9 +985,9 @@ class _PosPageState extends ConsumerState<PosPage>
                     child: Text(
                       'Belum ada shift aktif. Pesanan tetap bisa disimpan; '
                       'buka shift di tab Kas sebelum membayar.',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: const Color(0xFF9F1239),
+                        color: const Color(0xFF7D0B1E),
                       ),
                     ),
                   ),
@@ -1038,12 +1040,12 @@ class _PosPageState extends ConsumerState<PosPage>
   }
 
   Widget _line(String label, int value, {bool bold = false}) {
-    final label0 = GoogleFonts.inter(
+    final label0 = GoogleFonts.plusJakartaSans(
       fontSize: bold ? 16 : 13.5,
       fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
       color: bold ? AppColors.ink : AppColors.muted,
     );
-    final value0 = GoogleFonts.inter(
+    final value0 = GoogleFonts.plusJakartaSans(
       fontSize: bold ? 20 : 13.5,
       fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
       color: bold ? AppColors.primary : AppColors.ink,
@@ -1087,7 +1089,7 @@ class _Stepper extends StatelessWidget {
           child: Text(
             '$qty',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800),
+            style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800),
           ),
         ),
         IconButton(
@@ -1178,7 +1180,7 @@ class _PayDialogState extends State<_PayDialog> {
                   children: [
                     Text(
                       'Total tagihan',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         color: AppColors.muted,
                       ),
@@ -1186,7 +1188,7 @@ class _PayDialogState extends State<_PayDialog> {
                     const SizedBox(height: 2),
                     Text(
                       rupiah.format(widget.total),
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
                         color: AppColors.primary,
@@ -1210,7 +1212,7 @@ class _PayDialogState extends State<_PayDialog> {
                         ? 'Nomor ini masih dipakai pesanan $dup yang belum selesai.'
                         : null,
                     helperMaxLines: 2,
-                    helperStyle: const TextStyle(color: Color(0xFFB45309)),
+                    helperStyle: const TextStyle(color: Color(0xFF8A5A12)),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1259,19 +1261,19 @@ class _PayDialogState extends State<_PayDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: ok ? const Color(0xFFD1FAE5) : AppColors.roseSoft,
+                    color: ok ? const Color(0xFFE7EDE3) : AppColors.roseSoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
                       Text(
                         ok ? 'Kembalian' : 'Uang kurang',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
                           color: ok
-                              ? const Color(0xFF047857)
-                              : const Color(0xFF9F1239),
+                              ? const Color(0xFF4A5C44)
+                              : const Color(0xFF7D0B1E),
                         ),
                       ),
                       const Spacer(),
@@ -1281,12 +1283,12 @@ class _PayDialogState extends State<_PayDialog> {
                               ? max(0, _paid - widget.total)
                               : widget.total - _paid,
                         ),
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: ok
-                              ? const Color(0xFF047857)
-                              : const Color(0xFF9F1239),
+                              ? const Color(0xFF4A5C44)
+                              : const Color(0xFF7D0B1E),
                         ),
                       ),
                     ],

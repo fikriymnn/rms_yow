@@ -22,6 +22,8 @@ import '../client/client_pages.dart';
 import '../client/client_providers.dart';
 import '../payroll/my_payslips_page.dart';
 import '../payroll/payroll_page.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 String _initials(String name) {
   final p = name
@@ -71,7 +73,7 @@ class AccountPage extends ConsumerWidget {
 
   Future<void> _logout(BuildContext context, WidgetRef ref, int pending) async {
     if (pending > 0) {
-      final ok = await showDialog<bool>(
+      final ok = await showAppDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Ada data belum terkirim'),
@@ -113,7 +115,7 @@ class AccountPage extends ConsumerWidget {
           child: Text(
             text,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -148,13 +150,13 @@ class AccountPage extends ConsumerWidget {
             children: [
               Text(
                 label,
-                style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
               ),
               Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -197,7 +199,7 @@ class AccountPage extends ConsumerWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -205,7 +207,7 @@ class AccountPage extends ConsumerWidget {
                   if (subtitle != null)
                     Text(
                       subtitle,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         color: AppColors.muted,
                       ),
@@ -256,7 +258,7 @@ class AccountPage extends ConsumerWidget {
             backgroundColor: AppColors.primary,
             child: Text(
               _initials(u.name),
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
@@ -272,7 +274,7 @@ class AccountPage extends ConsumerWidget {
                   u.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -280,7 +282,7 @@ class AccountPage extends ConsumerWidget {
                 ),
                 Text(
                   '@${u.username}',
-                  style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.white70),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -336,11 +338,11 @@ class AccountPage extends ConsumerWidget {
                   pending == 0
                       ? 'Semua data terkirim'
                       : '$pending data belum terkirim',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     color: pending == 0
                         ? AppColors.muted
-                        : const Color(0xFFB45309),
+                        : const Color(0xFF8A5A12),
                     fontWeight: pending == 0
                         ? FontWeight.w400
                         : FontWeight.w600,
@@ -373,10 +375,10 @@ class AccountPage extends ConsumerWidget {
                   leading: const Icon(Icons.block, color: AppColors.danger),
                   title: Text(
                     '${rejected.length} data ditolak server',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF9F1239),
+                      color: const Color(0xFF7D0B1E),
                     ),
                   ),
                   children: [
@@ -387,9 +389,9 @@ class AccountPage extends ConsumerWidget {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             r,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12.5,
-                              color: const Color(0xFF9F1239),
+                              color: const Color(0xFF7D0B1E),
                             ),
                           ),
                         ),
@@ -550,7 +552,7 @@ class AccountPage extends ConsumerWidget {
     final logout = OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.danger,
-        side: const BorderSide(color: Color(0xFFFCA5A5)),
+        side: const BorderSide(color: Color(0xFFE59AA6)),
         minimumSize: const Size(0, 50),
       ),
       onPressed: () => _logout(context, ref, pending),
@@ -569,7 +571,7 @@ class AccountPage extends ConsumerWidget {
     final right = [if (adminCard != null) adminCard, securityCard];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Akun')),
+      appBar: RmsAppBar(title: const Text('Akun')),
       body: LayoutBuilder(
         builder: (context, c) {
           final wide = c.maxWidth >= 900;

@@ -150,14 +150,14 @@ class _ExportTabState extends ConsumerState<ExportTab> {
                     children: [
                       Text(
                         title,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
                         sub,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           color: AppColors.muted,
                         ),
@@ -202,7 +202,7 @@ class _ExportTabState extends ConsumerState<ExportTab> {
                   const SizedBox(width: 6),
                   Text(
                     _period,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: AppColors.muted,
                     ),

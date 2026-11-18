@@ -13,6 +13,8 @@ import '../tables/dining_table.dart';
 import 'reservation.dart';
 import 'reservation_dialog.dart';
 import 'reservation_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class ReservationsPage extends ConsumerStatefulWidget {
   const ReservationsPage({super.key});
@@ -53,7 +55,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
   }
 
   Future<bool> _confirm(String title) async =>
-      await showDialog<bool>(
+      await showAppDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(title),
@@ -145,7 +147,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
             ListTile(
               title: Text(
                 r.name,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -247,13 +249,13 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                 width: 66,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: late ? const Color(0xFFFEE2E2) : AppColors.primarySoft,
+                  color: late ? const Color(0xFFFBE3E1) : AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   _timeFmt.format(DateTime.fromMillisecondsSinceEpoch(r.at)),
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                     color: late ? AppColors.danger : AppColors.primary,
@@ -269,7 +271,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                       '${r.name} • ${r.partySize} orang',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         decoration: struck ? TextDecoration.lineThrough : null,
@@ -281,7 +283,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                       detail,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         color: AppColors.muted,
                       ),
@@ -359,7 +361,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
           );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reservasi')),
+      appBar: RmsAppBar(title: const Text('Reservasi')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showReservationDialog(context, ref, day: _day),
         icon: const Icon(Icons.add),

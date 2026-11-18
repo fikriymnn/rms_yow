@@ -6,6 +6,8 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 const _dayNames = [
   'Senin',
@@ -256,7 +258,7 @@ class _OutletSchedulePageState extends ConsumerState<OutletSchedulePage> {
         children: [
           Text(
             _dayNames[i],
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14.5,
               fontWeight: FontWeight.w700,
             ),
@@ -311,13 +313,13 @@ class _OutletSchedulePageState extends ConsumerState<OutletSchedulePage> {
   Widget build(BuildContext context) {
     final zones = {..._zones, if (!_zones.containsKey(_tz)) _tz: _tz};
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: Text(
           'Jadwal${widget.outletName.isEmpty ? '' : ' • ${widget.outletName}'}',
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: AppLoader())
           : _error != null
           ? Center(
               child: Column(
@@ -384,7 +386,7 @@ class _OutletSchedulePageState extends ConsumerState<OutletSchedulePage> {
                   ),
                   child: Text(
                     _example(),
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12.5,
                       color: AppColors.ink,
                     ),
@@ -396,7 +398,7 @@ class _OutletSchedulePageState extends ConsumerState<OutletSchedulePage> {
                     Expanded(
                       child: Text(
                         'Jam buka-tutup per hari',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),

@@ -15,6 +15,7 @@ import '../auth/auth_providers.dart';
 import '../shifts/shift_providers.dart';
 import 'expense.dart';
 import 'finance_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 /// Dialog catat biaya. [drawerOnly] = khusus pengeluaran kas laci (dari tab Kas).
 Future<void> showExpenseDialog(
@@ -31,7 +32,7 @@ Future<void> showExpenseDialog(
   final note = TextEditingController();
 
   if (!context.mounted) return;
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) {
@@ -122,9 +123,9 @@ Future<void> showExpenseDialog(
                       ),
                       child: Text(
                         'Buka shift dulu di tab Kas.',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: const Color(0xFF9F1239),
+                          color: const Color(0xFF7D0B1E),
                         ),
                       ),
                     ),
@@ -266,7 +267,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                             Expanded(
                               child: Text(
                                 e.key,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -274,7 +275,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                             ),
                             Text(
                               '${(e.value * 100 / denom).round()}%',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 color: AppColors.muted,
                               ),
@@ -282,7 +283,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                             const SizedBox(width: 8),
                             Text(
                               rupiah.format(e.value),
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -333,7 +334,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                 child: const Icon(
                   Icons.receipt_long_outlined,
                   size: 18,
-                  color: Color(0xFF9F1239),
+                  color: Color(0xFF7D0B1E),
                 ),
               ),
               const SizedBox(width: 10),
@@ -348,7 +349,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                             e.category,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
@@ -363,19 +364,19 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                     Text(
                       '${_dayFmt.format(DateTime.fromMillisecondsSinceEpoch(e.at))}'
                       '${e.userName.isEmpty ? '' : ' • ${e.userName}'}',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         color: AppColors.muted,
                       ),
                     ),
                     if (e.note.isNotEmpty)
-                      Text(e.note, style: GoogleFonts.inter(fontSize: 12.5)),
+                      Text(e.note, style: GoogleFonts.plusJakartaSans(fontSize: 12.5)),
                   ],
                 ),
               ),
               Text(
                 rupiah.format(e.amount),
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w800,
                 ),
@@ -404,7 +405,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
       child: Text(
         'Hapus biaya: manager, alasan wajib. Kategori "Pembelian bahan (sudah di Stok)" '
         'tidak masuk laba rugi karena biayanya sudah dihitung lewat HPP.',
-        style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+        style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
       ),
     );
 

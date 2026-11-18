@@ -14,6 +14,8 @@ import 'approval_models.dart';
 import 'approval_providers.dart';
 import 'approval_ui.dart';
 import '../charges/charge_models.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 /// Halaman penuh (HP). Di Tab lanskap dan Web, ApprovalDetailView dipakai langsung di panel kanan.
 class ApprovalDetailPage extends StatelessWidget {
@@ -25,7 +27,7 @@ class ApprovalDetailPage extends StatelessWidget {
     type: 'approval',
     refId: approvalId,
     child: Scaffold(
-      appBar: AppBar(title: const Text('Detail pengajuan')),
+      appBar: RmsAppBar(title: const Text('Detail pengajuan')),
       body: ApprovalDetailView(approvalId: approvalId),
     ),
   );
@@ -78,7 +80,7 @@ class ApprovalDetailView extends ConsumerWidget {
   }
 
   Future<void> _withdraw(BuildContext context, WidgetRef ref) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Tarik pengajuan ini?'),
@@ -102,7 +104,7 @@ class ApprovalDetailView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(approvalDetailProvider(approvalId));
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: AppLoader()),
       error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -197,7 +199,7 @@ class ApprovalDetailView extends ConsumerWidget {
                   children: [
                     Text(
                       a.title,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -205,7 +207,7 @@ class ApprovalDetailView extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${a.requestedByName} • ${a.outletName}${t(a.createdAt)}',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         color: AppColors.muted,
                       ),
@@ -306,13 +308,13 @@ class ApprovalDetailView extends ConsumerWidget {
           width: 110,
           child: Text(
             k,
-            style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted),
           ),
         ),
         Expanded(
           child: Text(
             v,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13.5,
               fontWeight: FontWeight.w500,
             ),
@@ -345,14 +347,14 @@ class ApprovalDetailView extends ConsumerWidget {
                     children: [
                       Text(
                         '${l['name'] ?? l['ingredientId']}',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         '${qtyText((l['qty'] as num).toDouble())} ${l['unitLabel'] ?? ''} × ${rupiah.format((l['unitPrice'] as num?) ?? 0)}',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           color: AppColors.muted,
                         ),
@@ -366,7 +368,7 @@ class ApprovalDetailView extends ConsumerWidget {
                             ((l['unitPrice'] as num?) ?? 0))
                         .round(),
                   ),
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -379,7 +381,7 @@ class ApprovalDetailView extends ConsumerWidget {
           children: [
             Text(
               'Total',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -387,7 +389,7 @@ class ApprovalDetailView extends ConsumerWidget {
             const Spacer(),
             Text(
               rupiah.format((p['total'] as num?) ?? 0),
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppColors.primary,
@@ -565,7 +567,7 @@ class _Timeline extends StatelessWidget {
                     children: [
                       Text(
                         steps[i].title,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -573,7 +575,7 @@ class _Timeline extends StatelessWidget {
                       if (steps[i].meta != null)
                         Text(
                           steps[i].meta!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.5,
                             color: AppColors.muted,
                           ),
@@ -588,7 +590,7 @@ class _Timeline extends StatelessWidget {
                           ),
                           child: Text(
                             steps[i].note,
-                            style: GoogleFonts.inter(fontSize: 13),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 13),
                           ),
                         ),
                     ],

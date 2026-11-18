@@ -1,20 +1,43 @@
 import 'package:flutter/material.dart';
 
-/// Palet Kovalen: maroon + hitam (selaras logo RMS), ±60% latar, ±30% permukaan, ±10% aksen.
+/// Palet RMS: maroon + hitam dari logo, ditambah sage sebagai warna penengah.
+///
+/// - maroon  : aksi utama, item navigasi aktif, angka yang perlu ditindak
+/// - hitam   : struktur (rail/sidebar, kartu ringkasan, tombol sekunder kuat)
+/// - sage    : status baik/positif, sorotan kecil di atas latar gelap
+/// - latar   : putih hangat (krem tipis) agar tidak terasa "template"
 abstract final class AppColors {
-  static const primary = Color(
-    0xFF7D0B1E,
-  ); // maroon Kovalen: navigasi aktif, tombol utama, konfirmasi pembayaran
-  static const primarySoft = Color(0xFFF7E6E9); // item terpilih, chip
-  static const rose = Color(0xFFC2263F); // aksen: lencana, sorotan (keluarga maroon)
+  // ---- maroon (Kovalen) ----
+  static const primary = Color(0xFF7D0B1E);
+  static const primaryDeep = Color(0xFF5C0816); // tekan / hover tombol utama
+  static const primarySoft = Color(0xFFF5E4E7); // latar item terpilih, chip
+  static const rose = Color(0xFFC2263F); // lencana angka (keluarga maroon)
   static const roseSoft = Color(0xFFFBE4E8);
-  static const bg = Color(0xFFF8F7F5); // latar halaman (putih hangat)
+
+  // ---- hitam (Kovalen) ----
+  static const ink = Color(0xFF171717); // teks utama, rail, kartu gelap
+  static const inkSoft = Color(0xFF2A2826); // permukaan di atas latar gelap
+  static const inkLine = Color(0xFF3A3734); // garis/batang grafik di latar gelap
+  static const onInkMuted = Color(0xFFA8A29C); // teks redup di latar gelap
+
+  // ---- sage (warna ketiga) ----
+  static const sage = Color(0xFF6F8467);
+  static const sageSoft = Color(0xFFE7EDE3);
+  static const sageInk = Color(0xFF4A5C44); // teks sage yang lolos kontras di latar terang
+  static const sageOnInk = Color(0xFF93A98A); // sage di atas hitam
+
+  // ---- netral hangat ----
+  static const bg = Color(0xFFF6F3EE); // latar halaman
   static const surface = Color(0xFFFFFFFF); // kartu
-  static const ink = Color(0xFF171717); // hitam Kovalen: teks dan sidebar
-  static const inkSoft = Color(0xFF2C2C2C);
-  static const muted = Color(0xFF6B7280);
-  static const border = Color(0xFFE5E7EB);
-  static const success = Color(0xFF059669);
-  static const warning = Color(0xFFD97706);
-  static const danger = Color(0xFFDC2626);
+  static const surfaceAlt = Color(0xFFFBFAF7); // footer panel, baris ganjil
+  static const sunken = Color(0xFFECE6DD); // wadah segmen / track
+  static const muted = Color(0xFF6E6862); // teks sekunder
+  static const faint = Color(0xFF8C857E); // teks tersier, label kecil
+  static const border = Color(0xFFE7E1D8);
+  static const divider = Color(0xFFEFEAE2);
+
+  // ---- status ----
+  static const success = sageInk;
+  static const warning = Color(0xFFB7791F);
+  static const danger = Color(0xFFC0262D);
 }

@@ -8,11 +8,11 @@ import '../theme/app_colors.dart';
 enum Tone { neutral, success, warning, danger, info }
 
 ({Color fg, Color bg}) toneColors(Tone t) => switch (t) {
-  Tone.success => (fg: const Color(0xFF047857), bg: const Color(0xFFD1FAE5)),
-  Tone.warning => (fg: const Color(0xFFB45309), bg: const Color(0xFFFEF3C7)),
-  Tone.danger => (fg: const Color(0xFFB91C1C), bg: const Color(0xFFFEE2E2)),
+  Tone.success => (fg: AppColors.sageInk, bg: AppColors.sageSoft),
+  Tone.warning => (fg: const Color(0xFF8A5A12), bg: const Color(0xFFF7EBD6)),
+  Tone.danger => (fg: const Color(0xFFA3161F), bg: const Color(0xFFFBE3E1)),
   Tone.info => (fg: AppColors.primary, bg: AppColors.primarySoft),
-  Tone.neutral => (fg: AppColors.muted, bg: const Color(0xFFF3F4F6)),
+  Tone.neutral => (fg: AppColors.muted, bg: const Color(0xFFF1EDE7)),
 };
 
 /// Lencana status kecil, mis. "12 mnt", "Habis", "Disetujui".
@@ -25,17 +25,18 @@ class StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = toneColors(tone);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: c.bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         text,
-        style: GoogleFonts.inter(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           color: c.fg,
+          height: 1.2,
         ),
       ),
     );
@@ -68,14 +69,14 @@ class StatTile extends StatelessWidget {
     final cap = toneColors(captionTone);
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.border),
           ),
           child: Column(
@@ -87,7 +88,7 @@ class StatTile extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: c.bg,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(icon, size: 20, color: c.fg),
                   ),
@@ -97,7 +98,7 @@ class StatTile extends StatelessWidget {
                       label,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
                         color: AppColors.muted,
@@ -112,10 +113,12 @@ class StatTile extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   value,
-                  style: GoogleFonts.inter(
-                    fontSize: 24,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 25,
                     fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6,
                     color: AppColors.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
@@ -123,7 +126,7 @@ class StatTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   caption!,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: captionTone == Tone.neutral
@@ -154,10 +157,10 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+    padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
     decoration: BoxDecoration(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(22),
       border: Border.all(color: AppColors.border),
     ),
     child: Column(
@@ -168,7 +171,12 @@ class SectionCard extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                  color: AppColors.ink,
+                ),
               ),
             ),
             if (trailing != null) trailing!,
@@ -194,30 +202,55 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 20),
+    padding: const EdgeInsets.symmetric(vertical: 22),
     child: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 36, color: const Color(0xFFE8B4BC)),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.ink,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeOutCubic,
+        builder: (_, v, child) => Opacity(
+          opacity: v,
+          child: Transform.translate(offset: Offset(0, 10 * (1 - v)), child: child),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1EDE7),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(icon, size: 26, color: AppColors.faint),
             ),
-          ),
-          if (message != null) ...[
-            const SizedBox(height: 2),
+            const SizedBox(height: 12),
             Text(
-              message!,
+              title,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.muted),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
             ),
+            if (message != null) ...[
+              const SizedBox(height: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Text(
+                  message!,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     ),
   );

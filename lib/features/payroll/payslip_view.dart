@@ -35,11 +35,11 @@ class PayslipView extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: .4),
+          style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.muted, letterSpacing: .4),
         ),
         const SizedBox(height: 6),
         if (lines.isEmpty)
-          Text('–', style: GoogleFonts.inter(color: AppColors.muted)),
+          Text('–', style: GoogleFonts.plusJakartaSans(color: AppColors.muted)),
         for (final l in lines)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
@@ -50,15 +50,15 @@ class PayslipView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l.label, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
+                      Text(l.label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
                       if (_qty(l).isNotEmpty)
-                        Text(_qty(l), style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted)),
+                        Text(_qty(l), style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted)),
                     ],
                   ),
                 ),
                 Text(
                   '${earning ? '' : '− '}${rupiah.format(l.amount)}',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: earning ? AppColors.ink : AppColors.danger,
@@ -70,10 +70,10 @@ class PayslipView extends StatelessWidget {
         const Divider(height: 18),
         Row(
           children: [
-            Expanded(child: Text('Total ${title.toLowerCase()}', style: GoogleFonts.inter(fontWeight: FontWeight.w700))),
+            Expanded(child: Text('Total ${title.toLowerCase()}', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700))),
             Text(
               '${earning ? '' : '− '}${rupiah.format(total)}',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: earning ? AppColors.ink : AppColors.danger),
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: earning ? AppColors.ink : AppColors.danger),
             ),
           ],
         ),
@@ -87,7 +87,7 @@ class PayslipView extends StatelessWidget {
     Widget chip(String t) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
-      child: Text(t, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600)),
+      child: Text(t, style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600)),
     );
     return Container(
       padding: const EdgeInsets.all(18),
@@ -99,18 +99,18 @@ class PayslipView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(s.userName, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800)),
+          Text(s.userName, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800)),
           Text(
             [
               if (s.position.isNotEmpty) s.position,
               kSchemeLabels[s.scheme] ?? s.scheme,
               ?outlet,
             ].join(' • '),
-            style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted),
           ),
           if (period != null) ...[
             const SizedBox(height: 2),
-            Text('Periode $period', style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted)),
+            Text('Periode $period', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted)),
           ],
           const SizedBox(height: 12),
           Wrap(
@@ -134,18 +134,18 @@ class PayslipView extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text('Gaji diterima', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: Text('Gaji diterima', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
                 Text(
                   rupiah.format(s.net),
-                  style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.primary),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.primary),
                 ),
               ],
             ),
           ),
           if (s.note.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('Catatan: ${s.note}', style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted)),
+            Text('Catatan: ${s.note}', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted)),
           ],
         ],
       ),

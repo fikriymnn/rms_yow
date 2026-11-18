@@ -89,7 +89,7 @@ class _ForcePasswordPageState extends ConsumerState<ForcePasswordPage> {
         const SizedBox(width: 8),
         Text(
           text,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 12.5,
             color: ok ? AppColors.ink : AppColors.muted,
           ),
@@ -137,7 +137,7 @@ class _ForcePasswordPageState extends ConsumerState<ForcePasswordPage> {
                 child: Text(
                   'Password Anda dibuat oleh admin. Demi keamanan, buat password baru '
                   'yang hanya Anda yang tahu sebelum memakai aplikasi.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     color: AppColors.ink,
                   ),
@@ -188,9 +188,9 @@ class _ForcePasswordPageState extends ConsumerState<ForcePasswordPage> {
             ),
             child: Text(
               _error!,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: const Color(0xFF9F1239),
+                color: const Color(0xFF7D0B1E),
               ),
             ),
           ),

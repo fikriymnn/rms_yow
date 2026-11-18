@@ -11,6 +11,8 @@ import '../auth/auth_providers.dart';
 import '../roles/role_models.dart';
 import 'managed_user.dart';
 import '../attendance/pin_dialogs.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class _Data {
   _Data(this.users, this.outlets);
@@ -112,7 +114,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
     String? outletId =
         u?.outletId ?? (outlets.length == 1 ? outlets.first.id : null);
 
-    return showDialog<Map<String, dynamic>>(
+    return showAppDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
@@ -287,7 +289,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
             ListTile(
               title: Text(
                 u.name,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -360,7 +362,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
         u.roleKey == 'manager' ||
         u.roleKey == 'head_chef';
     return Material(
-      color: u.active ? AppColors.surface : const Color(0xFFF3F4F6),
+      color: u.active ? AppColors.surface : const Color(0xFFF1EDE7),
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -377,10 +379,10 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                 radius: 22,
                 backgroundColor: u.active
                     ? AppColors.primary
-                    : const Color(0xFFD1D5DB),
+                    : const Color(0xFFD6CEC2),
                 child: Text(
                   _initials(u.name),
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -396,7 +398,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                       u.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
                         color: u.active ? AppColors.ink : AppColors.muted,
@@ -406,7 +408,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                       '@${u.username} • $outletName',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         color: AppColors.muted,
                       ),
@@ -442,12 +444,12 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
     if (me == null) return const SizedBox.shrink();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kelola pengguna')),
+      appBar: RmsAppBar(title: const Text('Kelola pengguna')),
       body: FutureBuilder<_Data>(
         future: _future,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: AppLoader());
           }
           if (snap.hasError) {
             return Center(

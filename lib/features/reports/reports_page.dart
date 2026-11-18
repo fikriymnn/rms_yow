@@ -22,6 +22,8 @@ import '../../core/ui/ui_extra.dart';
 import '../../core/ui/ui_kit.dart';
 import '../orders/order_models.dart';
 import '../orders/order_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class ReportsPage extends ConsumerStatefulWidget {
   const ReportsPage({super.key});
@@ -56,7 +58,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     final isManager =
         ref.read(appUserProvider).value?.can('orders.refund') ?? false;
     final refunded = o.status == OrderStatus.refunded;
-    final action = await showDialog<String>(
+    final action = await showAppDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(o.number),
@@ -82,7 +84,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       _timeFmt.format(
                         DateTime.fromMillisecondsSinceEpoch(o.paidAt ?? 0),
                       ),
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         color: AppColors.muted,
                       ),
@@ -98,7 +100,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         Expanded(
                           child: Text(
                             '${it.qty}× ${it.name}',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -106,7 +108,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         ),
                         Text(
                           rupiah.format(it.total),
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -137,9 +139,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     ),
                     child: Text(
                       'Alasan refund: ${o.refundReason ?? '-'}',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
-                        color: const Color(0xFF9F1239),
+                        color: const Color(0xFF7D0B1E),
                       ),
                     ),
                   ),
@@ -357,7 +359,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       Expanded(
                         child: Text(
                           e.key.name.toUpperCase(),
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -365,7 +367,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       ),
                       Text(
                         '${(e.value * 100 / methodTotal).round()}%',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           color: AppColors.muted,
                         ),
@@ -373,7 +375,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       const SizedBox(width: 10),
                       Text(
                         rupiah.format(e.value),
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                         ),
@@ -411,7 +413,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     children: [
                       Text(
                         '${i + 1}.',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
@@ -423,7 +425,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           top[i].key,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -431,7 +433,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       ),
                       Text(
                         '${qty[top[i].key]}× • ${rupiah.format(top[i].value)}',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           color: AppColors.muted,
                         ),
@@ -479,7 +481,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         children: [
                           Text(
                             o.number,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -487,7 +489,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           Text(
                             '${o.payMethod?.name.toUpperCase() ?? '-'}'
                             '${o.status == OrderStatus.refunded ? ' • REFUND' : ''}',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               color: o.status == OrderStatus.refunded
                                   ? AppColors.danger
@@ -499,7 +501,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     ),
                     Text(
                       rupiah.format(o.total),
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         decoration: o.status == OrderStatus.refunded
@@ -536,7 +538,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       const Spacer(),
                       Text(
                         rupiah.format(l.amount),
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                         ),
@@ -546,14 +548,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   const SizedBox(height: 4),
                   Text(
                     '${_timeFmt.format(DateTime.fromMillisecondsSinceEpoch(l.at))} • ${l.userName} • ${l.orderNumber}',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: AppColors.muted,
                     ),
                   ),
                   Text(
                     '${l.detail.isEmpty ? '' : '${l.detail} • '}${l.reason}',
-                    style: GoogleFonts.inter(fontSize: 13),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13),
                   ),
                 ],
               ),
@@ -579,7 +581,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan')),
+      appBar: RmsAppBar(title: const Text('Laporan')),
       body: LayoutBuilder(
         builder: (context, c) {
           final wide = c.maxWidth >= 900;

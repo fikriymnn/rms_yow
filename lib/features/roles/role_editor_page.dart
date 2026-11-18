@@ -7,6 +7,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import 'role_models.dart';
 import 'role_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 final _keyRe = RegExp(r'^[a-z][a-z0-9_]{1,19}$');
 
@@ -80,7 +82,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
   });
 
   Future<bool> _confirm(String title, String body, String ok) async {
-    final r = await showDialog<bool>(
+    final r = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
@@ -162,7 +164,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
     final catalog = ref.watch(roleCatalogProvider);
     final role = widget.role;
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: Text(_isNew ? 'Role baru' : role!.name),
         actions: [
           if (!_isNew && !_readOnly)
@@ -272,7 +274,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
                   Expanded(
                     child: Text(
                       'Hak akses',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -291,7 +293,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
               catalog.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: AppLoader()),
                 ),
                 error: (e, _) => Text(errorText(e)),
                 data: _matrix,
@@ -316,7 +318,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
             padding: const EdgeInsets.only(top: 12, bottom: 8),
             child: Text(
               g.key.toUpperCase(),
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 11.5,
                 letterSpacing: 0.8,
                 fontWeight: FontWeight.w700,
@@ -348,7 +350,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
               Expanded(
                 child: Text(
                   f.label,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w700,
                   ),

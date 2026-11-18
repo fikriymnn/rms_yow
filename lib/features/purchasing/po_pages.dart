@@ -20,6 +20,8 @@ import '../shifts/shift_providers.dart';
 import 'purchasing_models.dart';
 import 'purchasing_providers.dart';
 import '../approvals/pending_requests_card.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 String poStatusText(PurchaseOrder po, Map<String, double>? received) =>
     (po.status == PoStatus.ordered && received != null && received.isNotEmpty)
@@ -163,7 +165,7 @@ class _PoTabState extends ConsumerState<PoTab> {
                                             po.number,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14.5,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -178,7 +180,7 @@ class _PoTabState extends ConsumerState<PoTab> {
                                     const SizedBox(height: 2),
                                     Text(
                                       po.supplierName,
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -189,7 +191,7 @@ class _PoTabState extends ConsumerState<PoTab> {
                                         Expanded(
                                           child: Text(
                                             '${_fmt.format(DateTime.fromMillisecondsSinceEpoch(po.createdAt))} • ${po.lines.length} item',
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               color: AppColors.muted,
                                             ),
@@ -197,7 +199,7 @@ class _PoTabState extends ConsumerState<PoTab> {
                                         ),
                                         Text(
                                           rupiah.format(po.total),
-                                          style: GoogleFonts.inter(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w800,
                                             color: AppColors.primary,
@@ -216,7 +218,7 @@ class _PoTabState extends ConsumerState<PoTab> {
                                           minHeight: 5,
                                           color: AppColors.warning,
                                           backgroundColor: const Color(
-                                            0xFFFEF3C7,
+                                            0xFFF7EBD6,
                                           ),
                                         ),
                                       ),
@@ -290,7 +292,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
       _toast('Tidak ada bahan lain. Tambahkan di Stok → Bahan.');
       return;
     }
-    final ing = await showDialog<Ingredient>(
+    final ing = await showAppDialog<Ingredient>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('Pilih bahan'),
@@ -427,14 +429,14 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
                   children: [
                     Text(
                       l.name,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
                       '${qtyText(l.qty)} ${l.unitLabel} × ${rupiah.format(l.unitPrice)}',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         color: AppColors.muted,
                       ),
@@ -444,7 +446,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
               ),
               Text(
                 rupiah.format(l.total),
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
@@ -475,7 +477,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
           children: [
             Text(
               'Total PO',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.muted,
@@ -484,7 +486,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
             const Spacer(),
             Text(
               rupiah.format(total),
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
                 color: AppColors.primary,
@@ -502,7 +504,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
               Expanded(
                 child: Text(
                   chain,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: AppColors.muted,
                   ),
@@ -566,7 +568,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
       child: suppliers.isEmpty
           ? Text(
               'Tambahkan supplier dulu di tab Supplier.',
-              style: GoogleFonts.inter(fontSize: 13.5, color: AppColors.muted),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: AppColors.muted),
             )
           : DropdownButtonFormField<String>(
               initialValue: _supplierId,
@@ -619,7 +621,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.po == null ? 'PO baru' : _number)),
+      appBar: RmsAppBar(title: Text(widget.po == null ? 'PO baru' : _number)),
       body: wide
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -651,7 +653,7 @@ class PoDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Detail PO')),
+    appBar: RmsAppBar(title: const Text('Detail PO')),
     body: PoDetailView(poId: poId),
   );
 }
@@ -717,7 +719,7 @@ class _PoSteps extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 labels[i],
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   fontWeight: i == current ? FontWeight.w700 : FontWeight.w500,
                   color: i <= current ? AppColors.ink : AppColors.muted,
@@ -736,7 +738,7 @@ class PoDetailView extends ConsumerWidget {
   final String poId;
 
   Future<bool> _confirm(BuildContext c, String title) async =>
-      await showDialog<bool>(
+      await showAppDialog<bool>(
         context: c,
         builder: (ctx) => AlertDialog(
           title: Text(title),
@@ -778,7 +780,7 @@ class PoDetailView extends ConsumerWidget {
     final po = (ref.watch(purchaseOrdersProvider).value ?? <PurchaseOrder>[])
         .where((p) => p.id == poId)
         .firstOrNull;
-    if (po == null) return const Center(child: CircularProgressIndicator());
+    if (po == null) return const Center(child: AppLoader());
 
     final fmt = DateFormat('d MMM yyyy HH:mm');
     final received =
@@ -855,7 +857,7 @@ class PoDetailView extends ConsumerWidget {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(fontSize: 13, color: fg),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: fg),
             ),
           ),
         ],
@@ -872,21 +874,21 @@ class PoDetailView extends ConsumerWidget {
                 banner(
                   Icons.hourglass_top,
                   'Menunggu persetujuan. Pantau di tab Persetujuan.',
-                  const Color(0xFFFEF3C7),
-                  const Color(0xFF92400E),
+                  const Color(0xFFF7EBD6),
+                  const Color(0xFF8A5A12),
                 ),
               if (po.status == PoStatus.rejected)
                 banner(
                   Icons.cancel_outlined,
                   'Ditolak. Alasannya ada di Persetujuan → Pengajuan saya. Buat PO baru bila perlu.',
                   AppColors.roseSoft,
-                  const Color(0xFF9F1239),
+                  const Color(0xFF7D0B1E),
                 ),
               if (po.status == PoStatus.cancelled)
                 banner(
                   Icons.block,
                   'PO ini dibatalkan.',
-                  const Color(0xFFF3F4F6),
+                  const Color(0xFFF1EDE7),
                   AppColors.muted,
                 ),
               Container(
@@ -908,14 +910,14 @@ class PoDetailView extends ConsumerWidget {
                             children: [
                               Text(
                                 po.number,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
                               Text(
                                 po.supplierName,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13.5,
                                   color: AppColors.muted,
                                 ),
@@ -975,14 +977,14 @@ class PoDetailView extends ConsumerWidget {
                                     children: [
                                       Text(
                                         l.name,
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       Text(
                                         '${qtyText(l.qty)} ${l.unitLabel} × ${rupiah.format(l.unitPrice)}',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12.5,
                                           color: AppColors.muted,
                                         ),
@@ -995,7 +997,7 @@ class PoDetailView extends ConsumerWidget {
                                   children: [
                                     Text(
                                       rupiah.format(l.total),
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -1003,7 +1005,7 @@ class PoDetailView extends ConsumerWidget {
                                     if (showProgress)
                                       Text(
                                         'Diterima ${qtyText(received[l.ingredientId] ?? 0)}/${qtyText(l.qty)}',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           color: AppColors.muted,
                                         ),
@@ -1023,7 +1025,7 @@ class PoDetailView extends ConsumerWidget {
                                   ),
                                   minHeight: 5,
                                   color: AppColors.success,
-                                  backgroundColor: const Color(0xFFD1FAE5),
+                                  backgroundColor: const Color(0xFFE7EDE3),
                                 ),
                               ),
                             ],
@@ -1047,13 +1049,13 @@ class PoDetailView extends ConsumerWidget {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFD1FAE5),
+                                  color: const Color(0xFFE7EDE3),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
                                   Icons.inventory_2_outlined,
                                   size: 18,
-                                  color: Color(0xFF047857),
+                                  color: Color(0xFF4A5C44),
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -1063,7 +1065,7 @@ class PoDetailView extends ConsumerWidget {
                                   children: [
                                     Text(
                                       r.number,
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -1071,7 +1073,7 @@ class PoDetailView extends ConsumerWidget {
                                     Text(
                                       '${fmt.format(DateTime.fromMillisecondsSinceEpoch(r.at))}'
                                       '${r.invoiceNo.isEmpty ? '' : ' • Faktur ${r.invoiceNo}'}',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: AppColors.muted,
                                       ),
@@ -1081,7 +1083,7 @@ class PoDetailView extends ConsumerWidget {
                               ),
                               Text(
                                 rupiah.format(r.total),
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -1147,7 +1149,7 @@ Future<void> showReceiveDialog(
       ((parseNum(qty[i].text) ?? 0) * (int.tryParse(price[i].text) ?? 0))
           .round();
 
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) {
@@ -1186,7 +1188,7 @@ Future<void> showReceiveDialog(
                             Expanded(
                               child: Text(
                                 '${po.lines[i].name} (${po.lines[i].unitLabel})',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -1194,7 +1196,7 @@ Future<void> showReceiveDialog(
                             ),
                             Text(
                               'Dipesan ${qtyText(po.lines[i].qty)} • sudah ${qtyText(before[po.lines[i].ingredientId] ?? 0)}',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11.5,
                                 color: AppColors.muted,
                               ),
@@ -1238,7 +1240,7 @@ Future<void> showReceiveDialog(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
                               rupiah.format(lineTotal(i)),
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1268,7 +1270,7 @@ Future<void> showReceiveDialog(
                     children: [
                       Text(
                         'Total diterima',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13.5,
                           color: AppColors.muted,
                         ),
@@ -1276,7 +1278,7 @@ Future<void> showReceiveDialog(
                       const Spacer(),
                       Text(
                         rupiah.format(total),
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                           color: AppColors.primary,
@@ -1318,9 +1320,9 @@ Future<void> showReceiveDialog(
                       ),
                       child: Text(
                         'Pembayaran melebihi total',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: const Color(0xFF9F1239),
+                          color: const Color(0xFF7D0B1E),
                         ),
                       ),
                     )
@@ -1328,15 +1330,15 @@ Future<void> showReceiveDialog(
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
+                        color: const Color(0xFFF7EBD6),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         'Sisa menjadi hutang: ${rupiah.format(total - paidNow)}',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF92400E),
+                          color: const Color(0xFF8A5A12),
                         ),
                       ),
                     ),

@@ -17,6 +17,8 @@ import '../reservations/reservations_page.dart';
 import 'dining_table.dart';
 import 'tables_providers.dart';
 import 'table_hold.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 enum _Filter { all, free, busy, booked }
 
@@ -98,27 +100,69 @@ class _TablesPageState extends ConsumerState<TablesPage> {
     final visible = tables.where(show).toList();
     final tableNames = {for (final t in tables) t.id: t.name};
 
-    final filters = SizedBox(
-      height: 56,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        children: [
-          for (final (f, label, n) in [
-            (_Filter.all, 'Semua', tables.length),
-            (_Filter.free, 'Kosong', freeCount),
-            (_Filter.busy, 'Terisi', busyCount),
-            (_Filter.booked, 'Booking', bookedCount),
-          ])
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text('$label $n'),
-                selected: _filter == f,
-                onSelected: (_) => setState(() => _filter = f),
+    // filter bergaya segmen: wadah krem, pilihan aktif putih
+    final filters = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppColors.sunken,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            for (final (f, label, n) in [
+              (_Filter.all, 'Semua', tables.length),
+              (_Filter.free, 'Kosong', freeCount),
+              (_Filter.busy, 'Terisi', busyCount),
+              (_Filter.booked, 'Booking', bookedCount),
+            ])
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _filter = f),
+                  child: AnimatedContainer(
+                    duration: Motion.base,
+                    curve: Motion.curve,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _filter == f ? AppColors.surface : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: _filter == f
+                          ? const [BoxShadow(color: Color(0x14171717), blurRadius: 6, offset: Offset(0, 2))]
+                          : null,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text.rich(
+                          TextSpan(
+                            text: label,
+                            children: [
+                              TextSpan(
+                                text: '  $n',
+                                style: TextStyle(
+                                  color: _filter == f ? AppColors.primary : AppColors.faint,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: _filter == f ? FontWeight.w800 : FontWeight.w600,
+                            color: _filter == f ? AppColors.ink : const Color(0xFF57514B),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
 
@@ -134,10 +178,10 @@ class _TablesPageState extends ConsumerState<TablesPage> {
             title: 'Tidak ada meja pada filter ini',
           )
         : GridView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 88),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200,
-              mainAxisExtent: 136,
+              maxCrossAxisExtent: 190,
+              mainAxisExtent: 128,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
             ),
@@ -149,7 +193,9 @@ class _TablesPageState extends ConsumerState<TablesPage> {
               final held = h == null
                   ? null
                   : allOrders.where((x) => x.id == h.id).firstOrNull;
-              return _TableCard(
+              return Entrance(
+                index: i,
+                child: _TableCard(
                 table: t,
                 order: o,
                 hold: h,
@@ -163,12 +209,13 @@ class _TablesPageState extends ConsumerState<TablesPage> {
                 onLongPress: canManage
                     ? () => _edit(context, repo, t, o != null || h != null)
                     : null,
+                ),
               );
             },
           );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: const Text('Meja'),
         actions: [
           IconButton(
@@ -179,12 +226,17 @@ class _TablesPageState extends ConsumerState<TablesPage> {
               MaterialPageRoute(builder: (_) => const ReservationsPage()),
             ),
           ),
-          TextButton.icon(
+          const SizedBox(width: 4),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.ink,
+              minimumSize: const Size(0, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+            ),
             onPressed: () => openPos(),
-            icon: const Icon(Icons.shopping_bag_outlined),
-            label: const Text('Takeaway'),
+            icon: const Icon(Icons.shopping_bag_outlined, size: 19),
+            label: const Text('Bawa pulang'),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       floatingActionButton: canManage
@@ -259,7 +311,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
                                           Expanded(
                                             child: Text(
                                               o.number,
-                                              style: GoogleFonts.inter(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -267,7 +319,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
                                           ),
                                           Text(
                                             rupiah.format(o.total),
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 13.5,
                                               fontWeight: FontWeight.w700,
                                               color: AppColors.primary,
@@ -313,7 +365,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
                                                 r.name,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: GoogleFonts.inter(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w600,
                                                 ),
@@ -321,7 +373,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
                                               Text(
                                                 tableNames[r.tableId] ??
                                                     'Belum pilih meja',
-                                                style: GoogleFonts.inter(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 12.5,
                                                   color: AppColors.muted,
                                                 ),
@@ -355,7 +407,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
     final cap = TextEditingController(
       text: (existing?.capacity ?? 4).toString(),
     );
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(existing == null ? 'Meja baru' : 'Edit meja'),
@@ -417,7 +469,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
             ListTile(
               title: Text(
                 t.name,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -478,108 +530,120 @@ class _TableCard extends StatelessWidget {
     final soon = bookings.any(
       (r) => r.at - nowMs <= 60 * 60000 && r.endAt > nowMs,
     );
-    final accent = overdue ? AppColors.danger : AppColors.rose;
-    final border = soon
-        ? accent
-        : (busy ? AppColors.primary : AppColors.border);
     final minutes = o != null
         ? ((nowMs - o.createdAt) / 60000).floor().clamp(0, 99999)
         : 0;
     final bookingLabel = bookings.length == 1
-        ? 'Booking ${clock(bookings.first.at)} • ${bookings.first.name}'
-        : 'Booking ${bookings.map((r) => clock(r.at)).join(', ')}';
+        ? '${clock(bookings.first.at)} · ${bookings.first.name}'
+        : bookings.map((r) => clock(r.at)).join(', ');
 
-    return Material(
-      color: busy ? AppColors.primarySoft : AppColors.surface,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Container(
-          padding: const EdgeInsets.all(12),
+    // warna per status: kosong putih, terisi hitam, sudah bayar sage, booking maroon muda
+    final (Color bg, Color fg, Color sub, Color line) = o != null
+        ? (AppColors.ink, const Color(0xFFF6F3EE), AppColors.onInkMuted, AppColors.ink)
+        : hold != null
+        ? (AppColors.sageSoft, AppColors.sageInk, AppColors.sageInk, AppColors.sageSoft)
+        : hasBooking
+        ? (
+            AppColors.primarySoft,
+            AppColors.primaryDeep,
+            AppColors.primary,
+            soon || overdue ? AppColors.primary : AppColors.primarySoft,
+          )
+        : (AppColors.surface, AppColors.ink, AppColors.faint, AppColors.border);
+
+    final state = o != null
+        ? 'Terisi'
+        : hold != null
+        ? 'Sudah bayar'
+        : hasBooking
+        ? (overdue ? 'Booking terlambat' : 'Booking')
+        : 'Kosong';
+    final detail = o != null
+        ? '$minutes mnt · ${rupiah.format(o.total)}'
+        : hold != null
+        ? rupiah.format(holdTotal ?? 0)
+        : hasBooking
+        ? bookingLabel
+        : 'Siap dipakai';
+
+    return Pressable(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Semantics(
+        button: true,
+        label: '${table.name}, $state',
+        child: AnimatedContainer(
+          duration: Motion.base,
+          curve: Motion.curve,
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: border, width: soon ? 2 : 1),
+            color: bg,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: line, width: soon || overdue ? 2 : 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
                       table.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 20,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: fg,
                       ),
                     ),
                   ),
-                  if (hasBooking)
-                    Icon(Icons.event_available, size: 18, color: accent),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.event_seat_outlined,
-                    size: 14,
-                    color: AppColors.muted,
-                  ),
-                  const SizedBox(width: 4),
                   Text(
                     '${table.capacity} kursi',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppColors.muted,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: sub,
                     ),
                   ),
                 ],
               ),
-              if (hasBooking) ...[
-                const SizedBox(height: 6),
-                Text(
-                  bookingLabel,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: accent,
-                  ),
-                ),
-              ],
               const Spacer(),
               Row(
                 children: [
-                  StatusPill(
-                    o != null
-                        ? 'Terisi • $minutes mnt'
-                        : (hold != null ? 'Sudah bayar' : 'Kosong'),
-                    tone: o != null
-                        ? Tone.info
-                        : (hold != null ? Tone.warning : Tone.success),
-                  ),
-                  const Spacer(),
-                  if (o != null || holdTotal != null)
-                    Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          rupiah.format(o?.total ?? holdTotal ?? 0),
-                          style: GoogleFonts.inter(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
+                  if (o != null && minutes >= 45) ...[
+                    const PulseDot(color: Color(0xFFE59AA6), size: 6),
+                    const SizedBox(width: 2),
+                  ],
+                  Expanded(
+                    child: Text(
+                      state,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: fg,
                       ),
                     ),
+                  ),
+                  if (hasBooking && busy)
+                    Icon(Icons.event_available_rounded, size: 16, color: sub),
                 ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: sub,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ],
           ),

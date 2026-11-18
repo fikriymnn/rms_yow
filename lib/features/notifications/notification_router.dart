@@ -25,7 +25,14 @@ final notificationTapProvider =
     );
 
 void openNotificationTarget(BuildContext context, NotificationTap tap) {
-  final Widget? page = switch (tap.type) {
+  final page = notificationPage(tap);
+  if (page == null) return;
+  Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+}
+
+/// Halaman tujuan sebuah notifikasi (null = tidak ada halaman khusus).
+Widget? notificationPage(NotificationTap tap) {
+  return switch (tap.type) {
     'approval' => ApprovalDetailPage(approvalId: tap.id),
     'proposal' => ProposalDetailPage(proposalId: tap.id),
     'order' => const MarkReadOnOpen(type: 'order', child: KdsPage()),
@@ -35,6 +42,4 @@ void openNotificationTarget(BuildContext context, NotificationTap tap) {
     ),
     _ => null,
   };
-  if (page == null) return;
-  Navigator.push(context, MaterialPageRoute(builder: (_) => page));
 }

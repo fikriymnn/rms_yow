@@ -12,6 +12,7 @@ import '../orders/items_status.dart';
 import '../orders/order_models.dart';
 import '../orders/order_providers.dart';
 import '../tables/tables_providers.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 typedef _Ticket = ({Order order, List<OrderItem> items});
 
@@ -95,7 +96,7 @@ class _KdsPageState extends ConsumerState<KdsPage> {
     final tickets = _showReady ? readyList : queue;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dapur')),
+      appBar: RmsAppBar(title: const Text('Dapur')),
       body: Column(
         children: [
           Container(
@@ -212,7 +213,7 @@ class _KdsPageState extends ConsumerState<KdsPage> {
                         _where(o, tables),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -220,7 +221,7 @@ class _KdsPageState extends ConsumerState<KdsPage> {
                       ),
                       Text(
                         o.number,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           color: Colors.white70,
                         ),
@@ -248,7 +249,7 @@ class _KdsPageState extends ConsumerState<KdsPage> {
                       const SizedBox(width: 4),
                       Text(
                         '$mins mnt',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -307,7 +308,7 @@ class _KdsPageState extends ConsumerState<KdsPage> {
           width: 46,
           child: Text(
             '${it.qty}×',
-            style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800),
+            style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800),
           ),
         ),
         Expanded(
@@ -316,7 +317,7 @@ class _KdsPageState extends ConsumerState<KdsPage> {
             children: [
               Text(
                 it.name,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                   height: 1.2,
@@ -344,16 +345,16 @@ class _KdsPageState extends ConsumerState<KdsPage> {
                       const Icon(
                         Icons.priority_high,
                         size: 14,
-                        color: Color(0xFFBE123C),
+                        color: Color(0xFFA3161F),
                       ),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           it.note,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFFBE123C),
+                            color: const Color(0xFFA3161F),
                           ),
                         ),
                       ),

@@ -121,7 +121,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
             children: [
               Text(
                 'Laba bersih',
-                style: GoogleFonts.inter(fontSize: 13.5, color: Colors.white70),
+                style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: Colors.white70),
               ),
               const Spacer(),
               if (netMargin != null)
@@ -136,7 +136,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                   ),
                   child: Text(
                     'Margin $netMargin%',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -151,19 +151,19 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
             alignment: Alignment.centerLeft,
             child: Text(
               rupiah.format(profit),
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 32,
                 fontWeight: FontWeight.w800,
                 color: positive
-                    ? const Color(0xFF6EE7B7)
-                    : const Color(0xFFFDA4AF),
+                    ? const Color(0xFF93A98A)
+                    : const Color(0xFFE59AA6),
               ),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             '${_fmt.format(_range.start)} – ${_fmt.format(_range.end)} • ${p.orderCount} order',
-            style: GoogleFonts.inter(fontSize: 12.5, color: Colors.white54),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: Colors.white54),
           ),
         ],
       ),
@@ -235,7 +235,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                       Expanded(
                         child: Text(
                           e.key,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             color: AppColors.muted,
                           ),
@@ -243,7 +243,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                       ),
                       Text(
                         _neg(e.value),
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -289,7 +289,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
             child: Text(
               'Pajak (PB1) tidak dihitung sebagai pendapatan. HPP memakai harga beli '
               'rata-rata saat ini. Biaya dicatat sesuai tanggal input (basis kas).',
-              style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.ink),
+              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.ink),
             ),
           ),
         ],

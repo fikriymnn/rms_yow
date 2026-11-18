@@ -8,6 +8,7 @@ import '../auth/auth_providers.dart';
 import '../tables/dining_table.dart';
 import 'reservation.dart';
 import 'reservation_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 TimeOfDay _defaultTime() {
   final n = DateTime.now().add(const Duration(hours: 1));
@@ -39,7 +40,7 @@ Future<void> showReservationDialog(
   var duration = existing?.durationMin ?? 90;
   String? tableId = existing?.tableId;
 
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) {
@@ -212,7 +213,7 @@ Future<void> showReservationDialog(
         .firstOrNull;
     if (clash != null) {
       if (!context.mounted) return;
-      final go = await showDialog<bool>(
+      final go = await showAppDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Meja bentrok'),

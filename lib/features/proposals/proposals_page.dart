@@ -12,6 +12,7 @@ import 'menu_proposal.dart';
 import 'proposal_detail_page.dart';
 import 'proposal_editor_page.dart';
 import 'proposal_providers.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 Tone proposalTone(ProposalStatus s) => switch (s) {
   ProposalStatus.approved => Tone.success,
@@ -55,7 +56,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> {
       builder: (context, c) {
         final wide = c.maxWidth >= 900;
         final master = Scaffold(
-          appBar: AppBar(
+          appBar: RmsAppBar(
             title: Text(isOwner ? 'Persetujuan menu' : 'Usulan menu'),
           ),
           floatingActionButton: isOwner
@@ -141,7 +142,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> {
                                             p.name,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14.5,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -156,7 +157,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> {
                                     const SizedBox(height: 4),
                                     Text(
                                       '${p.isChange ? 'Perubahan menu/harga' : 'Menu baru'} • ${p.submittedByName} • ${_fmt.format(DateTime.fromMillisecondsSinceEpoch(p.createdAt))}',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: AppColors.muted,
                                       ),
@@ -164,7 +165,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> {
                                     const SizedBox(height: 6),
                                     Text(
                                       '${rupiah.format(p.proposedPrice)}${p.finalPrice == null ? '' : '  →  ${rupiah.format(p.finalPrice)}'}',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                         color: AppColors.primary,
@@ -188,7 +189,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> {
             const VerticalDivider(width: 1),
             Expanded(
               child: Scaffold(
-                appBar: AppBar(title: const Text('Detail usulan')),
+                appBar: RmsAppBar(title: const Text('Detail usulan')),
                 body: _selected == null
                     ? const EmptyState(
                         icon: Icons.touch_app_outlined,

@@ -6,6 +6,7 @@ import '../purchasing/purchasing_page.dart';
 import 'ingredients_tab.dart';
 import 'recipes_tab.dart';
 import 'stock_tab.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class InventoryPage extends ConsumerWidget {
   const InventoryPage({super.key});
@@ -18,7 +19,7 @@ class InventoryPage extends ConsumerWidget {
     return DefaultTabController(
       length: showRecipes ? 3 : 2,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: RmsAppBar(
           title: const Text('Inventory'),
           actions: [
             IconButton(

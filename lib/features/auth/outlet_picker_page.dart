@@ -8,6 +8,8 @@ import '../../core/form_dialog.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import 'auth_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class OutletPickerPage extends ConsumerStatefulWidget {
   const OutletPickerPage({super.key, this.canPop = false});
@@ -114,7 +116,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                       o.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 15.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -148,7 +150,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
     final activeId = ref.watch(activeOutletIdProvider);
     final name = ref.watch(sessionProvider).value?.user.name ?? '';
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: const Text('Pilih outlet'),
         actions: [
           if (!widget.canPop)
@@ -168,7 +170,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
         future: _future,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: AppLoader());
           }
           if (snap.hasError) {
             return Center(
@@ -240,7 +242,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                   children: [
                     Text(
                       name.isEmpty ? 'Selamat datang' : 'Halo, $name',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -249,7 +251,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                     const SizedBox(height: 2),
                     Text(
                       'Pilih outlet yang ingin Anda kelola. Anda bisa menggantinya kapan saja di menu Akun.',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         color: Colors.white70,
                       ),

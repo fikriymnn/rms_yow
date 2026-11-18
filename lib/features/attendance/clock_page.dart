@@ -18,6 +18,7 @@ import 'attendance_queue.dart';
 import 'consent.dart';
 import 'face_check_page.dart';
 import 'location_service.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 const _maxAccuracyM = 80;
 const _toleranceM = 10;
@@ -167,7 +168,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
         Icon(icon, size: 18, color: fg),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(text, style: GoogleFonts.inter(fontSize: 13, color: fg)),
+          child: Text(text, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: fg)),
         ),
         if (trailing != null) trailing,
       ],
@@ -178,7 +179,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
   Widget build(BuildContext context) {
     if (kIsWeb) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Absensi')),
+        appBar: RmsAppBar(title: const Text('Absensi')),
         body: const EmptyState(
           icon: Icons.phone_android,
           title: 'Absensi hanya tersedia di aplikasi Android',
@@ -271,7 +272,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
         children: [
           Text(
             _hm.format(now),
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 48,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -281,7 +282,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
           const SizedBox(height: 2),
           Text(
             '${_day.format(now)} • ${outlet?.name ?? '-'}',
-            style: GoogleFonts.inter(fontSize: 13.5, color: Colors.white70),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: Colors.white70),
           ),
           const SizedBox(height: 14),
           Container(
@@ -298,7 +299,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
                   height: 9,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isOpen ? const Color(0xFF6EE7B7) : Colors.white38,
+                    color: isOpen ? const Color(0xFF93A98A) : Colors.white38,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -306,7 +307,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
                   child: Text(
                     statusText,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -349,7 +350,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
               children: [
                 Text(
                   locText,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                     color: locColors.fg,
@@ -358,7 +359,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
                 if (fix != null)
                   Text(
                     'Akurasi GPS ±${fix.accuracy.round()} m',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: AppColors.muted,
                     ),
@@ -380,7 +381,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
       child: FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: isOpen ? AppColors.rose : AppColors.primary,
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
@@ -406,8 +407,8 @@ class _ClockPageState extends ConsumerState<ClockPage> {
           _banner(
             Icons.schedule_send,
             '${pending.length} absen menunggu dikirim ke server',
-            const Color(0xFFFEF3C7),
-            const Color(0xFF92400E),
+            const Color(0xFFF7EBD6),
+            const Color(0xFF8A5A12),
           ),
         for (final q in rejected)
           _banner(
@@ -415,7 +416,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
             'Absen ${q.kind == 'in' ? 'masuk' : 'pulang'} '
             '${_hm.format(DateTime.fromMillisecondsSinceEpoch(q.clientTime))} ditolak: ${q.error}',
             AppColors.roseSoft,
-            const Color(0xFF9F1239),
+            const Color(0xFF7D0B1E),
             trailing: IconButton(
               tooltip: 'Tutup',
               visualDensity: VisualDensity.compact,
@@ -430,7 +431,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
             'Lupa absen pulang (${_day.format(DateTime.fromMillisecondsSinceEpoch(r.clockInAt))}). '
             'Hubungi manager untuk mengoreksi jam pulang.',
             AppColors.roseSoft,
-            const Color(0xFF9F1239),
+            const Color(0xFF7D0B1E),
           ),
       ],
     );
@@ -461,7 +462,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
                                     r.clockInAt,
                                   ),
                                 ),
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.primary,
@@ -473,7 +474,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
                                     r.clockInAt,
                                   ),
                                 ),
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   color: AppColors.muted,
                                 ),
@@ -490,7 +491,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
                                 '${_hm.format(DateTime.fromMillisecondsSinceEpoch(r.clockInAt))} - '
                                 '${r.clockOutAt == null ? '...' : _hm.format(DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!))}'
                                 '${r.minutes == null ? '' : '  •  ${durationText(r.minutes!)}'}',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -543,7 +544,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: const Text('Absensi'),
         actions: [
           IconButton(

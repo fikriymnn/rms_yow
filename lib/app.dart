@@ -38,7 +38,6 @@ import 'features/approvals/approvals_page.dart';
 import 'features/notifications/notification_providers.dart';
 import 'features/notifications/notification_router.dart';
 import 'features/notifications/notification_service.dart';
-import 'features/notifications/notifications_page.dart';
 import 'features/notifications/mark_read_on_open.dart';
 import 'core/theme/app_theme.dart';
 import 'shell/app_shell.dart';
@@ -49,6 +48,7 @@ import 'features/update/update_ui.dart';
 import 'features/client/client_models.dart';
 import 'features/client/client_pages.dart';
 import 'features/client/client_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 /// Koleksi yang di-mirror ke lokal. Tambah di sini tiap modul baru.
 
@@ -72,14 +72,14 @@ class RmsApp extends ConsumerWidget {
       home: forced != null
           ? UpdateRequiredPage(info: forced)
           : client.isLoading && !client.hasValue
-          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+          ? const AppLoadingScreen()
           : client.value == null
           ? const ClientLoginPage()
           : blocked != BlockReason.none
           ? const SubscriptionPage()
           : session.when(
               loading: () => const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+                body: Center(child: AppLoader()),
               ),
               error: (e, _) => Scaffold(body: Center(child: Text('$e'))),
               data: (s) {
@@ -253,8 +253,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
     // diatur owner di Master role; tab muncul bila role memegang izin tersebut.
     final all = <_Dest>[
       _Dest(
-        'Dashboard',
-        Icons.space_dashboard_outlined,
+        'Beranda',
+        Icons.home_outlined,
         const HomePage(),
         'dashboard.read',
         group: 'Operasional',
@@ -351,14 +351,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
           group: 'Tim',
           rank: 20,
         ),
-      _Dest(
-        'Notifikasi',
-        Icons.notifications_none_rounded,
-        const NotificationsPage(),
-        'notifications.read',
-        group: 'Akun',
-        rank: 30,
-      ),
+      // Notifikasi tidak lagi jadi tab: lonceng di appbar setiap halaman utama.
       _Dest(
         'Akun',
         Icons.person_outline_rounded,
@@ -393,7 +386,6 @@ class _HomeShellState extends ConsumerState<HomeShell>
   int _count(_Dest d) => switch (d.label) {
     'Usulan' => ref.watch(pendingProposalsCountProvider),
     'Persetujuan' => ref.watch(approvalCountsProvider).value?.inbox ?? 0,
-    'Notifikasi' => ref.watch(unreadNotificationsProvider),
     _ => 0,
   };
 

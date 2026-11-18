@@ -8,6 +8,8 @@ import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import '../attendance/outlet_schedule_page.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class _AdminOutlet {
   _AdminOutlet.fromJson(Map<String, dynamic> m)
@@ -69,7 +71,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
     var active = o?.active ?? true;
     var mode = o?.serviceMode ?? 'restaurant';
 
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
@@ -94,7 +96,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                   const SizedBox(height: 16),
                   Text(
                     'Tipe outlet',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -121,7 +123,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                         ? 'Tanpa meja: pelanggan memesan di kasir, langsung bayar, dan '
                               'menerima nomor antrian yang diisi kasir.'
                         : 'Pelanggan memilih meja. Mendukung open bill dan reservasi.',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: AppColors.muted,
                     ),
@@ -129,7 +131,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                   const SizedBox(height: 16),
                   Text(
                     'Lokasi untuk absensi',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -215,7 +217,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                           child: Text(
                             'Titik lokasi dipakai untuk batas absensi. Salin koordinat dari '
                             'Google Maps (tekan lama pada peta).',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               color: AppColors.ink,
                             ),
@@ -278,7 +280,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
   Widget _card(_AdminOutlet o) {
     final hasLoc = o.lat != null;
     return Material(
-      color: o.active ? AppColors.surface : const Color(0xFFF3F4F6),
+      color: o.active ? AppColors.surface : const Color(0xFFF1EDE7),
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -298,7 +300,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                 decoration: BoxDecoration(
                   color: o.active
                       ? AppColors.primarySoft
-                      : const Color(0xFFE5E7EB),
+                      : const Color(0xFFE7E1D8),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -318,7 +320,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                             o.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
@@ -335,7 +337,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                         o.address,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           color: AppColors.muted,
                         ),
@@ -364,7 +366,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
                           '${o.lat!.toStringAsFixed(5)}, ${o.lng?.toStringAsFixed(5) ?? '-'}',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: AppColors.muted,
                           ),
@@ -401,7 +403,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Kelola outlet')),
+    appBar: RmsAppBar(title: const Text('Kelola outlet')),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => _edit(null),
       icon: const Icon(Icons.add_business_outlined),
@@ -411,7 +413,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
       future: _future,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: AppLoader());
         }
         if (snap.hasError) {
           return Center(

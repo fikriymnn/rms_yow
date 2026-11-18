@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../orders/order_models.dart';
 import 'printer_service.dart';
 import 'printer_settings.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 enum _Job { receipt, kitchen }
 
@@ -21,7 +22,7 @@ Future<void> showPrintAfterPayDialog(
   String? tableName,
   String? cashier,
   int change = 0,
-}) => showDialog<void>(
+}) => showAppDialog<void>(
   context: context,
   barrierDismissible: false,
   builder: (_) => _PrintAfterPayDialog(
@@ -46,7 +47,7 @@ Future<void> showPrintAfterSaveDialog(
   String? cashier,
 }) async {
   if (newItems.isEmpty) return;
-  await showDialog<void>(
+  await showAppDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (_) => _PrintAfterPayDialog(
@@ -157,7 +158,7 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
       ),
       onPressed: _busy ? null : () => _print(job),
       icon: leading,
-      label: Text(text, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+      label: Text(text, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
     );
   }
 
@@ -168,7 +169,7 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
     return AlertDialog(
       icon: Container(
         padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(color: Color(0xFFD1FAE5), shape: BoxShape.circle),
+        decoration: const BoxDecoration(color: Color(0xFFE7EDE3), shape: BoxShape.circle),
         child: const Icon(Icons.check_rounded, size: 32, color: AppColors.success),
       ),
       title: Text(widget.title, textAlign: TextAlign.center),
@@ -190,7 +191,7 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
                       '${widget.kitchenAddition ? 'tambahan' : 'ke dapur'}',
               ].join(' • '),
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: AppColors.muted, fontSize: 13),
+              style: GoogleFonts.plusJakartaSans(color: AppColors.muted, fontSize: 13),
             ),
             if (widget.change > 0) ...[
               const SizedBox(height: 12),
@@ -202,10 +203,10 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
                 ),
                 child: Column(
                   children: [
-                    Text('Kembalian', style: GoogleFonts.inter(fontSize: 12.5)),
+                    Text('Kembalian', style: GoogleFonts.plusJakartaSans(fontSize: 12.5)),
                     Text(
                       rupiah.format(widget.change),
-                      style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
@@ -225,7 +226,7 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
               const SizedBox(height: 12),
               Text(
                 _error!,
-                style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.danger),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.danger),
               ),
             ],
           ],

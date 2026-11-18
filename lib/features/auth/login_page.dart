@@ -8,6 +8,7 @@ import '../client/client_pages.dart';
 import '../client/client_providers.dart';
 import '../../core/theme/app_colors.dart';
 import 'auth_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -46,7 +47,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _switchClient() async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Ganti akun restoran?'),
@@ -142,7 +143,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: Text(
               'Restaurant Management System • by Kovalen Teknologi',
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.muted),
+              style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: AppColors.muted),
             ),
           ),
         ],
@@ -169,7 +170,7 @@ class _SubscriptionTile extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
       decoration: BoxDecoration(
-        color: s.inGrace ? const Color(0xFFFEF3C7) : AppColors.primarySoft,
+        color: s.inGrace ? const Color(0xFFF7EBD6) : AppColors.primarySoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -183,7 +184,7 @@ class _SubscriptionTile extends ConsumerWidget {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600),
+              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600),
             ),
           ),
           if (!s.lifetime)

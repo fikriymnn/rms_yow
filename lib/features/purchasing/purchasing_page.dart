@@ -17,6 +17,8 @@ import 'purchasing_models.dart';
 import 'purchasing_providers.dart';
 import '../approvals/approvals_page.dart';
 import '../approvals/pending_requests_card.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class PurchasingPage extends ConsumerWidget {
   const PurchasingPage({super.key});
@@ -29,7 +31,7 @@ class PurchasingPage extends ConsumerWidget {
     return DefaultTabController(
       length: showDebt ? 3 : 2,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: RmsAppBar(
           title: const Text('Pembelian'),
           bottom: TabBar(
             tabs: [
@@ -100,7 +102,7 @@ class SuppliersTab extends ConsumerWidget {
                   ),
                   child: Text(
                     initial,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
@@ -116,7 +118,7 @@ class SuppliersTab extends ConsumerWidget {
                         s.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -126,7 +128,7 @@ class SuppliersTab extends ConsumerWidget {
                           sub,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.5,
                             color: AppColors.muted,
                           ),
@@ -222,7 +224,7 @@ class SuppliersTab extends ConsumerWidget {
       );
       return;
     }
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Hapus ${s.name}?'),
@@ -317,7 +319,7 @@ class PayablesTab extends ConsumerWidget {
                   children: [
                     Text(
                       'Total hutang supplier',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         color: Colors.white70,
                       ),
@@ -325,7 +327,7 @@ class PayablesTab extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       rupiah.format(total),
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -333,7 +335,7 @@ class PayablesTab extends ConsumerWidget {
                     ),
                     Text(
                       '${shown.length} supplier',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         color: Colors.white54,
                       ),
@@ -391,7 +393,7 @@ class PayablesTab extends ConsumerWidget {
                               s.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -399,7 +401,7 @@ class PayablesTab extends ConsumerWidget {
                           ),
                           Text(
                             rupiah.format(bal[s.id] ?? 0),
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: AppColors.danger,
@@ -454,7 +456,7 @@ class SupplierLedgerPage extends ConsumerWidget {
     ]..sort((a, b) => b.at.compareTo(a.at));
 
     return Scaffold(
-      appBar: AppBar(title: Text(supplier.name)),
+      appBar: RmsAppBar(title: Text(supplier.name)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -470,7 +472,7 @@ class SupplierLedgerPage extends ConsumerWidget {
               children: [
                 Text(
                   'Sisa hutang',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     color: AppColors.muted,
                   ),
@@ -478,7 +480,7 @@ class SupplierLedgerPage extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   rupiah.format(balance),
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
                     color: balance > 0 ? AppColors.danger : AppColors.success,
@@ -514,7 +516,7 @@ class SupplierLedgerPage extends ConsumerWidget {
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: e.amount < 0
-                                      ? const Color(0xFFD1FAE5)
+                                      ? const Color(0xFFE7EDE3)
                                       : AppColors.roseSoft,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -524,8 +526,8 @@ class SupplierLedgerPage extends ConsumerWidget {
                                       : Icons.inventory_2_outlined,
                                   size: 18,
                                   color: e.amount < 0
-                                      ? const Color(0xFF047857)
-                                      : const Color(0xFF9F1239),
+                                      ? const Color(0xFF4A5C44)
+                                      : const Color(0xFF7D0B1E),
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -535,7 +537,7 @@ class SupplierLedgerPage extends ConsumerWidget {
                                   children: [
                                     Text(
                                       e.title,
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -543,7 +545,7 @@ class SupplierLedgerPage extends ConsumerWidget {
                                     Text(
                                       '${fmt.format(DateTime.fromMillisecondsSinceEpoch(e.at))}'
                                       '${e.sub.isEmpty ? '' : ' • ${e.sub}'}',
-                                      style: GoogleFonts.inter(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: AppColors.muted,
                                       ),
@@ -553,7 +555,7 @@ class SupplierLedgerPage extends ConsumerWidget {
                               ),
                               Text(
                                 '${e.amount < 0 ? '−' : '+'}${rupiah.format(e.amount.abs())}',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: e.amount < 0
@@ -586,7 +588,7 @@ Future<void> showPaymentDialog(
   final note = TextEditingController();
   var fromDrawer = false;
 
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) {
@@ -611,14 +613,14 @@ Future<void> showPaymentDialog(
                       children: [
                         Text(
                           'Sisa hutang',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.5,
                             color: AppColors.muted,
                           ),
                         ),
                         Text(
                           rupiah.format(balance),
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
                             color: AppColors.primary,
@@ -665,9 +667,9 @@ Future<void> showPaymentDialog(
                       ),
                       child: Text(
                         'Melebihi sisa hutang',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: const Color(0xFF9F1239),
+                          color: const Color(0xFF7D0B1E),
                         ),
                       ),
                     ),

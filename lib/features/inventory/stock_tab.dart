@@ -180,7 +180,7 @@ class _IngredientStockCard extends StatelessWidget {
                       i.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -200,7 +200,7 @@ class _IngredientStockCard extends StatelessWidget {
                 children: [
                   Text(
                     qtyText(level),
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: color,
@@ -209,7 +209,7 @@ class _IngredientStockCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     i.unit,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: AppColors.muted,
                     ),
@@ -225,14 +225,14 @@ class _IngredientStockCard extends StatelessWidget {
                     minHeight: 6,
                     color: isLow ? AppColors.danger : AppColors.success,
                     backgroundColor: isLow
-                        ? const Color(0xFFFEE2E2)
-                        : const Color(0xFFD1FAE5),
+                        ? const Color(0xFFFBE3E1)
+                        : const Color(0xFFE7EDE3),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Minimum ${qtyText(i.minStock)} ${i.unit}',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: AppColors.muted,
                   ),
@@ -240,7 +240,7 @@ class _IngredientStockCard extends StatelessWidget {
               ] else
                 Text(
                   'Tanpa minimum',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: AppColors.muted,
                   ),
@@ -271,7 +271,7 @@ Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
           ListTile(
             title: Text(
               i.name,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -441,7 +441,7 @@ Future<void> _history(BuildContext context, WidgetRef ref, Ingredient i) async {
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               'Riwayat ${i.name}',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
               ),
@@ -470,7 +470,7 @@ Future<void> _history(BuildContext context, WidgetRef ref, Ingredient i) async {
                         Text(
                           '${fmt.format(DateTime.fromMillisecondsSinceEpoch(m.at))}'
                           '${m.userName.isEmpty ? '' : ' • ${m.userName}'}',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: AppColors.muted,
                           ),
@@ -478,14 +478,14 @@ Future<void> _history(BuildContext context, WidgetRef ref, Ingredient i) async {
                         if (m.note.isNotEmpty)
                           Text(
                             m.note,
-                            style: GoogleFonts.inter(fontSize: 12.5),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5),
                           ),
                       ],
                     ),
                   ),
                   Text(
                     '${m.qty > 0 ? '+' : ''}${qtyText(m.qty)} ${i.unit}',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: m.qty >= 0 ? AppColors.success : AppColors.danger,

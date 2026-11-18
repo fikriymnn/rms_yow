@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 /// Dialog isian generik. Return nilai tiap kolom (sudah di-trim), atau null.
 Future<List<String>?> formDialog(
@@ -15,7 +16,7 @@ Future<List<String>?> formDialog(
     for (var i = 0; i < labels.length; i++)
       TextEditingController(text: initial?[i] ?? ''),
   ];
-  return showDialog<List<String>>(
+  return showAppDialog<List<String>>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(title),

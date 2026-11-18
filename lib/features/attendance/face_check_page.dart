@@ -13,6 +13,7 @@ import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/theme/app_colors.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 Uint8List _prepareJpeg(Uint8List raw) {
   var im = img.decodeJpg(raw);
@@ -256,13 +257,13 @@ class _FaceCheckPageState extends State<FaceCheckPage> {
                   : (active ? Icons.visibility : Icons.radio_button_unchecked),
               size: 16,
               color: done
-                  ? const Color(0xFF6EE7B7)
-                  : (active ? const Color(0xFFFDA4AF) : Colors.white54),
+                  ? const Color(0xFF93A98A)
+                  : (active ? const Color(0xFFE59AA6) : Colors.white54),
             ),
             const SizedBox(width: 6),
             Text(
               text,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: done || active ? Colors.white : Colors.white54,
@@ -292,13 +293,13 @@ class _FaceCheckPageState extends State<FaceCheckPage> {
               const Icon(
                 Icons.error_outline,
                 size: 56,
-                color: Color(0xFFFDA4AF),
+                color: Color(0xFFE59AA6),
               ),
               const SizedBox(height: 12),
               Text(
                 _fatal!,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontSize: 15, color: Colors.white),
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.white),
               ),
               const SizedBox(height: 16),
               FilledButton(
@@ -347,7 +348,7 @@ class _FaceCheckPageState extends State<FaceCheckPage> {
             child: Text(
               _message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -382,7 +383,7 @@ class _FaceCheckPageState extends State<FaceCheckPage> {
                 Flexible(
                   child: Text(
                     'Foto hanya dipakai untuk verifikasi absensi.',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: Colors.white54,
                     ),
@@ -397,7 +398,7 @@ class _FaceCheckPageState extends State<FaceCheckPage> {
 
     return Scaffold(
       backgroundColor: AppColors.ink,
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: const Text('Verifikasi wajah'),
         backgroundColor: AppColors.ink,
         foregroundColor: Colors.white,

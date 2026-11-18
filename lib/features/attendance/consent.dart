@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import 'attendance_queue.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 /// Harus sama dengan ATTENDANCE_CONSENT_VERSION di server.
 const kConsentVersion = 1;
@@ -16,7 +17,7 @@ Future<bool> askConsentAgreement(
 }) async {
   var agreed = false;
   final who = forName == null ? '' : ' $forName';
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(
@@ -98,7 +99,7 @@ Future<bool> ensureConsent(BuildContext context, WidgetRef ref) async {
 /// Cabut persetujuan (hak subjek data). Mengembalikan jumlah foto yang dihapus di server,
 /// atau null bila dibatalkan atau gagal.
 Future<int?> revokeConsent(BuildContext context, WidgetRef ref) async {
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Cabut persetujuan data absensi?'),

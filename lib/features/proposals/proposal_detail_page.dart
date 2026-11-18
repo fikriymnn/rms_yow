@@ -17,6 +17,8 @@ import 'menu_proposal.dart';
 import 'proposal_editor_page.dart';
 import 'proposal_providers.dart';
 import 'proposals_page.dart' show proposalTone;
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 /// Halaman penuh (HP). Di Tab lanskap dan Web, ProposalDetailView dipakai di panel kanan.
 class ProposalDetailPage extends StatelessWidget {
@@ -28,7 +30,7 @@ class ProposalDetailPage extends StatelessWidget {
     type: 'proposal',
     refId: proposalId,
     child: Scaffold(
-      appBar: AppBar(title: const Text('Usulan menu')),
+      appBar: RmsAppBar(title: const Text('Usulan menu')),
       body: ProposalDetailView(proposalId: proposalId),
     ),
   );
@@ -106,7 +108,7 @@ class ProposalDetailView extends ConsumerWidget {
     WidgetRef ref,
     MenuProposal p,
   ) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Tarik usulan ini?'),
@@ -134,7 +136,7 @@ class ProposalDetailView extends ConsumerWidget {
         .value
         ?.where((x) => x.id == proposalId)
         .firstOrNull;
-    if (p == null) return const Center(child: CircularProgressIndicator());
+    if (p == null) return const Center(child: AppLoader());
 
     final user = ref.watch(appUserProvider).value;
     final isOwner = user?.can('proposals.decide') ?? false;
@@ -165,13 +167,13 @@ class ProposalDetailView extends ConsumerWidget {
             width: 120,
             child: Text(
               k,
-              style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted),
             ),
           ),
           Expanded(
             child: Text(
               v,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w500,
               ),
@@ -187,12 +189,12 @@ class ProposalDetailView extends ConsumerWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: color ?? AppColors.ink,
@@ -226,7 +228,7 @@ class ProposalDetailView extends ConsumerWidget {
                         children: [
                           Text(
                             p.name,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                             ),
@@ -234,7 +236,7 @@ class ProposalDetailView extends ConsumerWidget {
                           const SizedBox(height: 2),
                           Text(
                             p.isChange ? 'Perubahan menu / harga' : 'Menu baru',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               color: AppColors.muted,
                             ),
@@ -283,7 +285,7 @@ class ProposalDetailView extends ConsumerWidget {
                             : p.isChange
                             ? 'Resep tidak diubah pada usulan ini.'
                             : 'Tanpa resep.',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13.5,
                           color: AppColors.muted,
                         ),
@@ -303,7 +305,7 @@ class ProposalDetailView extends ConsumerWidget {
                                         Text(
                                           ings[l.ingredientId]?.name ??
                                               '(bahan dihapus)',
-                                          style: GoogleFonts.inter(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -311,7 +313,7 @@ class ProposalDetailView extends ConsumerWidget {
                                         if (avg[l.ingredientId] == null)
                                           Text(
                                             'belum ada harga beli',
-                                            style: GoogleFonts.inter(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               color: AppColors.danger,
                                             ),
@@ -321,7 +323,7 @@ class ProposalDetailView extends ConsumerWidget {
                                   ),
                                   Text(
                                     '${qtyText(l.qty)} ${ings[l.ingredientId]?.unit ?? ''} • ${rupiah.format((l.qty * (avg[l.ingredientId] ?? 0)).round())}',
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13,
                                       color: AppColors.muted,
                                     ),

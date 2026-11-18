@@ -17,6 +17,8 @@ import '../menu/menu_item.dart';
 import '../menu/menu_providers.dart';
 import 'menu_proposal.dart';
 import 'proposal_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class ProposalEditorPage extends ConsumerStatefulWidget {
   const ProposalEditorPage({super.key, this.existing});
@@ -81,7 +83,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
       _toast('Tidak ada bahan lain. Tambahkan di Stok → Bahan.');
       return;
     }
-    final ing = await showDialog<Ingredient>(
+    final ing = await showAppDialog<Ingredient>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('Pilih bahan'),
@@ -333,7 +335,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
                               Text(
                                 ingMap[_lines[i].ingredientId]?.name ??
                                     '(bahan dihapus)',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -341,7 +343,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
                               if (avg[_lines[i].ingredientId] == null)
                                 Text(
                                   'belum ada harga beli',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     color: AppColors.danger,
                                   ),
@@ -351,7 +353,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
                         ),
                         Text(
                           '${qtyText(_lines[i].qty)} ${ingMap[_lines[i].ingredientId]?.unit ?? ''}',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             color: AppColors.muted,
                           ),
@@ -391,9 +393,9 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
             ),
             child: Text(
               'Sebagian bahan belum punya harga beli, food cost bisa lebih rendah dari sebenarnya.',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: const Color(0xFF9F1239),
+                color: const Color(0xFF7D0B1E),
               ),
             ),
           )
@@ -420,14 +422,14 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
                 children: [
                   Text(
                     'Margin pada harga usulan',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12.5,
                       color: AppColors.muted,
                     ),
                   ),
                   Text(
                     pct == null ? '-' : '$pct%',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 30,
                       fontWeight: FontWeight.w800,
                       color: marginTone.fg,
@@ -469,14 +471,14 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
                   children: [
                     Text(
                       'Food cost ${rupiah.format(cost.round())}',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         color: AppColors.muted,
                       ),
                     ),
                     Text(
                       pct == null ? 'Margin -' : 'Margin $pct%',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: marginTone.fg,
@@ -498,7 +500,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: Text(widget.existing == null ? 'Usulan baru' : 'Edit usulan'),
       ),
       body: wide

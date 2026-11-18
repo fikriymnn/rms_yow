@@ -11,6 +11,8 @@ import 'printer_service.dart';
 import 'printer_settings.dart';
 import 'receipt_builder.dart';
 import 'receipt_template.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class PrinterSettingsPage extends ConsumerStatefulWidget {
   const PrinterSettingsPage({super.key});
@@ -114,7 +116,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
         );
         return;
       }
-      final p = await showDialog<({String name, String mac})>(
+      final p = await showAppDialog<({String name, String mac})>(
         context: context,
         builder: (ctx) => SimpleDialog(
           title: const Text('Pilih printer'),
@@ -236,7 +238,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
   @override
   Widget build(BuildContext context) {
     if (!_loaded) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const AppLoadingScreen();
     }
     final cur = _collect();
     final preview = testLines(cur).map((l) => l.text).join('\n');
@@ -292,7 +294,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
                   Expanded(
                     child: Text(
                       'Di web, struk dicetak lewat dialog print browser (PDF).',
-                      style: GoogleFonts.inter(fontSize: 13),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13),
                     ),
                   ),
                 ],
@@ -340,7 +342,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
                             children: [
                               Text(
                                 _s.btName.isEmpty ? 'Belum dipilih' : _s.btName,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -348,7 +350,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
                               if (_s.btAddress.isNotEmpty)
                                 Text(
                                   _s.btAddress,
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     color: AppColors.muted,
                                   ),
@@ -440,7 +442,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
                 Icon(noteIcon, size: 18, color: noteColor),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(noteText, style: GoogleFonts.inter(fontSize: 12.5, height: 1.4)),
+                  child: Text(noteText, style: GoogleFonts.plusJakartaSans(fontSize: 12.5, height: 1.4)),
                 ),
               ],
             ),
@@ -494,7 +496,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
             const SizedBox(height: 4),
             Text(
               'Jarak kosong sebelum disobek: ${_s.feedLines} baris',
-              style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w600),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w600),
             ),
             Slider(
               value: _s.feedLines.toDouble(),
@@ -507,7 +509,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
             Text(
               'Kecilkan bila sisa kertas kosong terlalu panjang; besarkan bila baris terakhir '
               'ikut tersobek. Coba dengan "Tes cetak".',
-              style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
             ),
           ],
         ],
@@ -520,7 +522,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Printer & Struk')),
+      appBar: RmsAppBar(title: const Text('Printer & Struk')),
       body: LayoutBuilder(
         builder: (context, c) {
           final wide = c.maxWidth >= 900;

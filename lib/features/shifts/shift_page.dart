@@ -17,6 +17,8 @@ import '../orders/order_models.dart';
 import '../orders/order_providers.dart';
 import 'shift.dart';
 import 'shift_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 typedef ShiftTotals = ({
   int cash,
@@ -109,7 +111,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
     int cashExpense,
   ) async {
     final c = TextEditingController();
-    final counted = await showDialog<int>(
+    final counted = await showAppDialog<int>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
@@ -133,14 +135,14 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                       children: [
                         Text(
                           'Kas seharusnya',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.5,
                             color: AppColors.muted,
                           ),
                         ),
                         Text(
                           rupiah.format(expected),
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
                             color: AppColors.primary,
@@ -166,17 +168,17 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: diff == 0
-                            ? const Color(0xFFD1FAE5)
+                            ? const Color(0xFFE7EDE3)
                             : diff < 0
                             ? AppColors.roseSoft
-                            : const Color(0xFFFEF3C7),
+                            : const Color(0xFFF7EBD6),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
                           Text(
                             diff == 0 ? 'Pas' : (diff < 0 ? 'Kurang' : 'Lebih'),
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w600,
                             ),
@@ -184,7 +186,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                           const Spacer(),
                           Text(
                             rupiah.format(diff.abs()),
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                             ),
@@ -263,7 +265,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: const Text('Kas & Shift'),
         actions: [
           IconButton(
@@ -295,16 +297,16 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                     children: [
                       const Icon(
                         Icons.warning_amber_rounded,
-                        color: Color(0xFF9F1239),
+                        color: Color(0xFF7D0B1E),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Ada lebih dari satu shift terbuka di outlet ini (kemungkinan '
                           'dibuka bersamaan saat offline). Tutup satu per satu, mulai dari yang tertua.',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
-                            color: const Color(0xFF9F1239),
+                            color: const Color(0xFF7D0B1E),
                           ),
                         ),
                       ),
@@ -359,11 +361,11 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
         collapsedShape: const RoundedRectangleBorder(),
         title: Text(
           s.cashierName,
-          style: GoogleFonts.inter(fontSize: 14.5, fontWeight: FontWeight.w700),
+          style: GoogleFonts.plusJakartaSans(fontSize: 14.5, fontWeight: FontWeight.w700),
         ),
         subtitle: Text(
           _t(s.openedAt),
-          style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
         ),
         trailing: d == 0
             ? const StatusPill('Pas', tone: Tone.success)
@@ -426,14 +428,14 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                 children: [
                   Text(
                     'Belum ada shift aktif',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   Text(
                     'Buka shift untuk mulai menerima pembayaran',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12.5,
                       color: AppColors.muted,
                     ),
@@ -486,7 +488,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                 child: Text(
                   '${_t(s.openedAt)} • ${s.cashierName}',
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     color: AppColors.muted,
                   ),
@@ -505,7 +507,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
               children: [
                 Text(
                   'Kas seharusnya',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     color: AppColors.muted,
                   ),
@@ -513,7 +515,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                 const SizedBox(height: 2),
                 Text(
                   rupiah.format(expected),
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
                     color: AppColors.primary,
@@ -552,7 +554,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 'Hanya ${s.cashierName} (pembuka shift) atau manager yang dapat menutup shift ini.',
-                style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
               ),
             ),
         ],

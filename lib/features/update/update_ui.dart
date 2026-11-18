@@ -9,6 +9,7 @@ import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import 'update_models.dart';
 import 'update_service.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 String _otaError(String status) => switch (status) {
   'PERMISSION_NOT_GRANTED_ERROR' =>
@@ -107,7 +108,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
             children: [
               Text(
                 'Versi ${i.version} • ${i.sizeText}',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
               ),
               if (i.notes.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -118,7 +119,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 Text(
                   'Versi aplikasi ini sudah tidak didukung server. Perbarui untuk '
                   'melanjutkan.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     color: AppColors.danger,
                   ),
@@ -132,7 +133,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 const SizedBox(height: 6),
                 Text(
                   _progress > 0 ? '$_phase $_progress%' : _phase,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     color: AppColors.muted,
                   ),
@@ -142,7 +143,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     color: AppColors.danger,
                   ),
@@ -171,7 +172,7 @@ Future<void> showUpdateDialog(
   BuildContext context,
   UpdateInfo info, {
   bool mandatory = false,
-}) => showDialog<void>(
+}) => showAppDialog<void>(
   context: context,
   barrierDismissible: !mandatory,
   builder: (_) => UpdateDialog(info: info, mandatory: mandatory),
@@ -227,7 +228,7 @@ class UpdateRequiredPage extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 'Pembaruan diperlukan',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),

@@ -13,6 +13,7 @@ import '../auth/auth_providers.dart';
 import '../orders/order_models.dart';
 import 'charge_models.dart';
 import 'charge_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
 
 /// Master pajak & biaya layanan. Owner menyimpan langsung; manager mengajukan
 /// perubahan yang baru berlaku setelah disetujui owner.
@@ -39,7 +40,7 @@ class ChargesTab extends ConsumerWidget {
     var onService = c?.onService ?? false;
     var active = c?.active ?? true;
 
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
@@ -179,7 +180,7 @@ class ChargesTab extends ConsumerWidget {
     Charge c, {
     required bool direct,
   }) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Hapus ${c.name}?'),
@@ -225,7 +226,7 @@ class ChargesTab extends ConsumerWidget {
     required List<Charge> all,
   }) {
     return Material(
-      color: c.active ? AppColors.surface : const Color(0xFFF3F4F6),
+      color: c.active ? AppColors.surface : const Color(0xFFF1EDE7),
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -246,7 +247,7 @@ class ChargesTab extends ConsumerWidget {
                   children: [
                     Text(
                       c.name,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -275,7 +276,7 @@ class ChargesTab extends ConsumerWidget {
               ),
               Text(
                 '${percentText(c.percent)}%',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: AppColors.primary,
@@ -316,14 +317,14 @@ class ChargesTab extends ConsumerWidget {
         children: [
           Text(
             k,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
           Text(
             rupiah.format(v),
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
             ),
@@ -386,7 +387,7 @@ class ChargesTab extends ConsumerWidget {
                     child: Text(
                       'Perubahan pajak dan biaya layanan dikirim sebagai pengajuan '
                       'dan baru berlaku setelah disetujui owner.',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         color: AppColors.ink,
                       ),

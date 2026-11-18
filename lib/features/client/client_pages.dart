@@ -12,6 +12,8 @@ import '../../shell/auth_layout.dart';
 import '../auth/auth_providers.dart';
 import 'client_models.dart';
 import 'client_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 const _months = [
   'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
@@ -65,12 +67,12 @@ class AuthErrorBox extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.error_outline, size: 18, color: Color(0xFF9F1239)),
+        const Icon(Icons.error_outline, size: 18, color: Color(0xFF7D0B1E)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             message,
-            style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF9F1239)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF7D0B1E)),
           ),
         ),
       ],
@@ -186,7 +188,7 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
           Text(
             'Belum memiliki akun restoran? Hubungi $kCsName.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
           ),
         ],
       ),
@@ -218,13 +220,13 @@ class DeviceNameTile extends ConsumerWidget {
               children: [
                 Text(
                   'Perangkat ini',
-                  style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.muted),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: AppColors.muted),
                 ),
                 Text(
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -250,7 +252,7 @@ Future<void> contactCs(BuildContext context, ClientState? c) async {
     }
   }
   if (!context.mounted) return;
-  await showDialog<void>(
+  await showAppDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text('Hubungi $kCsName'),
@@ -289,14 +291,14 @@ Future<void> showActivatedDialog(
       ? 'Langganan ${info.name} kini aktif selamanya.'
       : 'Langganan ${info.name} kini aktif selama ${daysLeftOf(s)} hari, '
             'hingga ${formatClientDateLong(s.validUntil)}.';
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => AlertDialog(
       icon: Container(
         padding: const EdgeInsets.all(14),
         decoration: const BoxDecoration(
-          color: Color(0xFFD1FAE5),
+          color: Color(0xFFE7EDE3),
           shape: BoxShape.circle,
         ),
         child: const Icon(Icons.check_rounded, size: 34, color: AppColors.success),
@@ -310,7 +312,7 @@ Future<void> showActivatedDialog(
             ? '$period\n\nSilakan masuk untuk mulai menggunakan aplikasi kembali.'
             : '$period\n\nTerima kasih telah memperpanjang langganan.',
         textAlign: TextAlign.center,
-        style: GoogleFonts.inter(fontSize: 14, height: 1.5),
+        style: GoogleFonts.plusJakartaSans(fontSize: 14, height: 1.5),
       ),
       actionsAlignment: MainAxisAlignment.center,
       actions: [
@@ -388,7 +390,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
   }
 
   Future<void> _switchClient() async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Keluar dari akun restoran?'),
@@ -425,7 +427,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
             children: [
               Text(
                 title,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: AppColors.ink,
@@ -434,7 +436,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
               const SizedBox(height: 4),
               Text(
                 message,
-                style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: AppColors.ink),
+                style: GoogleFonts.plusJakartaSans(fontSize: 13.5, height: 1.5, color: AppColors.ink),
               ),
             ],
           ),
@@ -450,7 +452,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         child: Text(
           text,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
             color: AppColors.muted,
@@ -531,7 +533,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
       BlockReason.offlineTooLong => _statusCard(
         icon: Icons.wifi_off_rounded,
         fg: AppColors.warning,
-        bg: const Color(0xFFFEF3C7),
+        bg: const Color(0xFFF7EBD6),
         title: 'Perlu terhubung ke internet',
         message:
             'Status langganan belum diperiksa lebih dari $kOfflineGraceDays hari. '
@@ -568,7 +570,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
             Text(
               'Masukkan kode dari $kCsName di bawah ini untuk mengaktifkan kembali akun Anda.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted, height: 1.45),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted, height: 1.45),
             ),
             const SizedBox(height: 14),
             ..._codeForm('Aktifkan'),
@@ -603,7 +605,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
         ? _statusCard(
             icon: Icons.hourglass_bottom_rounded,
             fg: AppColors.warning,
-            bg: const Color(0xFFFEF3C7),
+            bg: const Color(0xFFF7EBD6),
             title: 'Masa tenggang',
             message:
                 'Langganan ${c!.info.name} berakhir pada ${formatClientDateLong(sub.validUntil)}. '
@@ -612,14 +614,14 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
         : _statusCard(
             icon: Icons.verified_outlined,
             fg: AppColors.success,
-            bg: const Color(0xFFD1FAE5),
+            bg: const Color(0xFFE7EDE3),
             title: 'Langganan aktif',
             message:
                 'Langganan ${c!.info.name} aktif hingga ${formatClientDateLong(sub.validUntil)} '
                 '(${daysLeftOf(sub)} hari lagi).',
           );
     return Scaffold(
-      appBar: AppBar(title: const Text('Perpanjang langganan')),
+      appBar: RmsAppBar(title: const Text('Perpanjang langganan')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
@@ -630,7 +632,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
               const SizedBox(height: 20),
               Text(
                 'Masukkan kode aktivasi dari $kCsName untuk menambah masa aktif langganan.',
-                style: GoogleFonts.inter(fontSize: 14, height: 1.45),
+                style: GoogleFonts.plusJakartaSans(fontSize: 14, height: 1.45),
               ),
               const SizedBox(height: 14),
               ..._codeForm('Perpanjang'),

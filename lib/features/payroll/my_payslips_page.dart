@@ -9,6 +9,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import 'payroll_models.dart';
 import 'payslip_view.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 /// Slip gaji milik karyawan sendiri (hanya yang sudah diterbitkan).
 class MyPayslipsPage extends ConsumerStatefulWidget {
@@ -28,7 +30,7 @@ class _MyPayslipsPageState extends ConsumerState<MyPayslipsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Slip gaji')),
+      appBar: RmsAppBar(title: const Text('Slip gaji')),
       body: FutureBuilder<List<Payslip>>(
         future: _future,
         builder: (context, snap) {
@@ -36,7 +38,7 @@ class _MyPayslipsPageState extends ConsumerState<MyPayslipsPage> {
             return EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', message: errorText(snap.error!));
           }
           final list = snap.data;
-          if (list == null) return const Center(child: CircularProgressIndicator());
+          if (list == null) return const Center(child: AppLoader());
           if (list.isEmpty) {
             return const EmptyState(
               icon: Icons.receipt_long_outlined,
@@ -57,9 +59,9 @@ class _MyPayslipsPageState extends ConsumerState<MyPayslipsPage> {
                   side: const BorderSide(color: AppColors.border),
                 ),
                 leading: const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
-                title: Text(periodText(s.periodStart, s.periodEnd), style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                title: Text(periodText(s.periodStart, s.periodEnd), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
                 subtitle: Text(s.outletName ?? ''),
-                trailing: Text(rupiah.format(s.net), style: GoogleFonts.inter(fontWeight: FontWeight.w800)),
+                trailing: Text(rupiah.format(s.net), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute<void>(builder: (_) => _SlipPage(slip: s)),
@@ -81,7 +83,7 @@ class _SlipPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final period = periodText(slip.periodStart, slip.periodEnd);
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: const Text('Slip gaji'),
         actions: [
           IconButton(

@@ -17,6 +17,8 @@ import '../export/csv_util.dart';
 import '../export/export_service.dart';
 import '../export/period_chips.dart';
 import 'attendance_models.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class _SummaryRow {
   _SummaryRow.fromJson(Map<String, dynamic> m)
@@ -240,12 +242,12 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
           const SizedBox(width: 10),
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 13.5, color: AppColors.muted),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: AppColors.muted),
           ),
           const Spacer(),
           Text(
             value,
-            style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700),
+            style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700),
           ),
           const SizedBox(width: 6),
           const Icon(Icons.edit_outlined, size: 16, color: AppColors.muted),
@@ -278,7 +280,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
         ? null
         : DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!);
 
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
@@ -314,7 +316,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                         : mins == null
                         ? 'Belum ada waktu pulang.'
                         : 'Durasi kerja: ${durationText(mins)}',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
                       color: valid ? AppColors.ink : AppColors.danger,
@@ -370,7 +372,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
       text: approved && (r.overtimeBonus ?? 0) > 0 ? '${r.overtimeBonus}' : '',
     );
     final noteC = TextEditingController(text: approved ? r.overtimeNote : '');
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
@@ -392,7 +394,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                         ? 'Terhitung lembur ${durationText(r.overtimeMin)} dari jadwal pulang. '
                               'Anda bisa menyetujui sebagian saja.'
                         : 'Tidak ada lembur terhitung dari jadwal. Isi menit lembur secara manual.',
-                    style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted, height: 1.4),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted, height: 1.4),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -643,13 +645,13 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
           width: 100,
           child: Text(
             k,
-            style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted),
           ),
         ),
         Expanded(
           child: Text(
             v,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13.5,
               fontWeight: FontWeight.w600,
               color: color ?? AppColors.ink,
@@ -687,7 +689,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
               backgroundColor: AppColors.primary,
               child: Text(
                 _initials(r.userName),
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
@@ -701,14 +703,14 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                 children: [
                   Text(
                     r.userName,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   Text(
                     DateFormat('EEEE, d MMM yyyy').format(inDt),
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: AppColors.muted,
                     ),
@@ -849,7 +851,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
       ),
       if (r.clockOutAt != null) ...[
         const SizedBox(height: 16),
-        Text('Lembur', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        Text('Lembur', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -913,7 +915,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                 backgroundColor: AppColors.primary,
                 child: Text(
                   _initials(r.userName),
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -932,7 +934,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                             r.userName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
                             ),
@@ -948,7 +950,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                     Text(
                       '${_day.format(inDt)} • ${_hm.format(inDt)} - ${outDt == null ? '...' : _hm.format(outDt)}'
                       '${r.minutes == null ? '' : ' • ${durationText(r.minutes!)}'}',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         color: AppColors.muted,
                       ),
@@ -1003,7 +1005,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
   }
 
   Widget _recordsTab() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const Center(child: AppLoader());
     if (_error != null) return _errorView();
     return LayoutBuilder(
       builder: (context, c) {
@@ -1125,7 +1127,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
   }
 
   Widget _summaryTab() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const Center(child: AppLoader());
     if (_error != null) return _errorView();
     final totalMin = _summary.fold<int>(0, (s, e) => s + e.minutes);
     final openAll = _summary.fold<int>(0, (s, e) => s + e.openCount);
@@ -1191,7 +1193,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                           backgroundColor: AppColors.primary,
                           child: Text(
                             _initials(s.userName),
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
@@ -1207,14 +1209,14 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                                 s.userName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               Text(
                                 '${s.records} catatan',
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12.5,
                                   color: AppColors.muted,
                                 ),
@@ -1253,7 +1255,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                         ),
                         Text(
                           durationText(s.minutes),
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                             color: AppColors.primary,
@@ -1275,7 +1277,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: RmsAppBar(
           title: Text('Absensi${outlet == null ? '' : ' • ${outlet.name}'}'),
           actions: [
             if (ref.watch(appUserProvider).value?.can('attendance.schedule') ??
@@ -1389,7 +1391,7 @@ class _PhotoBoxState extends ConsumerState<_PhotoBox> {
           Text(
             text,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.muted),
+            style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: AppColors.muted),
           ),
         ],
       ),
@@ -1406,7 +1408,7 @@ class _PhotoBoxState extends ConsumerState<_PhotoBox> {
         future: _future,
         builder: (ctx, snap) {
           if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: AppLoader());
           }
           if (snap.hasError) {
             return _placeholder(
@@ -1416,7 +1418,7 @@ class _PhotoBoxState extends ConsumerState<_PhotoBox> {
           }
           final bytes = snap.data!;
           return GestureDetector(
-            onTap: () => showDialog<void>(
+            onTap: () => showAppDialog<void>(
               context: ctx,
               builder: (_) =>
                   Dialog(child: InteractiveViewer(child: Image.memory(bytes))),
@@ -1436,7 +1438,7 @@ class _PhotoBoxState extends ConsumerState<_PhotoBox> {
       children: [
         Text(
           widget.label,
-          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
+          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
         AspectRatio(

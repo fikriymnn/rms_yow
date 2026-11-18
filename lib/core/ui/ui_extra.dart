@@ -27,7 +27,7 @@ class KvRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: bold ? 14.5 : 13.5,
               fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
               color: bold ? AppColors.ink : AppColors.muted,
@@ -36,7 +36,7 @@ class KvRow extends StatelessWidget {
         ),
         Text(
           value,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: bold ? 15.5 : 13.5,
             fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
             color: color ?? AppColors.ink,
@@ -97,7 +97,7 @@ class DateBar extends StatelessWidget {
                     child: Text(
                       label,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
                       ),

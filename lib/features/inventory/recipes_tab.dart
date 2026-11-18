@@ -13,6 +13,8 @@ import '../menu/menu_item.dart';
 import '../menu/menu_providers.dart';
 import 'inventory_models.dart';
 import 'inventory_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 int _marginPct(int price, double hpp) =>
     price > 0 ? ((price - hpp) / price * 100).round() : 0;
@@ -77,7 +79,7 @@ class _RecipesTabState extends ConsumerState<RecipesTab> {
                         m.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -87,7 +89,7 @@ class _RecipesTabState extends ConsumerState<RecipesTab> {
                         ok
                             ? 'HPP ${rupiah.format(h.round())} • Jual ${rupiah.format(m.price)}'
                             : 'Jual ${rupiah.format(m.price)}',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           color: AppColors.muted,
                         ),
@@ -207,14 +209,14 @@ class RecipeEditorPage extends ConsumerWidget {
               children: [
                 Text(
                   'Margin',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     color: AppColors.muted,
                   ),
                 ),
                 Text(
                   recipe.lines.isEmpty ? '-' : '$pct%',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
                     color: marginTone.fg,
@@ -224,7 +226,7 @@ class RecipeEditorPage extends ConsumerWidget {
                   recipe.lines.isEmpty
                       ? 'Belum ada resep'
                       : rupiah.format((menu.price - hpp).round()),
-                  style: GoogleFonts.inter(fontSize: 13, color: marginTone.fg),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, color: marginTone.fg),
                 ),
               ],
             ),
@@ -279,14 +281,14 @@ class RecipeEditorPage extends ConsumerWidget {
                                     children: [
                                       Text(
                                         ing?.name ?? '(bahan dihapus)',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       Text(
                                         '${qtyText(l.qty)} ${ing?.unit ?? ''}',
-                                        style: GoogleFonts.inter(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12.5,
                                           color: AppColors.muted,
                                         ),
@@ -294,7 +296,7 @@ class RecipeEditorPage extends ConsumerWidget {
                                       if (price == null)
                                         Text(
                                           'belum ada harga beli',
-                                          style: GoogleFonts.inter(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             color: AppColors.danger,
                                           ),
@@ -304,7 +306,7 @@ class RecipeEditorPage extends ConsumerWidget {
                                 ),
                                 Text(
                                   rupiah.format(cost.round()),
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -365,7 +367,7 @@ class RecipeEditorPage extends ConsumerWidget {
                   child: Text(
                     'Menu ini ditandai tanpa resep: penjualannya tidak memotong stok bahan '
                     'dan HPP tidak dihitung.',
-                    style: GoogleFonts.inter(fontSize: 12.5, height: 1.4),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12.5, height: 1.4),
                   ),
                 ),
               ],
@@ -378,7 +380,7 @@ class RecipeEditorPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: Text('Resep ${menu.name}'),
         actions: [
           if (canToggle)
@@ -462,7 +464,7 @@ class RecipeEditorPage extends ConsumerWidget {
       );
       return;
     }
-    final ing = await showDialog<Ingredient>(
+    final ing = await showAppDialog<Ingredient>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('Pilih bahan'),

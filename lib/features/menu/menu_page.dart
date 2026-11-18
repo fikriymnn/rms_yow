@@ -12,6 +12,8 @@ import 'category_field.dart';
 import 'menu_availability.dart';
 import 'menu_item.dart';
 import 'menu_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class MenuPage extends ConsumerStatefulWidget {
   const MenuPage({super.key});
@@ -35,7 +37,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final availRepo = ref.read(availabilityRepositoryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Menu')),
+      appBar: RmsAppBar(title: const Text('Menu')),
       floatingActionButton: isOwner
           ? FloatingActionButton.extended(
               onPressed: () => _edit(context, repo, null),
@@ -44,7 +46,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
             )
           : null,
       body: items.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SkeletonList(),
         error: (e, _) => Center(child: Text('$e')),
         data: (list) {
           if (list.isEmpty) {
@@ -69,7 +71,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
           Widget card(MenuItem m) {
             final on = avail[m.id] ?? true;
             return Material(
-              color: on ? AppColors.surface : const Color(0xFFF3F4F6),
+              color: on ? AppColors.surface : const Color(0xFFF1EDE7),
               borderRadius: BorderRadius.circular(14),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -90,7 +92,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                               m.name,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w700,
                                 color: on ? AppColors.ink : AppColors.muted,
@@ -99,7 +101,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                             const SizedBox(height: 2),
                             Text(
                               m.category,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 color: AppColors.muted,
                               ),
@@ -109,7 +111,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                               children: [
                                 Text(
                                   rupiah.format(m.price),
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
                                     color: on
@@ -169,7 +171,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                           (user?.can('proposals.create') ?? false)
                               ? 'Menu aktif hanya diubah owner. Untuk menu baru atau perubahan harga, ajukan lewat tab Usulan. Anda bisa menandai item habis/tersedia (86) di outlet ini.'
                               : 'Menu dikelola owner. Anda bisa menandai item habis/tersedia di outlet ini.',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.5,
                             color: AppColors.ink,
                           ),
@@ -242,7 +244,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final recipesOn = ref.read(moduleEnabledProvider('recipes'));
     final categories = ref.read(menuCategoriesProvider);
     var useRecipe = !(existing?.noRecipe ?? false);
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(

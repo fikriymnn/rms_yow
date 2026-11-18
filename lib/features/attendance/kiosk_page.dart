@@ -21,6 +21,8 @@ import 'attendance_queue.dart';
 import 'consent.dart';
 import 'face_check_page.dart';
 import 'location_service.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 const _maxAccuracyM = 80;
 const _toleranceM = 10;
@@ -153,7 +155,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
       return;
     }
     final eventId = const Uuid().v4(); // terikat ke tiket PIN
-    final ticket = await showDialog<String>(
+    final ticket = await showAppDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (_) => _PinDialog(
@@ -259,7 +261,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
     final timer = Timer(const Duration(seconds: 5), () {
       if (mounted) Navigator.of(context, rootNavigator: true).maybePop();
     });
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         icon: Icon(
@@ -284,7 +286,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
               Text(
                 note,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
                   color: c.fg,
@@ -305,7 +307,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
   }
 
   Future<void> _logout(int pending) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Keluar dari akun kiosk?'),
@@ -347,7 +349,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(fontSize: 13, color: c.fg),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: c.fg),
             ),
           ),
           ?trailing,
@@ -378,7 +380,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
                 backgroundColor: AppColors.primarySoft,
                 child: Text(
                   initial,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w800,
                     color: AppColors.primary,
                   ),
@@ -394,7 +396,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
                       s.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -403,7 +405,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
                       s.position.isNotEmpty ? s.position : s.roleName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
                         color: AppColors.muted,
                       ),
@@ -428,7 +430,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
   Widget build(BuildContext context) {
     if (kIsWeb) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Absensi')),
+        appBar: RmsAppBar(title: const Text('Absensi')),
         body: const EmptyState(
           icon: Icons.tablet_android,
           title: 'Kiosk absensi hanya tersedia di aplikasi Android',
@@ -444,13 +446,13 @@ class _KioskPageState extends ConsumerState<KioskPage>
     final now = DateTime.now();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Absensi karyawan',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
               ),
@@ -458,7 +460,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
             if (outlet != null)
               Text(
                 outlet.name,
-                style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
               ),
           ],
         ),
@@ -493,7 +495,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
                 children: [
                   Text(
                     _hm.format(now),
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
@@ -503,7 +505,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
                   Expanded(
                     child: Text(
                       '${_day.format(now)}\nPilih nama Anda untuk absen',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         height: 1.4,
                         color: Colors.white70,
@@ -543,7 +545,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
             const SizedBox(height: 10),
             Expanded(
               child: staff.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: AppLoader()),
                 error: (e, _) => Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -656,7 +658,7 @@ class _PinDialogState extends State<_PinDialog> {
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 26,
               fontWeight: FontWeight.w800,
               letterSpacing: 8,

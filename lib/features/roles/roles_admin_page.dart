@@ -8,6 +8,8 @@ import '../../core/ui/ui_kit.dart';
 import 'role_editor_page.dart';
 import 'role_models.dart';
 import 'role_providers.dart';
+import 'package:rms_yow/core/ui/motion.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 /// Master data role (hanya owner). Daftar role + jumlah pengguna dan izinnya.
 class RolesAdminPage extends ConsumerWidget {
@@ -22,14 +24,14 @@ class RolesAdminPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final roles = ref.watch(rolesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Master role')),
+      appBar: RmsAppBar(title: const Text('Master role')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _open(context, null),
         icon: const Icon(Icons.add),
         label: const Text('Role baru'),
       ),
       body: roles.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SkeletonList(),
         error: (e, _) => Center(child: Text(errorText(e))),
         data: (list) => RefreshIndicator(
           onRefresh: () async {
@@ -85,7 +87,7 @@ class _RoleCard extends StatelessWidget {
                   children: [
                     Text(
                       role.name,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),

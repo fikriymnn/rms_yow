@@ -6,6 +6,7 @@ import '../auth/auth_providers.dart';
 import '../charges/charges_tab.dart';
 import '../export/export_tab.dart';
 import 'profit_loss_tab.dart';
+import 'package:rms_yow/shell/app_bar.dart';
 
 class FinancePage extends ConsumerWidget {
   const FinancePage({super.key});
@@ -24,7 +25,7 @@ class FinancePage extends ConsumerWidget {
       key: ValueKey(tabs.length), // jumlah tab berubah bila izin berubah
       length: tabs.length,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: RmsAppBar(
           title: const Text('Keuangan'),
           bottom: TabBar(tabs: tabs),
         ),
