@@ -1,8 +1,13 @@
 import 'dart:async';
 
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -15,9 +20,38 @@ import 'client_models.dart';
 
 const _kMetaKey = 'client';
 
-/// ID acak per instalasi aplikasi. Sengaja TIDAK dihapus saat keluar dari akun restoran,
-/// supaya aktivasi ulang di perangkat yang sama tidak menghabiskan jatah perangkat.
+/// ID perangkat untuk aktivasi. Aktivasi ulang dengan ID yang sama memakai baris perangkat yang sama,
+/// jadi tidak menghabiskan jatah perangkat. Android/iOS/Windows memakai ID bawaan sistem yang tetap
+/// walau aplikasi di-uninstall; platform lain memakai ID acak yang disimpan (tidak dihapus saat keluar).
 const _kInstallKey = 'install_id';
+const _deviceChannel = MethodChannel('rms/device');
+
+/// ID perangkat dari sistem (di-hash, tidak dikirim mentah). null = tidak tersedia.
+Future<String?> _hardwareId() async {
+  if (kIsWeb) return null;
+  try {
+    String? raw;
+    String prefix;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        raw = await _deviceChannel.invokeMethod<String>('androidId');
+        prefix = 'a';
+      case TargetPlatform.iOS:
+        raw = (await DeviceInfoPlugin().iosInfo).identifierForVendor;
+        prefix = 'i';
+      case TargetPlatform.windows:
+        raw = (await DeviceInfoPlugin().windowsInfo).deviceId;
+        prefix = 'w';
+      default:
+        return null;
+    }
+    if (raw == null || raw.isEmpty || raw == '9774d56d682e549c') return null; // nilai rusak lama Android
+    final h = sha256.convert(utf8.encode('rms|$raw')).toString().substring(0, 40);
+    return '${prefix}_$h';
+  } catch (_) {
+    return null;
+  }
+}
 const _kDayMs = 24 * 3600 * 1000;
 
 int _now() => DateTime.now().millisecondsSinceEpoch;
@@ -80,6 +114,8 @@ class ClientNotifier extends AsyncNotifier<ClientState?> {
   }
 
   Future<String> _installId() async {
+    final hw = await _hardwareId();
+    if (hw != null) return hw;
     final meta = ref.read(metaDbProvider);
     final m = await meta.getMeta(_kInstallKey);
     final cur = m?['id'] as String?;

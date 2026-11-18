@@ -53,6 +53,9 @@ import 'package:rms_yow/core/ui/motion.dart';
 
 /// Koleksi yang di-mirror ke lokal. Tambah di sini tiap modul baru.
 
+/// Navigator utama (dipakai popup pembaruan di layar mana pun).
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 class RmsApp extends ConsumerWidget {
   const RmsApp({super.key});
 
@@ -66,6 +69,11 @@ class RmsApp extends ConsumerWidget {
     final forced = ref.watch(mandatoryUpdateProvider).value;
     return MaterialApp(
       title: 'RMS',
+      navigatorKey: rootNavigatorKey,
+      builder: (context, child) => UpdateOffer(
+        navigatorKey: rootNavigatorKey,
+        child: child ?? const SizedBox.shrink(),
+      ),
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       themeMode: ThemeMode.light,
@@ -122,7 +130,6 @@ class _HomeShellState extends ConsumerState<HomeShell>
     with WidgetsBindingObserver {
   int _index = 0;
   Timer? _profileTimer;
-  bool _updateOffered = false;
 
   @override
   void initState() {
@@ -153,23 +160,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
       ref.listenManual(p, (_, __) {});
     }
     WidgetsBinding.instance.addObserver(this);
-    // tawarkan pembaruan sekali per sesi aplikasi
-    ref.listenManual(latestUpdateProvider, (_, next) async {
-      final info = next.value;
-      if (info == null || _updateOffered || !mounted) return;
-      final v = await ref.read(appVersionProvider.future);
-      if (!mounted || !info.isNewerThan(v.build)) return;
-      _updateOffered = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          showUpdateDialog(
-            context,
-            info,
-            mandatory: info.isMandatoryFor(v.build),
-          );
-        }
-      });
-    }, fireImmediately: true);
+    // tawaran pembaruan otomatis ada di UpdateOffer (MaterialApp.builder), berlaku di semua layar
     // Izin diubah owner di Master role -> segarkan tiap menit; bila berubah,
     // unduh ulang data agar koleksi yang baru boleh dibaca ikut terunduh.
     _profileTimer = Timer.periodic(

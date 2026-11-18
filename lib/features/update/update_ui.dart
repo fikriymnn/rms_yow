@@ -257,3 +257,66 @@ class UpdateRequiredPage extends ConsumerWidget {
     ),
   );
 }
+
+
+/// Menawarkan pembaruan otomatis SEKALI per versi per sesi aplikasi, di layar mana pun
+/// (sebelum aktivasi, layar login, maupun setelah masuk). Diperiksa juga saat aplikasi
+/// kembali aktif. Pembaruan wajib ditangani [UpdateRequiredPage].
+class UpdateOffer extends ConsumerStatefulWidget {
+  const UpdateOffer({super.key, required this.navigatorKey, required this.child});
+  final GlobalKey<NavigatorState> navigatorKey;
+  final Widget child;
+
+  @override
+  ConsumerState<UpdateOffer> createState() => _UpdateOfferState();
+}
+
+class _UpdateOfferState extends ConsumerState<UpdateOffer> with WidgetsBindingObserver {
+  final _offered = <int>{}; // build yang sudah ditawarkan sesi ini
+  bool _showing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ref.listenManual<AsyncValue<UpdateInfo?>>(
+      latestUpdateProvider,
+      (_, next) => _offer(next.value),
+      fireImmediately: true,
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) ref.invalidate(latestUpdateProvider);
+  }
+
+  Future<void> _offer(UpdateInfo? info) async {
+    if (info == null || _showing || _offered.contains(info.build)) return;
+    final v = await ref.read(appVersionProvider.future);
+    if (!mounted || !info.isNewerThan(v.build) || info.isMandatoryFor(v.build)) return;
+    _offered.add(info.build);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final ctx = widget.navigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) {
+        _offered.remove(info.build); // navigator belum siap: coba lagi di pemeriksaan berikutnya
+        return;
+      }
+      _showing = true;
+      try {
+        await showUpdateDialog(ctx, info);
+      } finally {
+        _showing = false;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}

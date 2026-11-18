@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/db/meta_db.dart';
 import '../auth/auth_providers.dart';
 import '../client/client_providers.dart';
@@ -20,14 +21,16 @@ final appVersionProvider = FutureProvider<({String name, int build})>((
 bool get _isAndroidApp =>
     !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-/// Alamat server: dari perangkat klien, sesi, atau server yang terakhir dipakai.
+/// Alamat server: dari perangkat klien, sesi, server yang terakhir dipakai, atau bawaan aplikasi.
 Future<String?> _serverUrl(Ref ref) async {
   final c = ref.read(clientProvider).value;
   if (c != null) return c.baseUrl;
   final s = ref.read(sessionProvider).value;
   if (s != null) return s.baseUrl;
   final m = await ref.read(metaDbProvider).getMeta('server_url');
-  return m?['url'] as String?;
+  final saved = m?['url'] as String?;
+  // belum pernah login (baru dipasang): pakai server bawaan aplikasi
+  return (saved == null || saved.isEmpty) ? normalizeBaseUrl(kApiUrl) : saved;
 }
 
 Future<UpdateInfo?> _fetch(String baseUrl, String channel) async {
