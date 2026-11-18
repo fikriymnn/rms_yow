@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:rms_yow/features/attendance/consent.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/api/api_exception.dart';
 import '../../core/form_dialog.dart';
 import '../../core/sync/sync_controller.dart';
 import '../../core/theme/app_colors.dart';
@@ -63,6 +64,35 @@ class AccountPage extends ConsumerWidget {
       _toast(context, 'Password diganti. Silakan login ulang.');
     } catch (e) {
       _toast(context, '$e');
+    }
+  }
+
+  /// Owner: ganti password akun restoran (email + password yang dipakai mengaktifkan perangkat).
+  Future<void> _changeClientPassword(BuildContext context, WidgetRef ref) async {
+    final r = await formDialog(
+      context,
+      'Password akun restoran',
+      ['Password lama akun restoran', 'Password baru (min. 8 karakter)', 'Ulangi password baru'],
+      obscure: {0, 1, 2},
+      okLabel: 'Ganti',
+      hint: 'Dipakai saat mengaktifkan perangkat baru. Perangkat yang sudah aktif tidak ikut keluar.',
+    );
+    if (r == null) return;
+    if (r[1].length < 8) {
+      _toast(context, 'Password baru minimal 8 karakter');
+      return;
+    }
+    if (r[1] != r[2]) {
+      _toast(context, 'Ulangi password baru tidak sama');
+      return;
+    }
+    try {
+      await ref
+          .read(apiClientProvider)
+          .post('/client/password', data: {'old_password': r[0], 'new_password': r[1]});
+      _toast(context, 'Password akun restoran diganti');
+    } catch (e) {
+      _toast(context, errorText(e));
     }
   }
 
@@ -417,6 +447,13 @@ class AccountPage extends ConsumerWidget {
                 ),
               ),
             ),
+          if (client != null && isOwner)
+            _actionTile(
+              Icons.key_outlined,
+              'Password akun restoran',
+              'Email & password untuk mengaktifkan perangkat',
+              () => _changeClientPassword(context, ref),
+            ),
           if (!isOwner)
             _actionTile(
               Icons.receipt_long_outlined,
@@ -429,7 +466,7 @@ class AccountPage extends ConsumerWidget {
             ),
           _actionTile(
             Icons.lock_outline,
-            'Ganti password',
+            'Ganti password akun saya',
             'Anda akan diminta login ulang',
             () => _changePassword(context, ref),
           ),

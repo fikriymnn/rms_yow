@@ -94,7 +94,7 @@ const kBuiltInRoleLabels = {
   'head_chef': 'Head Chef',
   'cashier': 'Kasir',
   'waiter': 'Waiter',
-  'kitchen': 'Dapur',
+  'kitchen': 'Kitchen',
   'warehouse': 'Gudang',
 };
 
