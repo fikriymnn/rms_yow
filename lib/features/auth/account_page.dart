@@ -20,6 +20,8 @@ import 'package:rms_yow/features/update/update_service.dart';
 import 'package:rms_yow/features/update/update_ui.dart';
 import '../client/client_pages.dart';
 import '../client/client_providers.dart';
+import '../payroll/my_payslips_page.dart';
+import '../payroll/payroll_page.dart';
 
 String _initials(String name) {
   final p = name
@@ -402,7 +404,8 @@ class AccountPage extends ConsumerWidget {
     );
 
     final adminCard =
-        (isOwner || u.canAny(const ['users.read', 'attendance.read_all']))
+        (isOwner ||
+            u.canAny(const ['users.read', 'attendance.read_all', 'payroll.manage']))
         ? SectionCard(
             title: 'Pengelolaan',
             child: Column(
@@ -439,6 +442,16 @@ class AccountPage extends ConsumerWidget {
                       MaterialPageRoute(builder: (_) => const UsersAdminPage()),
                     ),
                   ),
+                if (u.can('payroll.manage'))
+                  _actionTile(
+                    Icons.payments_outlined,
+                    'Penggajian',
+                    'Atur gaji karyawan dan terbitkan slip gaji',
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PayrollPage()),
+                    ),
+                  ),
                 if (u.can('attendance.read_all'))
                   _actionTile(
                     Icons.fact_check_outlined,
@@ -471,6 +484,16 @@ class AccountPage extends ConsumerWidget {
                 MaterialPageRoute<void>(
                   builder: (_) => const SubscriptionPage(blocked: false),
                 ),
+              ),
+            ),
+          if (!isOwner)
+            _actionTile(
+              Icons.receipt_long_outlined,
+              'Slip gaji',
+              'Rincian gaji yang sudah diterbitkan',
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyPayslipsPage()),
               ),
             ),
           _actionTile(

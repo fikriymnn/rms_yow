@@ -50,7 +50,11 @@ class AttendanceRecord {
       lateMin = (m['late_min'] as num?)?.toInt() ?? 0,
       outStatus = m['out_status'] as String?,
       earlyOutMin = (m['early_out_min'] as num?)?.toInt() ?? 0,
-      overtimeMin = (m['overtime_min'] as num?)?.toInt() ?? 0;
+      overtimeMin = (m['overtime_min'] as num?)?.toInt() ?? 0,
+      overtimeStatus = m['overtime_status'] as String?,
+      overtimeApprovedMin = (m['overtime_approved_min'] as num?)?.toInt() ?? 0,
+      overtimeBonus = (m['overtime_bonus'] as num?)?.toInt(),
+      overtimeNote = m['overtime_note'] as String? ?? '';
 
   final String id;
   final String userId;
@@ -76,6 +80,14 @@ class AttendanceRecord {
   final String? outStatus; // on_time | early | overtime
   final int earlyOutMin;
   final int overtimeMin;
+
+  /// Keputusan lembur: null (belum ditinjau) | approved | rejected.
+  final String? overtimeStatus;
+  final int overtimeApprovedMin;
+
+  /// Nominal bonus lembur; null untuk karyawan sendiri (baru terlihat di slip gaji).
+  final int? overtimeBonus;
+  final String overtimeNote;
 }
 
 /// Karyawan pada daftar kiosk.

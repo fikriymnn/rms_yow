@@ -8,6 +8,7 @@ import 'package:rms_yow/features/attendance/outlet_schedule_page.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
+import '../../core/format.dart';
 import '../../core/reason_dialog.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
@@ -253,93 +254,100 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
     ),
   );
 
+  /// Pilih tanggal lalu jam (absen bisa melewati tengah malam / beberapa hari).
+  Future<DateTime?> _pickDateTime(BuildContext ctx, DateTime initial) async {
+    final d = await showDatePicker(
+      context: ctx,
+      initialDate: initial,
+      firstDate: initial.subtract(const Duration(days: 60)),
+      lastDate: DateTime.now(),
+    );
+    if (d == null || !ctx.mounted) return null;
+    final t = await showTimePicker(
+      context: ctx,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (t == null) return null;
+    return DateTime(d.year, d.month, d.day, t.hour, t.minute);
+  }
+
   Future<void> _correct(AttendanceRecord r) async {
-    final inDt = DateTime.fromMillisecondsSinceEpoch(r.clockInAt);
-    var tin = TimeOfDay.fromDateTime(inDt);
-    TimeOfDay? tout = r.clockOutAt == null
+    final fmt = DateFormat('EEE, d MMM • HH:mm');
+    var inAt = DateTime.fromMillisecondsSinceEpoch(r.clockInAt);
+    DateTime? outAt = r.clockOutAt == null
         ? null
-        : TimeOfDay.fromDateTime(
-            DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!),
-          );
+        : DateTime.fromMillisecondsSinceEpoch(r.clockOutAt!);
 
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
-          title: Text('Koreksi ${r.userName}'),
-          content: SizedBox(
-            width: 380,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  DateFormat('EEEE, d MMM yyyy').format(inDt),
-                  style: GoogleFonts.inter(
-                    fontSize: 13.5,
-                    color: AppColors.muted,
+        builder: (ctx, setS) {
+          final out = outAt;
+          final valid = out == null || out.isAfter(inAt);
+          final mins = out == null ? null : out.difference(inAt).inMinutes;
+          return AlertDialog(
+            title: Text('Koreksi ${r.userName}'),
+            content: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _timeTile(Icons.login, 'Masuk', fmt.format(inAt), () async {
+                    final v = await _pickDateTime(ctx, inAt);
+                    if (v != null) setS(() => inAt = v);
+                  }),
+                  const SizedBox(height: 8),
+                  _timeTile(
+                    Icons.logout,
+                    'Pulang',
+                    out == null ? 'belum diisi' : fmt.format(out),
+                    () async {
+                      final v = await _pickDateTime(ctx, out ?? inAt);
+                      if (v != null) setS(() => outAt = v);
+                    },
                   ),
-                ),
-                const SizedBox(height: 12),
-                _timeTile(Icons.login, 'Jam masuk', tin.format(ctx), () async {
-                  final t = await showTimePicker(
-                    context: ctx,
-                    initialTime: tin,
-                  );
-                  if (t != null) setS(() => tin = t);
-                }),
-                const SizedBox(height: 8),
-                _timeTile(
-                  Icons.logout,
-                  'Jam pulang',
-                  tout == null ? 'belum diisi' : tout!.format(ctx),
-                  () async {
-                    final t = await showTimePicker(
-                      context: ctx,
-                      initialTime: tout ?? tin,
-                    );
-                    if (t != null) setS(() => tout = t);
-                  },
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    !valid
+                        ? 'Waktu pulang harus setelah waktu masuk.'
+                        : mins == null
+                        ? 'Belum ada waktu pulang.'
+                        : 'Durasi kerja: ${durationText(mins)}',
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: valid ? AppColors.ink : AppColors.danger,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Lanjut'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Batal'),
+              ),
+              FilledButton(
+                onPressed: valid ? () => Navigator.pop(ctx, true) : null,
+                child: const Text('Lanjut'),
+              ),
+            ],
+          );
+        },
       ),
     );
     if (ok != true || !mounted) return;
     final reason = await askReason(context, 'Alasan koreksi');
     if (reason == null) return;
 
-    final newIn = DateTime(
-      inDt.year,
-      inDt.month,
-      inDt.day,
-      tin.hour,
-      tin.minute,
-    );
-    DateTime? newOut;
-    final t = tout;
-    if (t != null) {
-      newOut = DateTime(inDt.year, inDt.month, inDt.day, t.hour, t.minute);
-      if (!newOut.isAfter(newIn)) newOut = newOut.add(const Duration(days: 1));
-    }
     final body = <String, dynamic>{'reason': reason};
-    if (newIn.millisecondsSinceEpoch != r.clockInAt) {
-      body['clock_in_at'] = newIn.millisecondsSinceEpoch;
+    if (inAt.millisecondsSinceEpoch != r.clockInAt) {
+      body['clock_in_at'] = inAt.millisecondsSinceEpoch;
     }
-    if (newOut != null && newOut.millisecondsSinceEpoch != r.clockOutAt) {
-      body['clock_out_at'] = newOut.millisecondsSinceEpoch;
+    final out = outAt;
+    if (out != null && out.millisecondsSinceEpoch != r.clockOutAt) {
+      body['clock_out_at'] = out.millisecondsSinceEpoch;
     }
     if (body.length == 1) {
       _toast('Tidak ada perubahan');
@@ -353,10 +361,125 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
     );
   }
 
+  /// Setujui jam lebih: menit yang disetujui + nominal bonus (jadi "Bonus lembur" di slip gaji).
+  Future<void> _approveOvertime(AttendanceRecord r) async {
+    final approved = r.overtimeStatus == 'approved';
+    final initMin = approved ? r.overtimeApprovedMin : r.overtimeMin;
+    final minC = TextEditingController(text: initMin > 0 ? '$initMin' : '');
+    final bonusC = TextEditingController(
+      text: approved && (r.overtimeBonus ?? 0) > 0 ? '${r.overtimeBonus}' : '',
+    );
+    final noteC = TextEditingController(text: approved ? r.overtimeNote : '');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final mins = int.tryParse(minC.text.trim()) ?? 0;
+          final worked = r.minutes ?? 0;
+          final err = mins <= 0
+              ? 'Isi menit lembur yang disetujui'
+              : (mins > worked ? 'Melebihi lama kerja (${durationText(worked)})' : null);
+          return AlertDialog(
+            title: Text('Setujui lembur ${r.userName}'),
+            content: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    r.overtimeMin > 0
+                        ? 'Terhitung lembur ${durationText(r.overtimeMin)} dari jadwal pulang. '
+                              'Anda bisa menyetujui sebagian saja.'
+                        : 'Tidak ada lembur terhitung dari jadwal. Isi menit lembur secara manual.',
+                    style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted, height: 1.4),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: minC,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setS(() {}),
+                    decoration: InputDecoration(
+                      labelText: 'Menit lembur disetujui',
+                      suffixText: 'menit',
+                      helperText: mins > 0 ? '= ${durationText(mins)}' : null,
+                      errorText: minC.text.isEmpty ? null : err,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: bonusC,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Bonus lembur',
+                      prefixText: 'Rp ',
+                      helperText: 'Masuk ke slip gaji bila "Bonus lembur" karyawan aktif',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteC,
+                    maxLength: 255,
+                    decoration: const InputDecoration(labelText: 'Catatan (opsional)'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+              FilledButton(
+                onPressed: err == null ? () => Navigator.pop(ctx, true) : null,
+                child: const Text('Setujui'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    final mins = int.tryParse(minC.text.trim()) ?? 0;
+    final bonus = int.tryParse(bonusC.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    final note = noteC.text.trim();
+    minC.dispose();
+    bonusC.dispose();
+    noteC.dispose();
+    if (ok != true) return;
+    await _run(
+      () => ref.read(apiClientProvider).request(
+        'PATCH',
+        '/attendance/${r.id}/overtime',
+        data: {'approve': true, 'minutes': mins, 'bonus': bonus, 'note': note},
+      ),
+      ok: 'Lembur disetujui',
+    );
+  }
+
+  Future<void> _decideOvertime(AttendanceRecord r, bool? approve) async {
+    var note = '';
+    if (approve == false) {
+      final reason = await askReason(context, 'Alasan menolak lembur');
+      if (reason == null) return;
+      note = reason;
+    }
+    await _run(
+      () => ref.read(apiClientProvider).request(
+        'PATCH',
+        '/attendance/${r.id}/overtime',
+        data: {'approve': approve, 'note': note},
+      ),
+      ok: approve == false ? 'Lembur ditolak' : 'Keputusan lembur dibatalkan',
+    );
+  }
+
   Future<void> _handle(AttendanceRecord r, String action) async {
     switch (action) {
       case 'correct':
         await _correct(r);
+      case 'ot_approve':
+        await _approveOvertime(r);
+      case 'ot_reject':
+        await _decideOvertime(r, false);
+      case 'ot_reset':
+        await _decideOvertime(r, null);
       default:
         await _review(r, action);
     }
@@ -676,6 +799,19 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
               ),
             if (r.edited) _info('Riwayat', 'Pernah dikoreksi manager'),
             if (r.viaKiosk) _info('Sumber', 'Tablet kiosk (absen bersama)'),
+            if (r.overtimeStatus == 'approved')
+              _info(
+                'Lembur',
+                'Disetujui ${durationText(r.overtimeApprovedMin)}'
+                    '${(r.overtimeBonus ?? 0) > 0 ? ' • bonus ${rupiah.format(r.overtimeBonus ?? 0)}' : ''}',
+                color: AppColors.success,
+              )
+            else if (r.overtimeStatus == 'rejected')
+              _info('Lembur', 'Ditolak', color: AppColors.danger)
+            else if (r.overtimeMin > 0)
+              _info('Lembur', 'Menunggu persetujuan'),
+            if (r.overtimeStatus != null && r.overtimeNote.isNotEmpty)
+              _info('Catatan lembur', r.overtimeNote),
             _info('Tinjauan', _statusLabel(r.reviewStatus)),
             if (r.reviewNote.isNotEmpty) _info('Catatan', r.reviewNote),
           ],
@@ -711,6 +847,34 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
           ),
         ],
       ),
+      if (r.clockOutAt != null) ...[
+        const SizedBox(height: 16),
+        Text('Lembur', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.tonalIcon(
+              icon: const Icon(Icons.more_time),
+              label: Text(r.overtimeStatus == 'approved' ? 'Ubah lembur' : 'Setujui lembur'),
+              onPressed: () => onAction('ot_approve'),
+            ),
+            if (r.overtimeStatus != 'rejected' && (r.overtimeMin > 0 || r.overtimeStatus == 'approved'))
+              FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(foregroundColor: AppColors.danger),
+                icon: const Icon(Icons.block),
+                label: const Text('Tolak lembur'),
+                onPressed: () => onAction('ot_reject'),
+              ),
+            if (r.overtimeStatus != null)
+              OutlinedButton(
+                onPressed: () => onAction('ot_reset'),
+                child: const Text('Batalkan keputusan lembur'),
+              ),
+          ],
+        ),
+      ],
     ];
   }
 

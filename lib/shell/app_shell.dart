@@ -520,36 +520,12 @@ class _Brand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final logo = Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(
-              colors: [AppColors.primary, Color(0xFFA8323F)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: const Icon(Icons.restaurant, color: Colors.white, size: 22),
-        ),
-        Positioned(
-          right: -3,
-          bottom: -3,
-          child: Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: AppColors.rose,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.ink, width: 2),
-            ),
-          ),
-        ),
-      ],
+    // logo RMS (K Kovalen + sendok-garpu), versi untuk latar gelap sidebar
+    final logo = Image.asset(
+      'assets/brand/rms-symbol-dark.png',
+      width: 42,
+      height: 42,
+      filterQuality: FilterQuality.medium,
     );
     if (compact) return Center(child: logo);
     return Row(
