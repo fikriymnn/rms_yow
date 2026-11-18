@@ -38,6 +38,36 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
   late final Set<String> _perms = {...?widget.role?.permissions};
   bool _keyTouched = false;
   bool _saving = false;
+  String? _template; // role baru: null = Custom
+
+  /// Isi form dari template; Custom mengosongkan izin. Izin tetap bisa diubah sesudahnya.
+  void _applyTemplate(RoleTemplate? t, List<RoleInfo> existing) {
+    final prev = _template;
+    setState(() {
+      _template = t?.key;
+      final fromPrevTemplate = prev != null;
+      if (t == null) {
+        if (fromPrevTemplate) {
+          _name.clear();
+          _desc.clear();
+          if (!_keyTouched) _key.clear();
+        }
+        _perms.clear();
+        _isStaff = false;
+        return;
+      }
+      _name.text = t.name;
+      _desc.text = t.description;
+      _isStaff = t.isStaff;
+      _perms
+        ..clear()
+        ..addAll(t.permissions);
+      if (!_keyTouched) {
+        final taken = existing.map((r) => r.key).toSet();
+        _key.text = taken.contains(t.key) ? slugifyRoleKey('${t.name} 2') : t.key;
+      }
+    });
+  }
 
   bool get _isNew => widget.role == null;
   bool get _readOnly => widget.role?.locked ?? false;
@@ -137,8 +167,8 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
 
   Future<void> _reset() async {
     final ok = await _confirm(
-      'Kembalikan ke bawaan?',
-      'Nama dan seluruh izin role ini dikembalikan ke pengaturan awal aplikasi.',
+      'Kembalikan ke template?',
+      'Nama, deskripsi, dan seluruh izin role ini dikembalikan ke template aplikasi.',
       'Kembalikan',
     );
     if (ok)
@@ -148,9 +178,27 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
   }
 
   Future<void> _delete() async {
+    final r = widget.role!;
+    if (r.userCount > 0) {
+      await showAppDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Role masih dipakai'),
+          content: Text(
+            'Role "${r.name}" dipakai ${r.userCount} pengguna. Pindahkan mereka ke role lain '
+            'di Data Master → Pengguna, lalu hapus role ini.',
+          ),
+          actions: [
+            FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mengerti')),
+          ],
+        ),
+      );
+      return;
+    }
     final ok = await _confirm(
       'Hapus role?',
-      'Role "${widget.role!.name}" dihapus permanen. Role yang masih dipakai pengguna tidak bisa dihapus.',
+      'Role "${r.name}" dihapus permanen dan tidak bisa dipilih lagi untuk pengguna. '
+          '${r.isSystem ? 'Role bawaan ini bisa dibuat lagi kapan saja dari template di form Role baru.' : ''}',
       'Hapus',
     );
     if (ok)
@@ -162,7 +210,10 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
   @override
   Widget build(BuildContext context) {
     final catalog = ref.watch(roleCatalogProvider);
+    final templates = ref.watch(roleTemplatesProvider).value ?? const <RoleTemplate>[];
+    final existing = ref.watch(rolesProvider).value ?? const <RoleInfo>[];
     final role = widget.role;
+    final fromTemplate = role != null && templates.any((t) => t.key == role.key);
     return Scaffold(
       appBar: RmsAppBar(
         title: Text(_isNew ? 'Role baru' : role!.name),
@@ -171,16 +222,21 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
             PopupMenuButton<String>(
               onSelected: (v) => v == 'reset' ? _reset() : _delete(),
               itemBuilder: (_) => [
-                if (role!.isSystem)
+                if (fromTemplate)
                   const PopupMenuItem(
                     value: 'reset',
-                    child: Text('Kembalikan ke bawaan'),
+                    child: ListTile(
+                      leading: Icon(Icons.restart_alt_rounded),
+                      title: Text('Kembalikan ke template'),
+                    ),
                   ),
-                if (!role.isSystem)
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Hapus role'),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: ListTile(
+                    leading: Icon(Icons.delete_outline_rounded, color: AppColors.danger),
+                    title: Text('Hapus role', style: TextStyle(color: AppColors.danger)),
                   ),
+                ),
               ],
             ),
         ],
@@ -216,6 +272,10 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
                     tone: Tone.success,
                   ),
                 ),
+              if (_isNew) ...[
+                _templatePicker(templates, existing),
+                const SizedBox(height: 16),
+              ],
               SectionCard(
                 title: 'Informasi role',
                 child: Column(
@@ -302,6 +362,105 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _templatePicker(List<RoleTemplate> templates, List<RoleInfo> existing) {
+    Widget option({
+      required String label,
+      required String sub,
+      required bool selected,
+      required VoidCallback onTap,
+      IconData? icon,
+    }) => Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: Motion.fast,
+        width: 168,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.ink : AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: selected ? AppColors.ink : AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 18, color: selected ? Colors.white : AppColors.ink),
+                  const SizedBox(width: 6),
+                ],
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: selected ? Colors.white : AppColors.ink,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              sub,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                height: 1.35,
+                color: selected ? AppColors.onInkMuted : AppColors.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Mulai dari',
+          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Pilih template untuk mengisi hak akses otomatis, atau Custom untuk mengatur sendiri. '
+          'Izin dari template tetap bisa diubah sebelum disimpan.',
+          style: TextStyle(color: AppColors.muted, fontSize: 12.5),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 92,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              option(
+                label: 'Custom',
+                sub: 'Kosong, atur izin sendiri',
+                icon: Icons.tune_rounded,
+                selected: _template == null,
+                onTap: () => _applyTemplate(null, existing),
+              ),
+              for (final t in templates) ...[
+                const SizedBox(width: 10),
+                option(
+                  label: t.name,
+                  sub: '${t.permissions.length} izin · ${t.description}',
+                  selected: _template == t.key,
+                  onTap: () => _applyTemplate(t, existing),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 

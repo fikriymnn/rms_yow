@@ -45,7 +45,7 @@ class RoleInfo {
   final String key;
   final String name;
   final String description;
-  final bool isSystem; // peran bawaan: tidak bisa dihapus
+  final bool isSystem; // dibuat otomatis saat klien dibuat (boleh dihapus owner bila tidak dipakai)
   final bool isStaff; // boleh dikelola manager outlet
   final bool locked; // owner: tidak bisa diubah
   final Set<String> permissions;
@@ -97,3 +97,29 @@ const kBuiltInRoleLabels = {
   'kitchen': 'Dapur',
   'warehouse': 'Gudang',
 };
+
+/// Template hak akses dari server (head chef, supervisor, kasir, dll.) untuk form Role baru.
+class RoleTemplate {
+  const RoleTemplate({
+    required this.key,
+    required this.name,
+    required this.description,
+    required this.isStaff,
+    required this.permissions,
+  });
+  final String key;
+  final String name;
+  final String description;
+  final bool isStaff;
+  final Set<String> permissions;
+
+  factory RoleTemplate.fromJson(Map<String, dynamic> m) => RoleTemplate(
+    key: m['key'] as String,
+    name: m['name'] as String? ?? '',
+    description: m['description'] as String? ?? '',
+    isStaff: m['is_staff'] as bool? ?? false,
+    permissions: {
+      for (final p in (m['permissions'] as List<dynamic>? ?? const [])) p as String,
+    },
+  );
+}

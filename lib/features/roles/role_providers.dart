@@ -14,6 +14,12 @@ final roleCatalogProvider = FutureProvider.autoDispose<List<PermFeature>>((
   ];
 });
 
+/// Template hak akses untuk form Role baru.
+final roleTemplatesProvider = FutureProvider.autoDispose<List<RoleTemplate>>((ref) async {
+  final data = await ref.read(apiClientProvider).get('/roles/templates') as List<dynamic>;
+  return [for (final m in data) RoleTemplate.fromJson(m as Map<String, dynamic>)];
+});
+
 final rolesProvider = FutureProvider.autoDispose<List<RoleInfo>>((ref) async {
   final data = await ref.read(apiClientProvider).get('/roles') as List<dynamic>;
   return [for (final m in data) RoleInfo.fromJson(m as Map<String, dynamic>)];
