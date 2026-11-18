@@ -79,6 +79,19 @@ class Recipe {
   };
 }
 
+/// Jenis mutasi untuk tampilan & filter. "Pembelian" dibedakan: masuk manual vs penerimaan PO.
+enum StockMoveKind {
+  manual('Masuk manual'),
+  po('Penerimaan PO'),
+  sale('Terjual'),
+  waste('Waste'),
+  opname('Opname'),
+  adjust('Koreksi');
+
+  const StockMoveKind(this.label);
+  final String label;
+}
+
 class StockMove {
   const StockMove({
     required this.id,
@@ -101,6 +114,21 @@ class StockMove {
   final String orderId;
   final String note;
   final String userName;
+
+  /// Penerimaan barang dari PO dibuat server dengan id "rcv_<penerimaan>_<bahan>".
+  bool get fromPo => id.startsWith('rcv_');
+
+  StockMoveKind get kind => switch (type) {
+    StockMoveType.purchase => fromPo ? StockMoveKind.po : StockMoveKind.manual,
+    StockMoveType.sale => StockMoveKind.sale,
+    StockMoveType.waste => StockMoveKind.waste,
+    StockMoveType.opname => StockMoveKind.opname,
+    StockMoveType.adjust => StockMoveKind.adjust,
+  };
+
+  /// Total harga untuk barang masuk (jumlah × harga per satuan dasar); null bila tidak ada harga.
+  double? get totalCost =>
+      type == StockMoveType.purchase && unitCost != null ? unitCost! * qty : null;
 
   factory StockMove.fromMap(Map<String, dynamic> m) => StockMove(
     id: m['id'] as String,

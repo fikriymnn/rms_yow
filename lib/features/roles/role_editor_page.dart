@@ -463,13 +463,13 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Mulai dari',
+          'Pilih template hak akses',
           style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
         const Text(
-          'Pilih template untuk mengisi hak akses otomatis, atau Custom untuk mengatur sendiri. '
-          'Izin dari template tetap bisa diubah sebelum disimpan.',
+          'Isi otomatis dari template, atau pilih Custom untuk mengatur sendiri. '
+          'Centang dari template tetap bisa diubah sebelum disimpan.',
           style: TextStyle(color: AppColors.muted, fontSize: 12.5),
         ),
         const SizedBox(height: 10),

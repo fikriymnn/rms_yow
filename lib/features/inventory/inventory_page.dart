@@ -5,6 +5,7 @@ import '../auth/auth_providers.dart';
 import '../purchasing/purchasing_page.dart';
 import 'ingredients_tab.dart';
 import 'recipes_tab.dart';
+import 'stock_history_page.dart';
 import 'stock_tab.dart';
 import 'package:rms_yow/shell/app_bar.dart';
 
@@ -22,6 +23,14 @@ class InventoryPage extends ConsumerWidget {
         appBar: RmsAppBar(
           title: const Text('Inventory'),
           actions: [
+            IconButton(
+              tooltip: 'Riwayat stok',
+              icon: const Icon(Icons.history_rounded),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StockHistoryPage()),
+              ),
+            ),
             IconButton(
               tooltip: 'Pembelian',
               icon: const Icon(Icons.local_shipping_outlined),

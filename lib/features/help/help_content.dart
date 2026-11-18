@@ -83,7 +83,7 @@ const helpTopics = <HelpTopic>[
       HelpSection('Membuat role baru', [
         HSteps([
           'Buka Data Master → Role & hak akses, ketuk "Role baru".',
-          'Di "Mulai dari", pilih template yang paling mirip (mis. Head Chef, Supervisor) atau Custom bila ingin mengisi sendiri.',
+          'Di "Pilih template hak akses", pilih template yang paling mirip (mis. Head Chef, Supervisor) atau Custom bila ingin mengisi sendiri.',
           'Ubah nama bila perlu. Aktifkan "Dikelola manager outlet" bila manager boleh membuat akun dengan role ini.',
           'Buka tiap fitur dan centang aksi yang diperlukan. Setiap aksi ada penjelasan singkat di bawahnya.',
           'Ketuk Simpan.',

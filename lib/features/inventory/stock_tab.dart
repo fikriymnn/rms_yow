@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:rms_yow/core/sync/sync_controller.dart';
 import 'package:rms_yow/features/auth/auth_providers.dart';
 
@@ -11,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import 'inventory_models.dart';
 import 'inventory_providers.dart';
+import 'stock_history_page.dart';
 
 enum _StockFilter { all, low }
 
@@ -411,16 +411,7 @@ Future<void> _opname(BuildContext context, WidgetRef ref, Ingredient i) async {
   _toast(context, 'Selisih ${qtyText(diff)} ${i.unit} dicatat');
 }
 
-Tone _moveTone(StockMoveType t) => switch (t.name) {
-  'purchase' => Tone.success,
-  'sale' => Tone.info,
-  'waste' => Tone.danger,
-  'opname' => Tone.warning,
-  _ => Tone.neutral,
-};
-
 Future<void> _history(BuildContext context, WidgetRef ref, Ingredient i) async {
-  final fmt = DateFormat('d MMM HH:mm');
   final moves = await loadStockMoves(
     ref.read(databaseProvider),
     ingredientId: i.id,
@@ -439,59 +430,40 @@ Future<void> _history(BuildContext context, WidgetRef ref, Ingredient i) async {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: Text(
-              'Riwayat ${i.name}',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Riwayat ${i.name}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(builder: (_) => const StockHistoryPage()),
+                    );
+                  },
+                  child: const Text('Semua bahan'),
+                ),
+              ],
             ),
           ),
           if (moves.isEmpty)
             const EmptyState(icon: Icons.history, title: 'Belum ada mutasi'),
-          for (final m in moves)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.bg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        StatusPill(m.type.label, tone: _moveTone(m.type)),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${fmt.format(DateTime.fromMillisecondsSinceEpoch(m.at))}'
-                          '${m.userName.isEmpty ? '' : ' • ${m.userName}'}',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            color: AppColors.muted,
-                          ),
-                        ),
-                        if (m.note.isNotEmpty)
-                          Text(
-                            m.note,
-                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${m.qty > 0 ? '+' : ''}${qtyText(m.qty)} ${i.unit}',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: m.qty >= 0 ? AppColors.success : AppColors.danger,
-                    ),
-                  ),
-                ],
+          for (final m in moves) StockMoveTile(move: m, unit: i.unit),
+          if (moves.length == 40)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Menampilkan 40 mutasi terakhir. Riwayat lengkap ada di Riwayat stok.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
               ),
             ),
         ],
