@@ -14,8 +14,11 @@ class InventoryPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final showRecipes =
-        ref.watch(appUserProvider).value?.can('recipes.read') ?? false;
+    final user = ref.watch(appUserProvider).value;
+    final showRecipes = user?.can('recipes.read') ?? false;
+    // modul Pembelian dimatikan -> izinnya dicabut -> tombol Pembelian hilang
+    final showPurchasing =
+        user?.canAny(const ['purchase_orders.read', 'suppliers.read', 'goods_receipts.read']) ?? false;
 
     return DefaultTabController(
       length: showRecipes ? 3 : 2,
@@ -31,6 +34,7 @@ class InventoryPage extends ConsumerWidget {
                 MaterialPageRoute(builder: (_) => const StockHistoryPage()),
               ),
             ),
+            if (showPurchasing)
             IconButton(
               tooltip: 'Pembelian',
               icon: const Icon(Icons.local_shipping_outlined),

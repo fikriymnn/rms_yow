@@ -10,6 +10,7 @@ import '../../core/ui/motion.dart';
 import '../../core/ui/ui_kit.dart';
 import '../../shell/app_bar.dart';
 import '../auth/auth_providers.dart';
+import '../client/client_providers.dart';
 import 'account_dialog.dart';
 import 'employee_models.dart';
 
@@ -83,6 +84,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
     String? outletId = e?.outletId ?? (outlets.length == 1 ? outlets.first.id : null);
     var active = e?.active ?? true;
     var clearPin = false;
+    final attendanceOn = ref.read(moduleEnabledProvider('attendance'));
 
     return showAppDialog<Map<String, dynamic>>(
       context: context,
@@ -125,6 +127,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
                         onChanged: (v) => setS(() => outletId = v),
                       ),
                     ],
+                    if (attendanceOn) ...[
                     const SizedBox(height: 12),
                     TextField(
                       controller: pin,
@@ -145,7 +148,8 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
                       ),
                       onChanged: (_) => setS(() {}),
                     ),
-                    if (e != null && e.pinSet)
+                    ],
+                    if (attendanceOn && e != null && e.pinSet)
                       CheckboxListTile(
                         contentPadding: EdgeInsets.zero,
                         dense: true,
@@ -163,10 +167,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
                         title: const Text('Aktif'),
                         subtitle: Text(
                           active
-                              ? 'Bisa absen dan ikut penggajian'
+                              ? 'Ikut absensi & penggajian'
                               : e.hasAccount
-                                  ? 'Tidak bisa absen; akun loginnya ikut dinonaktifkan'
-                                  : 'Tidak bisa absen',
+                                  ? 'Akun loginnya ikut dinonaktifkan'
+                                  : 'Tidak ikut absensi & penggajian',
                         ),
                         onChanged: (v) => setS(() => active = v),
                       ),
@@ -293,6 +297,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
   }
 
   Widget _card(EmployeeInfo e, String outletName, VoidCallback onTap) {
+    final attendanceOn = ref.read(moduleEnabledProvider('attendance'));
     return Material(
       color: e.active ? AppColors.surface : const Color(0xFFF1EDE7),
       borderRadius: BorderRadius.circular(14),
@@ -350,9 +355,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
                         e.hasAccount
                             ? StatusPill('Akun: ${e.roleName}', tone: Tone.info)
                             : const StatusPill('Tanpa akun'),
-                        e.pinSet
-                            ? const StatusPill('PIN siap', tone: Tone.success)
-                            : const StatusPill('PIN belum', tone: Tone.warning),
+                        if (attendanceOn)
+                          e.pinSet
+                              ? const StatusPill('PIN siap', tone: Tone.success)
+                              : const StatusPill('PIN belum', tone: Tone.warning),
                         if (!e.active) const StatusPill('Nonaktif', tone: Tone.danger),
                       ],
                     ),
@@ -372,6 +378,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
     final me = ref.watch(sessionProvider).value?.user;
     if (me == null) return const SizedBox.shrink();
     final canCreate = ref.watch(appUserProvider).value?.can('users.create') ?? false;
+    final attendanceOn = ref.watch(moduleEnabledProvider('attendance'));
 
     return Scaffold(
       appBar: RmsAppBar(title: const Text('Data karyawan')),
@@ -402,7 +409,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
                   e.name.toLowerCase().contains(_query) ||
                   e.position.toLowerCase().contains(_query))
               .toList();
-          final noPin = d.items.where((e) => e.active && !e.pinSet).length;
+          final noPin = attendanceOn ? d.items.where((e) => e.active && !e.pinSet).length : 0;
           final noAccount = d.items.where((e) => !e.hasAccount).length;
 
           return Scaffold(
@@ -418,8 +425,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
                 Text(
-                  'Karyawan tidak wajib punya akun. Tanpa akun pun tetap bisa absen di '
-                  'Absen bersama memakai PIN, dan ikut penggajian.',
+                  attendanceOn
+                      ? 'Karyawan tidak wajib punya akun. Tanpa akun pun tetap bisa absen di '
+                          'Absen bersama memakai PIN, dan ikut penggajian.'
+                      : 'Karyawan tidak wajib punya akun. Akun login dibuat dari data karyawan.',
                   style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.4, color: AppColors.muted),
                 ),
                 const SizedBox(height: 12),

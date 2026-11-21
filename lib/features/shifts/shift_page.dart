@@ -538,12 +538,14 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
           if (out > 0) KvRow('Pengeluaran kas', '-${rupiah.format(out)}'),
           KvRow('Jumlah order', '${t.count}'),
           const SizedBox(height: 14),
-          OutlinedButton.icon(
-            onPressed: () => showExpenseDialog(context, ref, drawerOnly: true),
-            icon: const Icon(Icons.payments_outlined),
-            label: const Text('Catat pengeluaran kas'),
-          ),
-          const SizedBox(height: 8),
+          if (ref.watch(appUserProvider).value?.can('expenses.create') ?? false) ...[
+            OutlinedButton.icon(
+              onPressed: () => showExpenseDialog(context, ref, drawerOnly: true),
+              icon: const Icon(Icons.payments_outlined),
+              label: const Text('Catat pengeluaran kas'),
+            ),
+            const SizedBox(height: 8),
+          ],
           FilledButton.tonal(
             style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
             onPressed: canClose ? () => _close(s, expected, t, out) : null,

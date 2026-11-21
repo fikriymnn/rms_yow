@@ -224,6 +224,36 @@ const helpTopics = <HelpTopic>[
     ],
   ),
   HelpTopic(
+    'opname',
+    Icons.fact_check_outlined,
+    'Stok opname',
+    'Menghitung stok fisik semua bahan lewat tiket.',
+    [
+      HelpSection('Alur opname', [
+        HSteps([
+          'Buka menu Stok opname, ketuk Opname baru, pilih tanggal. Outlet mengikuti outlet yang sedang dibuka.',
+          'Buka tiketnya. Semua bahan tampil beserta stok sistem.',
+          'Isi stok fisik tiap bahan (dan catatan bila perlu). Selisih dihitung langsung.',
+          'Ketuk Simpan hitungan sesering mungkin. Hitungan disimpan di perangkat, jadi tidak hilang walau aplikasi ditutup atau internet putus.',
+          'Setelah semua bahan terisi, ketuk Kirim hasil. Stok disesuaikan dengan stok fisik.',
+        ]),
+        HTip('Hanya ada satu tiket berjalan per outlet. Tiket yang sudah dikirim tidak bisa diubah; tiket berjalan bisa dibatalkan tanpa mengubah stok.'),
+        HTip(
+          'Hitungan tersimpan di perangkat tempat Anda mengisi. Selesaikan satu tiket di satu perangkat.',
+          warning: true,
+        ),
+      ]),
+      HelpSection('Tombol bantu', [
+        HBullets([
+          'Isi kosong dengan stok sistem: bahan yang belum diisi diberi angka stok sistem (anggap sesuai). Periksa lagi sebelum mengirim.',
+          'Buang: mengembalikan isian ke hitungan yang terakhir disimpan.',
+          'Filter Belum dihitung / Ada selisih membantu menemukan bahan yang perlu dicek.',
+        ]),
+        HText('Stok sistem akhir dihitung server saat tiket diterima, jadi penjualan yang masuk dari perangkat lain ikut diperhitungkan.'),
+      ]),
+    ],
+  ),
+  HelpTopic(
     'approvals',
     Icons.task_alt_rounded,
     'Persetujuan',

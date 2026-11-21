@@ -82,6 +82,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
     final isManager = user.can('finance.read');
+    final canKitchen = user.can('kitchen.read'); // modul KDS
 
     final orders = ref.watch(ordersProvider).value ?? <Order>[];
     final stats = computeHomeStats(orders, now);
@@ -148,13 +149,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
 
     final todo = <_Todo>[
-      if (user.can('kitchen.read') || user.can('orders.create'))
+      if (canKitchen || user.can('orders.create'))
         _Todo(
           open.length,
           'Pesanan aktif',
-          open.isEmpty ? 'Dapur sedang kosong' : oldestOpen(),
+          open.isEmpty ? 'Belum ada pesanan aktif' : oldestOpen(),
           AppColors.primary,
-          () => _open(const KdsPage()),
+          canKitchen ? () => _open(const KdsPage()) : null,
         ),
       if (user.can('approvals.read'))
         _Todo(
@@ -183,7 +184,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           AppColors.ink,
           () => _open(const ProposalsPage()),
         ),
-      if (isManager && bookings > 0)
+      if (isManager && user.can('reservations.read') && bookings > 0)
         _Todo(bookings, 'Reservasi hari ini', 'Sudah dipesan tamu', AppColors.ink, null),
     ];
 
@@ -202,10 +203,12 @@ class _HomePageState extends ConsumerState<HomePage> {
       if (open.isNotEmpty)
         SectionCard(
           title: 'Pesanan aktif',
-          trailing: TextButton(
-            onPressed: () => _open(const KdsPage()),
-            child: const Text('Lihat dapur'),
-          ),
+          trailing: canKitchen
+              ? TextButton(
+                  onPressed: () => _open(const KdsPage()),
+                  child: const Text('Lihat dapur'),
+                )
+              : null,
           child: Column(
             children: [
               for (final o in open.take(5))

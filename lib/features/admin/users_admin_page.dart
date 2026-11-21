@@ -8,6 +8,7 @@ import '../../core/form_dialog.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
+import '../client/client_providers.dart';
 import '../roles/role_models.dart';
 import 'managed_user.dart';
 import 'account_dialog.dart';
@@ -237,7 +238,8 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
   }
 
   Future<void> _create(List<OutletInfo> outlets) async {
-    final hasKiosk = _roleOptions.any((o) => o.assignable && o.key == 'kiosk');
+    final hasKiosk = ref.read(moduleEnabledProvider('attendance')) &&
+        _roleOptions.any((o) => o.assignable && o.key == 'kiosk');
     var kind = 'employee';
     if (hasKiosk) {
       final k = await showModalBottomSheet<String>(

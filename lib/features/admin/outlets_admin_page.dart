@@ -8,6 +8,7 @@ import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import '../attendance/outlet_schedule_page.dart';
+import '../auth/auth_providers.dart';
 import 'package:rms_yow/core/ui/motion.dart';
 import 'package:rms_yow/shell/app_bar.dart';
 
@@ -278,6 +279,8 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
   }
 
   Widget _card(_AdminOutlet o) {
+    // jadwal buka-tutup = bagian modul Absensi (izin attendance.schedule)
+    final canSchedule = ref.read(appUserProvider).value?.can('attendance.schedule') ?? false;
     final hasLoc = o.lat != null;
     return Material(
       color: o.active ? AppColors.surface : const Color(0xFFF1EDE7),
@@ -372,7 +375,8 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                           ),
                         ),
                       ),
-                    const SizedBox(height: 4),
+                    if (canSchedule) const SizedBox(height: 4),
+                    if (canSchedule)
                     TextButton.icon(
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,

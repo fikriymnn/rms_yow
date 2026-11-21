@@ -285,7 +285,7 @@ Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
               title: const Text('Stok masuk manual (tanpa PO)'),
               onTap: () => Navigator.pop(ctx, 'in'),
             )
-          else
+          else if (ref.read(appUserProvider).value?.can('purchase_orders.create') ?? false)
             const ListTile(
               leading: Icon(Icons.info_outline),
               title: Text(
@@ -296,11 +296,6 @@ Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
             leading: const Icon(Icons.delete_outline),
             title: const Text('Waste / rusak'),
             onTap: () => Navigator.pop(ctx, 'waste'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.fact_check_outlined),
-            title: const Text('Stok opname'),
-            onTap: () => Navigator.pop(ctx, 'opname'),
           ),
           ListTile(
             leading: const Icon(Icons.history),
@@ -317,8 +312,6 @@ Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
       await _purchase(context, ref, i);
     case 'waste':
       await _waste(context, ref, i);
-    case 'opname':
-      await _opname(context, ref, i);
     case 'history':
       await _history(context, ref, i);
   }
@@ -378,37 +371,6 @@ Future<void> _waste(BuildContext context, WidgetRef ref, Ingredient i) async {
         qty: -q,
         note: r[1],
       );
-}
-
-Future<void> _opname(BuildContext context, WidgetRef ref, Ingredient i) async {
-  final current = ref.read(stockLevelsProvider)[i.id] ?? 0;
-  final r = await formDialog(
-    context,
-    'Opname: ${i.name}',
-    ['Stok fisik (${i.unit})'],
-    numeric: {0},
-    hint: 'Stok di sistem: ${qtyText(current)} ${i.unit}',
-  );
-  if (r == null) return;
-  final counted = parseNum(r[0]);
-  if (counted == null || counted < 0) {
-    _toast(context, 'Isi stok fisik');
-    return;
-  }
-  final diff = counted - current;
-  if (diff.abs() < 0.0001) {
-    _toast(context, 'Stok sudah sesuai');
-    return;
-  }
-  await ref
-      .read(stockRepositoryProvider)
-      .record(
-        ingredientId: i.id,
-        type: StockMoveType.opname,
-        qty: diff,
-        note: 'Sistem ${qtyText(current)} → fisik ${qtyText(counted)}',
-      );
-  _toast(context, 'Selisih ${qtyText(diff)} ${i.unit} dicatat');
 }
 
 Future<void> _history(BuildContext context, WidgetRef ref, Ingredient i) async {

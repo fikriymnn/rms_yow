@@ -44,6 +44,8 @@ import 'core/theme/app_theme.dart';
 import 'shell/app_shell.dart';
 import 'features/attendance/kiosk_page.dart';
 import 'features/pos/pos_page.dart';
+import 'features/opname/opname_list_page.dart';
+import 'features/opname/opname_providers.dart';
 import 'features/update/update_service.dart';
 import 'features/update/update_ui.dart';
 import 'features/client/client_models.dart';
@@ -156,6 +158,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
       supplierPaymentsProvider,
       reservationsProvider,
       proposalsProvider,
+      opnamesProvider,
     ]) {
       ref.listenManual(p, (_, __) {});
     }
@@ -316,6 +319,14 @@ class _HomeShellState extends ConsumerState<HomeShell>
         Icons.inventory_2_outlined,
         const InventoryPage(),
         'stock.read',
+        group: 'Manajemen',
+        rank: 14,
+      ),
+      _Dest(
+        'Stok opname',
+        Icons.fact_check_outlined,
+        const StockOpnamePage(),
+        'stock_opname.read',
         group: 'Manajemen',
         rank: 14,
       ),

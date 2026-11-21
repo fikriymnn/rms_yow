@@ -258,7 +258,10 @@ class AccountPage extends ConsumerWidget {
     final rejected = ref.read(syncControllerProvider.notifier).rejected;
     final u = session.user;
     final isOwner = u.isOwner;
-    final showPrivacy = !kIsWeb && !isOwner;
+    // modul dimatikan Super Admin -> menu terkait disembunyikan
+    final attendanceOn = ref.watch(moduleEnabledProvider('attendance'));
+    final payrollOn = ref.watch(moduleEnabledProvider('payroll'));
+    final showPrivacy = !kIsWeb && !isOwner && attendanceOn;
 
     final (syncLabel, syncTone) = switch (sync) {
       SyncState.idle => ('Tersinkron', Tone.success),
@@ -455,7 +458,7 @@ class AccountPage extends ConsumerWidget {
               'Email & password untuk mengaktifkan perangkat',
               () => _changeClientPassword(context, ref),
             ),
-          if (!isOwner)
+          if (!isOwner && payrollOn)
             _actionTile(
               Icons.receipt_long_outlined,
               'Slip gaji',

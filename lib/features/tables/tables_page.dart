@@ -44,6 +44,9 @@ class _TablesPageState extends ConsumerState<TablesPage> {
         holds.where((h) => h.tableId == tableId).firstOrNull;
     final canManage =
         ref.watch(appUserProvider).value?.can('tables.create') ?? false;
+    // modul Reservasi dimatikan -> izinnya dicabut -> tombol & filter booking disembunyikan
+    final canReserve =
+        ref.watch(appUserProvider).value?.can('reservations.read') ?? false;
     final repo = ref.read(tableRepositoryProvider);
     final takeaways = open.where((o) => o.type == OrderType.takeaway).toList();
 
@@ -116,7 +119,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
               (_Filter.all, 'Semua', tables.length),
               (_Filter.free, 'Kosong', freeCount),
               (_Filter.busy, 'Terisi', busyCount),
-              (_Filter.booked, 'Booking', bookedCount),
+              if (canReserve) (_Filter.booked, 'Booking', bookedCount),
             ])
               Expanded(
                 child: GestureDetector(
@@ -218,6 +221,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
       appBar: RmsAppBar(
         title: const Text('Meja'),
         actions: [
+          if (canReserve)
           IconButton(
             tooltip: 'Reservasi',
             icon: const Icon(Icons.event_available_outlined),
