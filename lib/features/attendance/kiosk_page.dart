@@ -31,15 +31,24 @@ const _toleranceM = 10;
 final kioskStaffProvider = FutureProvider.autoDispose<List<KioskStaff>>((
   ref,
 ) async {
+  final outletId = ref.watch(activeOutletIdProvider);
   final raw =
-      await ref.read(apiClientProvider).get('/attendance/kiosk/staff')
+      await ref
+              .read(apiClientProvider)
+              .get(
+                '/attendance/kiosk/staff',
+                query: {if (outletId != null) 'outlet_id': outletId},
+              )
           as List<dynamic>;
   return [for (final m in raw) KioskStaff.fromJson(m as Map<String, dynamic>)];
 });
 
-/// Layar tunggal untuk akun kiosk: pilih nama, masukkan PIN, lalu absen.
+/// Absen bersama: pilih nama, masukkan PIN, lalu absen.
+/// Akun role Absen bersama: layar penuh ([embedded] false, ada tombol Keluar).
+/// Owner: salah satu menu di aplikasi ([embedded] true), memakai outlet yang sedang aktif.
 class KioskPage extends ConsumerStatefulWidget {
-  const KioskPage({super.key});
+  const KioskPage({super.key, this.embedded = false});
+  final bool embedded;
   @override
   ConsumerState<KioskPage> createState() => _KioskPageState();
 }
@@ -117,9 +126,9 @@ class _KioskPageState extends ConsumerState<KioskPage>
 
   /// Alasan perangkat belum boleh dipakai absen (null = lokasi memenuhi syarat).
   String? _blocker() {
-    final outlet = ref.read(sessionProvider).value?.outlet;
+    final outlet = ref.read(activeOutletProvider);
     final fix = _fix;
-    if (outlet == null) return 'Akun kiosk tidak terikat outlet.';
+    if (outlet == null) return 'Pilih outlet terlebih dahulu.';
     if (outlet.lat == null || outlet.lng == null) {
       return 'Lokasi outlet belum diatur. Minta owner mengaturnya di Kelola outlet.';
     }
@@ -170,6 +179,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
                           'user_id': s.id,
                           'pin': pin,
                           'event_id': eventId,
+                          'outlet_id': ?ref.read(activeOutletIdProvider),
                         },
                       )
                   as Map<String, dynamic>;
@@ -191,6 +201,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
                 'user_id': s.id,
                 'ticket': ticket,
                 'version': kConsentVersion,
+                'outlet_id': ?ref.read(activeOutletIdProvider),
               },
             );
       }
@@ -233,6 +244,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
           userId: s.id,
           userName: s.name,
           ticket: ticket,
+          outletId: ref.read(activeOutletIdProvider),
         ),
       );
       final done = await queue.flushWithResults();
@@ -437,7 +449,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
         ),
       );
     }
-    final outlet = ref.watch(sessionProvider).value?.outlet;
+    final outlet = ref.watch(activeOutletProvider);
     final staff = ref.watch(kioskStaffProvider);
     final queue = ref.watch(queueItemsProvider).value ?? <QueueItem>[];
     final pending = queue.where((q) => q.status == 'pending').length;
@@ -451,7 +463,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Absensi karyawan',
+              widget.embedded ? 'Absen bersama' : 'Absensi karyawan',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
@@ -470,9 +482,10 @@ class _KioskPageState extends ConsumerState<KioskPage>
               if (v == 'reload') ref.invalidate(kioskStaffProvider);
               if (v == 'logout') _logout(pending);
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'reload', child: Text('Muat ulang daftar')),
-              PopupMenuItem(value: 'logout', child: Text('Keluar akun kiosk')),
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'reload', child: Text('Muat ulang daftar')),
+              if (!widget.embedded)
+                const PopupMenuItem(value: 'logout', child: Text('Keluar akun kiosk')),
             ],
           ),
         ],

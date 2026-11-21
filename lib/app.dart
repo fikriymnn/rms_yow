@@ -237,7 +237,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
         body: Center(child: Text('Akun belum punya role. Hubungi owner.')),
       );
     }
-    if (user.can('attendance.kiosk')) return const KioskPage();
+    // akun tablet absen bersama: layar penuh. Owner memakainya sebagai menu (lihat di bawah).
+    if (user.can('attendance.kiosk') && !user.isOwner) return const KioskPage();
     // outlet foodcourt: tanpa meja; kasir langsung memesan dan membayar
     final foodcourt = ref.watch(activeOutletProvider)?.isFoodcourt ?? false;
 
@@ -334,6 +335,15 @@ class _HomeShellState extends ConsumerState<HomeShell>
         group: 'Manajemen',
         rank: 18,
       ),
+      if (!kIsWeb && user.isOwner)
+        const _Dest(
+          'Absen bersama',
+          Icons.groups_2_outlined,
+          KioskPage(embedded: true),
+          'attendance.kiosk',
+          group: 'Tim',
+          rank: 21,
+        ),
       if (canOpenMasterData(user))
         const _Dest(
           'Data Master',

@@ -145,6 +145,7 @@ class QueueItem {
     this.userId, // terisi bila dikirim lewat kiosk (karyawan yang absen)
     this.userName = '',
     this.ticket = '',
+    this.outletId, // outlet absen bersama (wajib bila dijalankan akun owner)
   });
 
   final String eventId;
@@ -161,6 +162,7 @@ class QueueItem {
   final String? userId;
   final String userName;
   final String ticket; // tiket PIN dari server (hanya kiosk)
+  final String? outletId;
 
   QueueItem copyWith({String? status, String? error}) => QueueItem(
     eventId: eventId,
@@ -177,6 +179,7 @@ class QueueItem {
     userId: userId,
     userName: userName,
     ticket: ticket,
+    outletId: outletId,
   );
 
   factory QueueItem.fromJson(Map<String, dynamic> m) => QueueItem(
@@ -194,6 +197,7 @@ class QueueItem {
     userId: m['userId'] as String?,
     userName: m['userName'] as String? ?? '',
     ticket: m['ticket'] as String? ?? '',
+    outletId: m['outletId'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -211,5 +215,6 @@ class QueueItem {
     'userId': userId,
     'userName': userName,
     'ticket': ticket,
+    'outletId': outletId,
   };
 }

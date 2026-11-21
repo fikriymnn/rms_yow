@@ -10,7 +10,7 @@ import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
 import '../roles/role_models.dart';
 import 'managed_user.dart';
-import '../attendance/pin_dialogs.dart';
+import 'account_dialog.dart';
 import 'package:rms_yow/core/ui/motion.dart';
 import 'package:rms_yow/shell/app_bar.dart';
 
@@ -98,7 +98,10 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
     List<OutletInfo> outlets,
   ) {
     final me = ref.read(sessionProvider).value!.user;
-    final roles = _roleOptions.where((o) => o.assignable).toList();
+    // akun baru lewat form ini hanya akun perangkat Absen bersama (bukan karyawan)
+    final roles = _roleOptions
+        .where((o) => o.assignable && (u != null || o.key == 'kiosk'))
+        .toList();
     if (roles.isEmpty) {
       _toast('Anda tidak punya role yang boleh diberikan.');
       return Future.value(null);
@@ -107,7 +110,6 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
     final username = TextEditingController();
     final password = TextEditingController();
     final name = TextEditingController(text: u?.name);
-    final position = TextEditingController(text: u?.position);
     var role = (u != null && roles.any((o) => o.key == u.roleKey))
         ? u.roleKey
         : roles.first.key;
@@ -119,13 +121,13 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           final valid =
-              name.text.trim().isNotEmpty &&
+              (u != null || name.text.trim().isNotEmpty) &&
               (u != null ||
                   (username.text.trim().length >= 3 &&
                       password.text.length >= 8)) &&
-              (!isOwner || outletId != null);
+              (u != null || !isOwner || outletId != null);
           return AlertDialog(
-            title: Text(u == null ? 'Pengguna baru' : 'Edit pengguna'),
+            title: Text(u == null ? 'Akun perangkat Absen bersama' : 'Ubah role ${u.name}'),
             content: SizedBox(
               width: 420,
               child: SingleChildScrollView(
@@ -133,7 +135,36 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (u != null) ...[
+                      Text(
+                        'Nama, jabatan, outlet, dan PIN diubah di Data Master → Karyawan.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          height: 1.4,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     if (u == null) ...[
+                      Text(
+                        'Akun untuk HP/tablet yang dipakai bersama untuk absen. '
+                        'Akun untuk karyawan dibuat dari data karyawan.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          height: 1.4,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: name,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama perangkat (mis. Tablet kasir)',
+                        ),
+                        onChanged: (_) => setS(() {}),
+                      ),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: username,
                         autofocus: true,
@@ -154,17 +185,6 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    TextField(
-                      controller: name,
-                      decoration: const InputDecoration(labelText: 'Nama'),
-                      onChanged: (_) => setS(() {}),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: position,
-                      decoration: const InputDecoration(labelText: 'Jabatan'),
-                    ),
-                    const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: role,
                       decoration: const InputDecoration(labelText: 'Role'),
@@ -174,7 +194,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                       ],
                       onChanged: (v) => setS(() => role = v ?? role),
                     ),
-                    if (isOwner) ...[
+                    if (isOwner && u == null) ...[
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: outletId,
@@ -203,7 +223,6 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                         'username': username.text.trim(),
                         'password': password.text,
                         'name': name.text.trim(),
-                        'position': position.text.trim(),
                         'role': role,
                         'outlet_id': outletId,
                       })
@@ -218,6 +237,41 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
   }
 
   Future<void> _create(List<OutletInfo> outlets) async {
+    final hasKiosk = _roleOptions.any((o) => o.assignable && o.key == 'kiosk');
+    var kind = 'employee';
+    if (hasKiosk) {
+      final k = await showModalBottomSheet<String>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.badge_outlined),
+                title: const Text('Akun untuk karyawan'),
+                subtitle: const Text('Pilih dari data karyawan'),
+                onTap: () => Navigator.pop(ctx, 'employee'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.tablet_android_outlined),
+                title: const Text('Akun perangkat Absen bersama'),
+                subtitle: const Text('HP/tablet bersama untuk absen dengan PIN'),
+                onTap: () => Navigator.pop(ctx, 'kiosk'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (k == null || !mounted) return;
+      kind = k;
+    }
+    if (kind == 'employee') {
+      if (await showCreateAccountDialog(context, ref)) {
+        _toast('Akun login dibuat');
+        _reload();
+      }
+      return;
+    }
     final r = await _userForm(null, outlets);
     if (r == null) return;
     final isOwner = ref.read(sessionProvider).value!.user.isOwner;
@@ -230,33 +284,25 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
               'username': r['username'],
               'password': r['password'],
               'name': r['name'],
-              'position': r['position'],
               'role': r['role'],
               if (isOwner) 'outlet_id': r['outlet_id'],
             },
           );
-    }, ok: 'Pengguna dibuat');
+    }, ok: 'Akun perangkat dibuat');
   }
 
   Future<void> _edit(ManagedUser u, List<OutletInfo> outlets) async {
     final r = await _userForm(u, outlets);
     if (r == null) return;
-    final isOwner = ref.read(sessionProvider).value!.user.isOwner;
     await _run(() async {
       await ref
           .read(apiClientProvider)
           .request(
             'PATCH',
             '/users/${u.id}',
-            data: {
-              'name': r['name'],
-              'position': r['position'],
-              'role': r['role'],
-              if (isOwner && r['outlet_id'] != u.outletId)
-                'outlet_id': r['outlet_id'],
-            },
+            data: {'role': r['role']},
           );
-    }, ok: 'Perubahan disimpan');
+    }, ok: 'Role diubah');
   }
 
   Future<void> _resetPassword(ManagedUser u) async {
@@ -299,7 +345,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit'),
+              title: const Text('Ubah role'),
               onTap: () => Navigator.pop(ctx, 'edit'),
             ),
             ListTile(
@@ -307,14 +353,6 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
               title: const Text('Reset password'),
               onTap: () => Navigator.pop(ctx, 'reset'),
             ),
-            if (ref.read(appUserProvider).value?.can('attendance.pin_manage') ??
-                false)
-              ListTile(
-                leading: const Icon(Icons.pin_outlined),
-                title: const Text('PIN absensi'),
-                subtitle: Text(u.pinSet ? 'Sudah diatur' : 'Belum diatur'),
-                onTap: () => Navigator.pop(ctx, 'pin'),
-              ),
             ListTile(
               leading: Icon(
                 u.active ? Icons.block : Icons.check_circle_outline,
@@ -334,20 +372,11 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
       case 'reset':
         await _resetPassword(u);
       case 'toggle':
-        await _run(() async {
+    await _run(() async {
           await ref
               .read(apiClientProvider)
               .post('/users/${u.id}/${u.active ? 'deactivate' : 'activate'}');
         }, ok: u.active ? 'Akun dinonaktifkan' : 'Akun diaktifkan');
-      case 'pin':
-        final msg = await promptSetPin(
-          context,
-          ref,
-          userId: u.id,
-          name: u.name,
-        );
-        if (msg != null) _toast(msg);
-        _reload();
     }
   }
 
@@ -444,7 +473,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
     if (me == null) return const SizedBox.shrink();
 
     return Scaffold(
-      appBar: RmsAppBar(title: const Text('Kelola pengguna')),
+      appBar: RmsAppBar(title: const Text('Akun login')),
       body: FutureBuilder<_Data>(
         future: _future,
         builder: (context, snap) {
@@ -485,14 +514,14 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
             floatingActionButton: FloatingActionButton.extended(
               onPressed: d.outlets.isEmpty ? null : () => _create(d.outlets),
               icon: const Icon(Icons.person_add_alt),
-              label: const Text('Pengguna'),
+              label: const Text('Akun'),
             ),
             body: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
                 Row(
                   children: [
-                    StatusPill('${d.users.length} pengguna', tone: Tone.info),
+                    StatusPill('${d.users.length} akun', tone: Tone.info),
                     const SizedBox(width: 8),
                     if (inactive > 0) StatusPill('$inactive nonaktif'),
                   ],
@@ -536,7 +565,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                 if (shown.isEmpty)
                   const EmptyState(
                     icon: Icons.people_outline,
-                    title: 'Tidak ada pengguna',
+                    title: 'Belum ada akun',
                   )
                 else
                   AdaptiveGrid(

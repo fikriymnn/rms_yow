@@ -117,6 +117,7 @@ class AttendanceQueue {
                 dataBuilder: () => FormData.fromMap({
                   if (viaKiosk) 'user_id': q.userId,
                   if (viaKiosk) 'ticket': q.ticket,
+                  if (viaKiosk && q.outletId != null) 'outlet_id': q.outletId,
                   'event_id': q.eventId,
                   'kind': q.kind,
                   'client_time': q.clientTime,

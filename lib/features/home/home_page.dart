@@ -82,7 +82,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
     final isManager = user.can('finance.read');
-    final isOwner = user.isOwner;
 
     final orders = ref.watch(ordersProvider).value ?? <Order>[];
     final stats = computeHomeStats(orders, now);
@@ -106,7 +105,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         );
 
     final approvals = ref.watch(approvalCountsProvider).value?.inbox ?? 0;
-    final proposals = isOwner ? ref.watch(pendingProposalsCountProvider) : 0;
+    // usulan menu: hanya bila modulnya aktif (izin dicabut otomatis saat modul dimatikan)
+    final canDecideProposals = user.can('proposals.decide');
+    final proposals = canDecideProposals ? ref.watch(pendingProposalsCountProvider) : 0;
     final shift = ref.watch(currentShiftProvider);
 
     final dayStart = DateTime(
@@ -134,7 +135,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         _QuickAction(Icons.inventory_2_outlined, 'Stok', () => _open(const InventoryPage())),
       if (user.can('approvals.read'))
         _QuickAction(Icons.task_alt_rounded, 'Persetujuan', () => _open(const ApprovalsPage())),
-      if (isOwner)
+      if (canDecideProposals)
         _QuickAction(Icons.lightbulb_outline_rounded, 'Usulan', () => _open(const ProposalsPage())),
     ].take(4).toList();
 
@@ -174,7 +175,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           AppColors.sageInk,
           () => _open(const InventoryPage()),
         ),
-      if (isOwner)
+      if (canDecideProposals)
         _Todo(
           proposals,
           'Usulan menu',

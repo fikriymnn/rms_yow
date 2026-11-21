@@ -249,12 +249,17 @@ const helpTopics = <HelpTopic>[
       HelpSection('Absen sendiri', [
         HText('Buka Absensi, ketuk Masuk / Pulang. Aplikasi mengambil foto wajah dan lokasi; harus berada dalam radius outlet.'),
       ]),
-      HelpSection('Tablet absen bersama', [
+      HelpSection('Absen bersama', [
+        HText(
+          'Absen bersama dipakai bila karyawan absen bergantian di satu HP/tablet, '
+          'termasuk karyawan yang tidak punya akun login.',
+        ),
         HSteps([
-          'Buat akun karyawan dengan role Absen bersama untuk outlet itu, lalu login di tablet.',
-          'Atur PIN tiap karyawan: Data Master → Pengguna → ketuk karyawan → PIN absensi (atau karyawan mengaturnya sendiri di Akun → PIN absensi).',
-          'Karyawan memilih namanya di tablet, memasukkan PIN, lalu berfoto.',
+          'Tambahkan karyawan di Data Master → Karyawan, lalu isi PIN absensi (4–6 angka) saat menambah atau mengedit.',
+          'Owner: buka menu Absen bersama dan pilih outlet di bagian atas. Atau buat akun perangkat Absen bersama (Data Master → Akun login → Akun → Akun perangkat) lalu login di tablet outlet.',
+          'Karyawan memilih namanya, memasukkan PIN, lalu berfoto.',
         ]),
+        HTip('Karyawan yang punya akun tetap bisa absen sendiri dari HP-nya, dan bisa mengganti PIN-nya di Akun → PIN absensi.'),
       ]),
       HelpSection('Tinjauan, koreksi, dan lembur', [
         HBullets([
@@ -306,8 +311,8 @@ const helpTopics = <HelpTopic>[
   HelpTopic(
     'account',
     Icons.storefront_outlined,
-    'Akun restoran & perangkat',
-    'Login dua tahap, perangkat aktif, langganan, dan password.',
+    'Akun, karyawan & perangkat',
+    'Data karyawan, akun login, perangkat aktif, langganan, dan password.',
     [
       HelpSection('Dua jenis akun', [
         HBullets([
@@ -318,6 +323,18 @@ const helpTopics = <HelpTopic>[
           'Owner dapat mengganti password akun restoran di Akun → Password akun restoran. '
           'Perangkat yang sudah aktif tidak ikut keluar.',
         ),
+      ]),
+      HelpSection('Karyawan dan akun login', [
+        HText(
+          'Setiap orang yang bekerja dicatat di Data Master → Karyawan. Karyawan tidak wajib '
+          'punya akun: tanpa akun pun tetap bisa absen di Absen bersama dan ikut penggajian.',
+        ),
+        HSteps([
+          'Tambahkan karyawan: nama, jabatan, outlet, dan PIN absensi.',
+          'Bila karyawan perlu masuk aplikasi, ketuk karyawan → Buat akun login (atau Data Master → Akun login → Akun), lalu isi username, password awal, dan role.',
+          'Karyawan login dan wajib mengganti password awal.',
+        ]),
+        HTip('Akun login hanya bisa dibuat dari data karyawan. Ubah nama, jabatan, outlet, dan PIN di halaman Karyawan; di Akun login hanya role dan password.'),
       ]),
       HelpSection('Langganan & update', [
         HText('Masa aktif tampil di Akun → Langganan. Untuk perpanjang, hubungi CS lalu masukkan kode kupon.'),

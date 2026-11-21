@@ -10,6 +10,7 @@ import '../auth/auth_providers.dart';
 import '../help/help_page.dart';
 import '../payroll/payroll_page.dart';
 import '../roles/roles_admin_page.dart';
+import 'employees_page.dart';
 import 'outlets_admin_page.dart';
 import 'users_admin_page.dart';
 
@@ -26,7 +27,7 @@ class _Entry {
   final Widget page;
 }
 
-/// Data Master: pengelolaan outlet, role, pengguna, penggajian, dan tinjauan absensi.
+/// Data Master: pengelolaan outlet, role, karyawan, akun login, penggajian, dan tinjauan absensi.
 class MasterDataPage extends ConsumerWidget {
   const MasterDataPage({super.key});
 
@@ -55,9 +56,16 @@ class MasterDataPage extends ConsumerWidget {
             ),
           if (u.can('users.read'))
             const _Entry(
-              Icons.people_outline_rounded,
-              'Pengguna',
-              'Tambah, ubah, dan nonaktifkan akun',
+              Icons.badge_outlined,
+              'Karyawan',
+              'Data karyawan, outlet, dan PIN absensi',
+              EmployeesPage(),
+            ),
+          if (u.can('users.read'))
+            const _Entry(
+              Icons.key_outlined,
+              'Akun login',
+              'Buat akun dari data karyawan, atur role',
               UsersAdminPage(),
             ),
         ],
