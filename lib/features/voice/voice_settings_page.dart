@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/motion.dart';
 import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
+import 'voice_picker_page.dart';
 import 'voice_service.dart';
 
 /// Pengaturan pengumuman suara untuk perangkat ini.
@@ -75,7 +76,7 @@ class _VoiceSettingsPageState extends ConsumerState<VoiceSettingsPage> {
                         '"$sampleNew" — untuk dapur',
                         s.newOrder,
                         (v) => _save(s.copyWith(newOrder: v)),
-                        () => voice.say(sampleNew, once: true),
+                        () => voice.say(sampleNew, chime: Chime.newOrder, once: true),
                       ),
                       const Divider(height: 1),
                       _switch(
@@ -83,7 +84,7 @@ class _VoiceSettingsPageState extends ConsumerState<VoiceSettingsPage> {
                         '"$sampleReady" — untuk pelayan / kasir',
                         s.ready,
                         (v) => _save(s.copyWith(ready: v)),
-                        () => voice.say(sampleReady, once: true),
+                        () => voice.say(sampleReady, chime: Chime.ready, once: true),
                       ),
                     ],
                   ),
@@ -144,10 +145,24 @@ class _VoiceSettingsPageState extends ConsumerState<VoiceSettingsPage> {
                         onSelectionChanged: (v) => _save(s.copyWith(repeat: v.first)),
                       ),
                       const SizedBox(height: 14),
-                      OutlinedButton.icon(
-                        onPressed: () => voice.say(sampleReady),
-                        icon: const Icon(Icons.volume_up_outlined),
-                        label: const Text('Tes suara'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilledButton.tonalIcon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(builder: (_) => const VoicePickerPage()),
+                            ),
+                            icon: const Icon(Icons.record_voice_over_outlined),
+                            label: Text(s.voiceName == null ? 'Pilih suara' : 'Ganti suara'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => voice.say(sampleReady, chime: Chime.ready),
+                            icon: const Icon(Icons.volume_up_outlined),
+                            label: const Text('Tes suara'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

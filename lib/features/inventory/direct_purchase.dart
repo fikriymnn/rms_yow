@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/sync/local_first_repository.dart';
+import '../../core/sync/sync_controller.dart';
 
 /// Belanja langsung tanpa PO (pasar / toko), satu dokumen berisi banyak bahan.
 /// Koleksi sinkron `direct_purchases` (per outlet, tidak bisa diubah setelah dicatat).
@@ -111,6 +112,11 @@ class DirectPurchaseRepository extends LocalFirstRepository<DirectPurchase> {
 
 final directPurchaseRepositoryProvider = Provider<DirectPurchaseRepository>(
   (ref) => DirectPurchaseRepository(ref),
+);
+
+/// Id belanja yang belum diterima server (stok baru bertambah setelah diterima).
+final unsyncedPurchasesProvider = StreamProvider<Set<String>>(
+  (ref) => ref.watch(databaseProvider).watchDirtyIds('direct_purchases'),
 );
 
 /// Riwayat belanja langsung outlet aktif, terbaru dulu.

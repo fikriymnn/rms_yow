@@ -130,13 +130,13 @@ class OrderAnnouncer {
     if (s?.newOrder ?? false) {
       for (final e in _pendingNew.entries) {
         final o = orders[e.key];
-        if (o != null) voice.say(newOrderSentence(o, tables, addition: e.value.addition));
+        if (o != null) voice.say(newOrderSentence(o, tables, addition: e.value.addition), chime: Chime.newOrder);
       }
     }
     if (s?.ready ?? false) {
       for (final id in _pendingReady) {
         final o = orders[id];
-        if (o != null) voice.say(readySentence(o, tables));
+        if (o != null) voice.say(readySentence(o, tables), chime: Chime.ready);
       }
     }
     _pendingNew.clear();

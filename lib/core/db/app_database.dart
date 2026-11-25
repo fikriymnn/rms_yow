@@ -51,6 +51,12 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> upsert(DocsCompanion d) => into(docs).insertOnConflictUpdate(d);
 
+  /// Id dokumen di koleksi [c] yang belum diterima server (masih menunggu sinkron).
+  Stream<Set<String>> watchDirtyIds(String c) =>
+      (select(docs)..where((t) => t.collection.equals(c) & t.dirty.equals(true)))
+          .watch()
+          .map((rows) => {for (final r in rows) r.id});
+
   Future<List<Doc>> dirtyDocs() =>
       (select(docs)..where((t) => t.dirty.equals(true))).get();
 

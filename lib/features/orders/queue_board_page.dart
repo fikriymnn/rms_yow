@@ -72,7 +72,7 @@ class _QueueBoardPageState extends ConsumerState<QueueBoardPage> {
   Future<void> _taken(Order o) =>
       ref.read(itemStatusRepositoryProvider).setStatus(o.id, o.items, KitchenStatus.served);
 
-  void _recall(Order o) => ref.read(voiceServiceProvider).say(readySentence(o, const {}));
+  void _recall(Order o) => ref.read(voiceServiceProvider).say(readySentence(o, const {}), chime: Chime.ready);
 
   @override
   Widget build(BuildContext context) {

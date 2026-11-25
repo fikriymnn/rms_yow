@@ -10,6 +10,7 @@ import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
 import 'direct_purchase.dart';
 import 'direct_purchase_page.dart';
+import '../../core/sync/sync_controller.dart';
 
 final _dateFmt = DateFormat('d MMM yyyy', 'id_ID');
 
@@ -125,6 +126,12 @@ class _DirectPurchasesPageState extends ConsumerState<DirectPurchasesPage> {
         )
         .toList();
     final total = shown.fold<double>(0, (s, p) => s + p.total);
+    // belanja yang belum diterima server: stoknya belum bertambah
+    final pending = ref.watch(unsyncedPurchasesProvider).value ?? const <String>{};
+    final rejected = {
+      for (final r in ref.read(syncControllerProvider.notifier).rejected)
+        if (r.startsWith('direct_purchases/')) r.split(': ').first.substring('direct_purchases/'.length): r.split(': ').skip(1).join(': '),
+    };
 
     return Scaffold(
       appBar: AppBar(title: const Text('Belanja langsung')),
@@ -212,6 +219,19 @@ class _DirectPurchasesPageState extends ConsumerState<DirectPurchasesPage> {
                                 '${shown[i].place.isEmpty ? '' : ' · ${shown[i].number}'}',
                                 style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.muted),
                               ),
+                              if (pending.contains(shown[i].id)) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  rejected[shown[i].id] != null
+                                      ? 'Ditolak server: ${rejected[shown[i].id]}'
+                                      : 'Belum terkirim ke server — stok belum bertambah',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: rejected[shown[i].id] != null ? AppColors.danger : AppColors.warning,
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 4),
                               Text(
                                 shown[i].lines.map((l) => l.name).join(', '),

@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.2.1+21
+version: 1.2.2+22
 
 environment:
   sdk: ^3.12.1
@@ -64,6 +64,8 @@ dependencies:
   url_launcher: ^6.3.3
   flutter_tts: ^4.2.5 # pengumuman suara pesanan (bahasa Indonesia)
   wakelock_plus: ^1.8.0 # layar tetap menyala di tablet dapur / kasir
+  path_provider: ^2.1.6 # berkas pengaturan suara untuk notifikasi saat aplikasi tertutup
+  audioplayers: ^6.8.0 # nada notifikasi sebelum pengumuman suara saat aplikasi terbuka
 
 dev_dependencies:
   flutter_test:
@@ -95,6 +97,8 @@ flutter:
     - assets/google_fonts/
     - assets/brand/
     - assets/guide/
+    - assets/sounds/ # nada notifikasi sebelum pengumuman suara (sama dengan res/raw)
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
