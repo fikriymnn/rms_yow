@@ -30,7 +30,7 @@ TextStyle _jk(double size, FontWeight w, Color c, {double? ls}) =>
     GoogleFonts.plusJakartaSans(fontSize: size, fontWeight: w, color: c, letterSpacing: ls);
 
 /// Lencana angka kecil (maroon) di pojok ikon.
-Widget _badged(Widget icon, int n, {Color ring = AppColors.surface}) => n <= 0
+Widget _badged(Widget icon, int n, {Color? ring}) => n <= 0
     ? icon
     : Stack(
         clipBehavior: Clip.none,
@@ -47,7 +47,7 @@ Widget _badged(Widget icon, int n, {Color ring = AppColors.surface}) => n <= 0
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: ring, width: 2),
+                border: Border.all(color: ring ?? AppColors.surface, width: 2),
               ),
               child: Text(_badgeText(n), style: _jk(10, FontWeight.w800, Colors.white)),
             ),
