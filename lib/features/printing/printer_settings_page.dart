@@ -206,7 +206,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
       scrollDirection: Axis.horizontal,
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'monospace',
           fontSize: 12,
           height: 1.35,
@@ -285,7 +285,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.info_outline,
                     size: 18,
                     color: AppColors.primary,
@@ -334,7 +334,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.bluetooth, color: AppColors.primary),
+                        Icon(Icons.bluetooth, color: AppColors.primary),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
@@ -570,7 +570,7 @@ class _PrinterSettingsPageState extends ConsumerState<PrinterSettingsPage> {
           ? null
           : Container(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.surface,
                 border: Border(top: BorderSide(color: AppColors.border)),
               ),

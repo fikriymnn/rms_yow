@@ -168,7 +168,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: diff == 0
-                            ? const Color(0xFFE7EDE3)
+                            ? AppColors.sageSoft
                             : diff < 0
                             ? AppColors.roseSoft
                             : const Color(0xFFF7EBD6),
@@ -295,9 +295,9 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.warning_amber_rounded,
-                        color: Color(0xFF7D0B1E),
+                        color: AppColors.primary,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -306,7 +306,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                           'dibuka bersamaan saat offline). Tutup satu per satu, mulai dari yang tertua.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
-                            color: const Color(0xFF7D0B1E),
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -416,7 +416,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                 color: AppColors.primarySoft,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.lock_open_outlined,
                 color: AppColors.primary,
               ),
@@ -567,6 +567,6 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
   List<Widget> _methodRows(Map<String, int> by) => [
     for (final m in PayMethod.values)
       if (m != PayMethod.cash && (by[m.name] ?? 0) > 0)
-        KvRow(m.name.toUpperCase(), rupiah.format(by[m.name]!), indent: 16),
+        KvRow(m.label, rupiah.format(by[m.name]!), indent: 16),
   ];
 }

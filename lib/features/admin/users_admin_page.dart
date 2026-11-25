@@ -393,7 +393,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
         u.roleKey == 'manager' ||
         u.roleKey == 'head_chef';
     return Material(
-      color: u.active ? AppColors.surface : const Color(0xFFF1EDE7),
+      color: u.active ? AppColors.surface : AppColors.divider,
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -461,7 +461,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                 ),
               ),
               if (canEdit)
-                const Icon(Icons.more_vert, size: 20, color: AppColors.muted),
+                Icon(Icons.more_vert, size: 20, color: AppColors.muted),
             ],
           ),
         ),

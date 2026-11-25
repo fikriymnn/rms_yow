@@ -56,9 +56,9 @@ class _MyPayslipsPageState extends ConsumerState<MyPayslipsPage> {
                 tileColor: AppColors.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
-                  side: const BorderSide(color: AppColors.border),
+                  side: BorderSide(color: AppColors.border),
                 ),
-                leading: const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
+                leading: Icon(Icons.receipt_long_outlined, color: AppColors.primary),
                 title: Text(periodText(s.periodStart, s.periodEnd), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
                 subtitle: Text(s.outletName ?? ''),
                 trailing: Text(rupiah.format(s.net), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),

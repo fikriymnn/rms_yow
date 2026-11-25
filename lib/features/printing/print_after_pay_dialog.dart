@@ -146,8 +146,8 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
         height: 18,
         child: CircularProgressIndicator(strokeWidth: 2.2),
       ),
-      _State.done => const Icon(Icons.check_circle, color: AppColors.success),
-      _State.failed => const Icon(Icons.error_outline, color: AppColors.danger),
+      _State.done => Icon(Icons.check_circle, color: AppColors.success),
+      _State.failed => Icon(Icons.error_outline, color: AppColors.danger),
       _State.idle => Icon(icon),
     };
     return OutlinedButton.icon(
@@ -169,8 +169,8 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
     return AlertDialog(
       icon: Container(
         padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(color: Color(0xFFE7EDE3), shape: BoxShape.circle),
-        child: const Icon(Icons.check_rounded, size: 32, color: AppColors.success),
+        decoration: BoxDecoration(color: AppColors.sageSoft, shape: BoxShape.circle),
+        child: Icon(Icons.check_rounded, size: 32, color: AppColors.success),
       ),
       title: Text(widget.title, textAlign: TextAlign.center),
       content: ConstrainedBox(

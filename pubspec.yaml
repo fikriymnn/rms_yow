@@ -62,6 +62,8 @@ dependencies:
   package_info_plus: ^10.2.2
   device_info_plus: ^13.3.0
   url_launcher: ^6.3.3
+  flutter_tts: ^4.2.5 # pengumuman suara pesanan (bahasa Indonesia)
+  wakelock_plus: ^1.8.0 # layar tetap menyala di tablet dapur / kasir
 
 dev_dependencies:
   flutter_test:

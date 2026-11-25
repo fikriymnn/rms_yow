@@ -23,6 +23,7 @@ import 'package:rms_yow/features/shifts/shift_page.dart';
 import 'package:rms_yow/features/shifts/shift_providers.dart';
 import 'package:rms_yow/features/tables/tables_providers.dart';
 import 'core/sync/sync_controller.dart';
+import 'core/theme/theme_controller.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_page.dart';
 import 'features/finance/finance_page.dart';
@@ -46,6 +47,7 @@ import 'features/attendance/kiosk_page.dart';
 import 'features/pos/pos_page.dart';
 import 'features/opname/opname_list_page.dart';
 import 'features/opname/opname_providers.dart';
+import 'features/voice/order_announcer.dart';
 import 'features/update/update_service.dart';
 import 'features/update/update_ui.dart';
 import 'features/client/client_models.dart';
@@ -69,6 +71,8 @@ class RmsApp extends ConsumerWidget {
     final outlet = ref.watch(activeOutletProvider);
     // versi aplikasi di bawah batas minimum server: wajib diperbarui dulu
     final forced = ref.watch(mandatoryUpdateProvider).value;
+    // tema warna milik klien (dipilih owner); berlaku di semua outlet & perangkat
+    applyClientTheme(client.value?.info.theme);
     return MaterialApp(
       title: 'RMS',
       navigatorKey: rootNavigatorKey,
@@ -159,6 +163,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
       reservationsProvider,
       proposalsProvider,
       opnamesProvider,
+      orderAnnouncerProvider, // pengumuman suara pesanan baru / siap (per perangkat)
+      voiceDeviceSyncProvider, // kirim pengaturan suara ke server + layar tetap menyala
     ]) {
       ref.listenManual(p, (_, __) {});
     }

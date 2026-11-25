@@ -395,7 +395,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
               'Sebagian bahan belum punya harga beli, food cost bisa lebih rendah dari sebenarnya.',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: const Color(0xFF7D0B1E),
+                color: AppColors.primary,
               ),
             ),
           )
@@ -455,7 +455,7 @@ class _ProposalEditorPageState extends ConsumerState<ProposalEditorPage> {
 
     final bottomBar = Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),

@@ -226,7 +226,7 @@ class ChargesTab extends ConsumerWidget {
     required List<Charge> all,
   }) {
     return Material(
-      color: c.active ? AppColors.surface : const Color(0xFFF1EDE7),
+      color: c.active ? AppColors.surface : AppColors.divider,
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -377,7 +377,7 @@ class ChargesTab extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.info_outline,
                     size: 18,
                     color: AppColors.primary,

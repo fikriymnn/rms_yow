@@ -175,7 +175,7 @@ Future<void> sharePayslipPdf(Payslip s, {String? period, String? outlet}) async 
       build: (_) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('SLIP GAJI', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF7D0B1E))),
+          pw.Text('SLIP GAJI', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(AppColors.primary.toARGB32()))),
           if (outlet != null) pw.Text(outlet),
           if (period != null) pw.Text('Periode $period'),
           pw.SizedBox(height: 10),

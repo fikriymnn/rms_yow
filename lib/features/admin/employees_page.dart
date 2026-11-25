@@ -274,7 +274,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
               ),
             if (!e.hasAccount)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                leading: Icon(Icons.delete_outline, color: AppColors.danger),
                 title: const Text('Hapus'),
                 onTap: () => Navigator.pop(ctx, 'delete'),
               ),
@@ -299,7 +299,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
   Widget _card(EmployeeInfo e, String outletName, VoidCallback onTap) {
     final attendanceOn = ref.read(moduleEnabledProvider('attendance'));
     return Material(
-      color: e.active ? AppColors.surface : const Color(0xFFF1EDE7),
+      color: e.active ? AppColors.surface : AppColors.divider,
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -365,7 +365,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
                   ],
                 ),
               ),
-              const Icon(Icons.more_vert, size: 20, color: AppColors.muted),
+              Icon(Icons.more_vert, size: 20, color: AppColors.muted),
             ],
           ),
         ),

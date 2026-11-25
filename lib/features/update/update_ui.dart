@@ -220,7 +220,7 @@ class UpdateRequiredPage extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.system_update_outlined,
                 size: 64,
                 color: AppColors.primary,

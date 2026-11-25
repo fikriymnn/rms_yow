@@ -239,7 +239,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
             ),
             onPressed: () => openPos(),
             icon: const Icon(Icons.shopping_bag_outlined, size: 19),
-            label: const Text('Bawa pulang'),
+            label: const Text('Takeaway'),
           ),
         ],
       ),
@@ -543,7 +543,7 @@ class _TableCard extends StatelessWidget {
 
     // warna per status: kosong putih, terisi hitam, sudah bayar sage, booking maroon muda
     final (Color bg, Color fg, Color sub, Color line) = o != null
-        ? (AppColors.ink, const Color(0xFFF6F3EE), AppColors.onInkMuted, AppColors.ink)
+        ? (AppColors.ink, AppColors.bg, AppColors.onInkMuted, AppColors.ink)
         : hold != null
         ? (AppColors.sageSoft, AppColors.sageInk, AppColors.sageInk, AppColors.sageSoft)
         : hasBooking

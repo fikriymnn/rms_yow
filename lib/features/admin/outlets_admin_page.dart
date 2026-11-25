@@ -208,7 +208,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.info_outline,
                           size: 16,
                           color: AppColors.primary,
@@ -283,7 +283,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
     final canSchedule = ref.read(appUserProvider).value?.can('attendance.schedule') ?? false;
     final hasLoc = o.lat != null;
     return Material(
-      color: o.active ? AppColors.surface : const Color(0xFFF1EDE7),
+      color: o.active ? AppColors.surface : AppColors.divider,
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -303,7 +303,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
                 decoration: BoxDecoration(
                   color: o.active
                       ? AppColors.primarySoft
-                      : const Color(0xFFE7E1D8),
+                      : AppColors.border,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(

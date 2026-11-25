@@ -127,7 +127,7 @@ class _ForcePasswordPageState extends ConsumerState<ForcePasswordPage> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.shield_outlined,
                 size: 18,
                 color: AppColors.primary,
@@ -190,7 +190,7 @@ class _ForcePasswordPageState extends ConsumerState<ForcePasswordPage> {
               _error!,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: const Color(0xFF7D0B1E),
+                color: AppColors.primary,
               ),
             ),
           ),

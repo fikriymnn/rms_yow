@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rms_yow/features/orders/items_status.dart';
 
 import '../../core/sync/local_first_repository.dart';
+import '../auth/auth_providers.dart';
 import 'order_models.dart';
 
 class OrderRepository extends LocalFirstRepository<Order> {
@@ -40,16 +41,36 @@ class ItemStatusRepository extends LocalFirstRepository<ItemStatus> {
   Map<String, dynamic> toMap(ItemStatus s) => s.toMap();
   @override
   String idOf(ItemStatus s) => s.id;
+
+  /// Ubah status beberapa item sekaligus, mencatat waktu & nama petugas tahap itu.
+  Future<void> setStatus(String orderId, Iterable<OrderItem> items, KitchenStatus to) async {
+    final docs = ref.read(itemStatusDocsProvider).value ?? const <String, ItemStatus>{};
+    final by = ref.read(appUserProvider).value?.name ?? '';
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (final it in items) {
+      final cur = docs[it.id] ??
+          ItemStatus(id: it.id, orderId: orderId, status: KitchenStatus.newItem);
+      if (cur.status == to) continue;
+      await save(cur.advance(to, at: now, by: by));
+    }
+  }
 }
 
 final itemStatusRepositoryProvider = Provider<ItemStatusRepository>(
   (ref) => ItemStatusRepository(ref),
 );
 
-/// itemId -> status. Item tanpa dokumen dianggap `newItem`.
-final itemStatusProvider = StreamProvider<Map<String, KitchenStatus>>(
+/// itemId -> dokumen status lengkap (dengan waktu tiap tahap).
+final itemStatusDocsProvider = StreamProvider<Map<String, ItemStatus>>(
   (ref) => ref
       .watch(itemStatusRepositoryProvider)
       .watchAll()
-      .map((l) => {for (final s in l) s.id: s.status}),
+      .map((l) => {for (final s in l) s.id: s}),
+);
+
+/// itemId -> status. Item tanpa dokumen dianggap `newItem`.
+final itemStatusProvider = Provider<AsyncValue<Map<String, KitchenStatus>>>(
+  (ref) => ref
+      .watch(itemStatusDocsProvider)
+      .whenData((m) => {for (final e in m.entries) e.key: e.value.status}),
 );

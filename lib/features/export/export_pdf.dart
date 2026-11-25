@@ -1,3 +1,4 @@
+import '../../core/theme/app_colors.dart';
 import 'dart:typed_data';
 
 import 'package:intl/intl.dart';
@@ -5,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/format.dart';
+import '../orders/order_models.dart';
 import 'export_builders.dart';
 
 /// Ringkasan: laba rugi, penjualan per metode bayar, biaya, menu terlaris.
@@ -16,7 +18,7 @@ Future<Uint8List> buildSummaryPdf(ExportData d, String periodLabel) async {
   final qty = <String, int>{};
   final rev = <String, int>{};
   for (final o in sold) {
-    final m = (o.payMethod?.name ?? 'other').toUpperCase();
+    final m = o.payMethod?.label ?? 'Lainnya';
     byMethod[m] = (byMethod[m] ?? 0) + o.total;
     for (final it in o.items) {
       qty[it.name] = (qty[it.name] ?? 0) + it.qty;
@@ -71,12 +73,18 @@ Future<Uint8List> buildSummaryPdf(ExportData d, String periodLabel) async {
           style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
         ),
         pw.Text(periodLabel),
+        pw.Text('Sumber pesanan: ${d.sourceLabel}'),
         pw.Text(
           'Dibuat ${DateFormat('d MMM yyyy HH:mm').format(DateTime.now())}',
           style: const pw.TextStyle(fontSize: 9),
         ),
         pw.Divider(),
-        h('Laba rugi'),
+        if (d.bySource.length > 1 || d.source != null) ...[
+          h('Penjualan per sumber pesanan'),
+          for (final e in (d.bySource.entries.toList()..sort((a, b) => b.value.total.compareTo(a.value.total))))
+            kv('${e.key.label}  (${e.value.n} order)', rupiah.format(e.value.total)),
+        ],
+        h('Laba rugi${d.source == null ? '' : ' (semua sumber)'}'),
         kv('Jumlah order', '${p.orderCount}'),
         kv('Penjualan (sebelum pajak)', rupiah.format(p.revenue)),
         if (p.refunds > 0) kv('Refund', rupiah.format(-p.refunds)),
@@ -93,9 +101,9 @@ Future<Uint8List> buildSummaryPdf(ExportData d, String periodLabel) async {
         pw.Divider(),
         kv('Laba bersih', rupiah.format(p.netProfit), bold: true),
         if (byMethod.isNotEmpty)
-          h('Penjualan per metode bayar (termasuk pajak)'),
+          h('Penjualan per metode bayar (termasuk pajak)${d.source == null ? '' : ' - ${d.sourceLabel}'}'),
         for (final e in byMethod.entries) kv(e.key, rupiah.format(e.value)),
-        if (top.isNotEmpty) h('Menu terlaris'),
+        if (top.isNotEmpty) h('Menu terlaris${d.source == null ? '' : ' - ${d.sourceLabel}'}'),
         for (final e in top)
           kv('${e.key}  (${qty[e.key]}x)', rupiah.format(e.value)),
         pw.SizedBox(height: 16),
@@ -103,6 +111,59 @@ Future<Uint8List> buildSummaryPdf(ExportData d, String periodLabel) async {
           'Pajak (PB1) tidak dihitung sebagai pendapatan. HPP memakai harga beli '
           'rata-rata saat ini. Biaya dicatat sesuai tanggal input (basis kas).',
           style: const pw.TextStyle(fontSize: 9),
+        ),
+      ],
+    ),
+  );
+  return doc.save();
+}
+
+
+/// Daftar transaksi (A4 mendatar): untuk arsip & cek silang nomor pesanan aplikasi online.
+Future<Uint8List> buildTransactionsPdf(ExportData d, String periodLabel) async {
+  final rows = transactionRows(d);
+  final fmt = DateFormat('dd/MM/yy HH:mm');
+  final body = [
+    for (final r in rows.skip(1))
+      [
+        r[0] is DateTime ? fmt.format(r[0]! as DateTime) : '',
+        '${r[1] ?? ''}',
+        '${r[2] ?? ''}',
+        '${r[3] ?? ''}',
+        '${r[4] ?? ''}',
+        '${r[5] ?? ''}',
+        rupiah.format(r[6] as num? ?? 0),
+        '${r[7] ?? ''}',
+      ],
+  ];
+  final total = d.soldOrders.where((o) => o.status != OrderStatus.refunded).fold<int>(0, (s, o) => s + o.total);
+  final doc = pw.Document();
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      margin: const pw.EdgeInsets.all(28),
+      footer: (ctx) => pw.Align(
+        alignment: pw.Alignment.centerRight,
+        child: pw.Text('Halaman ${ctx.pageNumber}/${ctx.pagesCount}', style: const pw.TextStyle(fontSize: 9)),
+      ),
+      build: (_) => [
+        pw.Text('Daftar Transaksi', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+        pw.Text('$periodLabel  |  Sumber: ${d.sourceLabel}'),
+        pw.Text(
+          '${body.length} transaksi  |  Total lunas ${rupiah.format(total)}  |  '
+          'Dibuat ${DateFormat('d MMM yyyy HH:mm').format(DateTime.now())}',
+          style: const pw.TextStyle(fontSize: 9),
+        ),
+        pw.SizedBox(height: 10),
+        pw.TableHelper.fromTextArray(
+          headers: [for (final h in rows.first) '$h'],
+          data: body,
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
+          headerDecoration: pw.BoxDecoration(color: PdfColor.fromInt(AppColors.primary.toARGB32())),
+          cellStyle: const pw.TextStyle(fontSize: 8.5),
+          oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF6F3EE)),
+          cellAlignments: {6: pw.Alignment.centerRight},
+          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
         ),
       ],
     ),

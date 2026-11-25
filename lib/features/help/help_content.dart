@@ -155,8 +155,13 @@ const helpTopics = <HelpTopic>[
         ]),
         HImage('assets/guide/tables.png', 'Denah meja per status'),
       ]),
-      HelpSection('Bawa pulang & foodcourt', [
-        HText('Ketuk "Bawa pulang" di halaman Meja. Outlet foodcourt langsung masuk ke kasir tanpa denah meja.'),
+      HelpSection('Takeaway & foodcourt', [
+        HText('Ketuk "Takeaway" di halaman Meja. Outlet foodcourt langsung masuk ke kasir tanpa denah meja.'),
+        HBullets([
+          'Saat bayar pesanan tanpa meja, pilih sumber pesanan: Langsung, GoFood, GrabFood, atau ShopeeFood.',
+          'Pesanan online wajib diisi nomor pesanan dari aplikasinya, untuk cek silang di Laporan. Pembayarannya tercatat "Aplikasi online" (tidak masuk uang laci).',
+          'Foodcourt: pilih "Makan di sini" atau "Takeaway" agar dapur tahu pesanan perlu dibungkus. Pesanan online otomatis takeaway.',
+        ]),
       ]),
       HelpSection('Diskon, void, dan refund', [
         HBullets([
@@ -180,6 +185,36 @@ const helpTopics = <HelpTopic>[
           'Pelayan menerima notifikasi "siap diantar" lalu menandai diantar.',
         ]),
         HTip('Pastikan notifikasi HP/tablet dapur diizinkan agar pesanan baru tidak terlewat.'),
+      ]),
+      HelpSection('Notifikasi suara', [
+        HText(
+          'Perangkat bisa membacakan pesanan: "Pesanan untuk meja 4 sudah dibuat" dan "Pesanan meja 4 siap diantar" '
+          '(foodcourt: "Pesanan nomor 12 siap diambil"). Atur di Akun → Notifikasi suara.',
+        ),
+        HBullets([
+          'Pengaturan berlaku per perangkat, bukan per akun. Cocok bila satu akun dipakai bersama.',
+          'Aplikasi tertutup: perangkat berbunyi (nada pesanan baru / pesanan siap) lalu membacakan pesanannya. Butuh internet.',
+          'Tablet dapur / kasir: nyalakan "Layar tetap menyala" dan pasang ke charger agar aplikasi tidak pernah ditutup sistem.',
+          'Bila bunyi saat aplikasi tertutup tidak muncul, ubah pengaturan baterai aplikasi RMS menjadi "Tidak dibatasi".',
+          'Bila pengucapan aneh, pasang suara Bahasa Indonesia di pengaturan text-to-speech HP.',
+        ]),
+      ]),
+      HelpSection('Foodcourt tanpa layar Dapur', [
+        HSteps([
+          'Setelah bayar, pesanan masuk ke Antrean (ikon pengeras suara di halaman Order).',
+          'Saat dapur selesai, kasir ketuk Panggil: nomor antrean dibacakan.',
+          'Saat pelanggan mengambil, ketuk Sudah diambil. Nomor antrean bisa dipakai lagi.',
+        ]),
+        HTip('Panggil ulang membacakan nomor sekali lagi bila pelanggan belum datang.'),
+      ]),
+      HelpSection('Riwayat & KPI dapur', [
+        HText('Buka dari ikon grafik di layar Dapur atau Antrean. Setiap tombol Mulai / Siap / Diantar mencatat waktu.'),
+        HBullets([
+          'Rata-rata sampai siap: dari item masuk sampai siap. "90% ≤ x mnt" = sebagian besar item selesai dalam waktu itu.',
+          'Tepat waktu: persen item yang siap sebelum target (bisa dipilih 10/15/20/30 menit). Patokan umum: 15 menit untuk makanan, di atas 90% sudah baik.',
+          'Waktu tiap tahap: antre (menunggu dimulai), masak, dan antar. Antre lama = dapur kurang orang; masak lama = menu/alat perlu dicek.',
+          'Jam sibuk, menu paling lama, dan per petugas dapur membantu mengatur jadwal & resep.',
+        ]),
       ]),
     ],
   ),
@@ -213,6 +248,15 @@ const helpTopics = <HelpTopic>[
           'Saat barang datang, catat Penerimaan barang: stok bertambah otomatis.',
           'Catat pembayaran ke supplier untuk melunasi utang.',
         ]),
+      ]),
+      HelpSection('Belanja langsung (tanpa PO)', [
+        HSteps([
+          'Buka Stok → tombol Belanja → Belanja baru (atau ketuk satu bahan → Belanja langsung).',
+          'Isi tempat belanja, tanggal, dan catatan bila perlu.',
+          'Tambah semua bahan yang dibeli: jumlah (satuan beli atau satuan dasar), total harga, dan catatan per bahan.',
+          'Simpan. Stok bertambah otomatis dan harga beli ikut dipakai menghitung HPP.',
+        ]),
+        HTip('Semua belanja tersimpan di riwayat Belanja langsung. Belanja yang sudah disimpan tidak bisa diubah; koreksi lewat Waste atau Stok opname.'),
       ]),
       HelpSection('Resep & stok otomatis', [
         HText(
@@ -331,7 +375,8 @@ const helpTopics = <HelpTopic>[
     [
       HelpSection('Isi laporan', [
         HBullets([
-          'Laporan: penjualan per hari / periode, menu terlaris, metode bayar, dan ekspor CSV.',
+          'Laporan: penjualan per hari, filter sumber pesanan (Langsung / GoFood / GrabFood / ShopeeFood), menu terlaris, metode bayar. Tombol Unduh: Excel atau PDF.',
+          'Keuangan → Ekspor: laporan per periode dalam Excel (.xlsx, satu file berisi semua sheet) dan PDF (ringkasan & daftar transaksi).',
           'Keuangan: biaya operasional dan laba rugi.',
           'Beranda: ringkasan cepat hari ini untuk owner & manager.',
         ]),
@@ -349,6 +394,10 @@ const helpTopics = <HelpTopic>[
           'Akun restoran (email + password dari Kovalen): dipakai sekali per perangkat untuk mengaktifkan aplikasi.',
           'Akun karyawan (username + password): dipakai tiap orang untuk login setelah perangkat aktif.',
         ]),
+        HText(
+          'Owner dapat memilih tema warna aplikasi di Akun → Tema warna. Tema berlaku untuk semua outlet '
+          'dan semua perangkat restoran.',
+        ),
         HText(
           'Owner dapat mengganti password akun restoran di Akun → Password akun restoran. '
           'Perangkat yang sudah aktif tidak ikut keluar.',

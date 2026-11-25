@@ -10,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import 'inventory_models.dart';
 import 'inventory_providers.dart';
+import 'direct_purchase_page.dart';
 import 'stock_history_page.dart';
 
 enum _StockFilter { all, low }
@@ -226,7 +227,7 @@ class _IngredientStockCard extends StatelessWidget {
                     color: isLow ? AppColors.danger : AppColors.success,
                     backgroundColor: isLow
                         ? const Color(0xFFFBE3E1)
-                        : const Color(0xFFE7EDE3),
+                        : AppColors.sageSoft,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -281,8 +282,9 @@ Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
           const Divider(height: 1),
           if (isOwner)
             ListTile(
-              leading: const Icon(Icons.add_box_outlined),
-              title: const Text('Stok masuk manual (tanpa PO)'),
+              leading: const Icon(Icons.add_shopping_cart_rounded),
+              title: const Text('Belanja langsung (tanpa PO)'),
+              subtitle: const Text('Bisa sekaligus beberapa bahan'),
               onTap: () => Navigator.pop(ctx, 'in'),
             )
           else if (ref.read(appUserProvider).value?.can('purchase_orders.create') ?? false)
@@ -309,45 +311,15 @@ Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
   if (a == null || !context.mounted) return;
   switch (a) {
     case 'in':
-      await _purchase(context, ref, i);
+      await Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => DirectPurchasePage(initial: i)),
+      );
     case 'waste':
       await _waste(context, ref, i);
     case 'history':
       await _history(context, ref, i);
   }
-}
-
-Future<void> _purchase(
-  BuildContext context,
-  WidgetRef ref,
-  Ingredient i,
-) async {
-  final unit = i.buyUnit.isEmpty ? i.unit : i.buyUnit;
-  final factor = i.buyUnit.isEmpty ? 1.0 : i.buyFactor;
-  final r = await formDialog(
-    context,
-    'Stok masuk: ${i.name}',
-    ['Jumlah ($unit)', 'Total harga (Rp)'],
-    numeric: {0, 1},
-    hint: 'Isi angka tanpa pemisah ribuan. Desimal pakai koma atau titik.',
-  );
-  if (r == null) return;
-  final q = parseNum(r[0]), total = parseNum(r[1]);
-  if (q == null || q <= 0 || total == null || total < 0) {
-    _toast(context, 'Jumlah dan total harga harus diisi');
-    return;
-  }
-  final base = q * factor;
-  await ref
-      .read(stockRepositoryProvider)
-      .record(
-        ingredientId: i.id,
-        type: StockMoveType.purchase,
-        qty: base,
-        unitCost: total / base,
-        note: '${qtyText(q)} $unit',
-      );
-  _toast(context, 'Stok masuk ${qtyText(base)} ${i.unit}');
 }
 
 Future<void> _waste(BuildContext context, WidgetRef ref, Ingredient i) async {

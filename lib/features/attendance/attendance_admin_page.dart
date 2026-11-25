@@ -13,7 +13,7 @@ import '../../core/reason_dialog.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
 import '../auth/auth_providers.dart';
-import '../export/csv_util.dart';
+import '../export/xlsx_writer.dart';
 import '../export/export_service.dart';
 import '../export/period_chips.dart';
 import 'attendance_models.dart';
@@ -250,7 +250,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
             style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700),
           ),
           const SizedBox(width: 6),
-          const Icon(Icons.edit_outlined, size: 16, color: AppColors.muted),
+          Icon(Icons.edit_outlined, size: 16, color: AppColors.muted),
         ],
       ),
     ),
@@ -614,9 +614,9 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
         return;
       }
       await shareBytes(
-        'rms_absensi_${summary ? 'rekap_' : ''}${_stamp.format(_range.start)}_${_stamp.format(_range.end)}.csv',
-        'text/csv',
-        Uint8List.fromList(toCsvBytes(rows)),
+        'rms_absensi_${summary ? 'rekap_' : ''}${_stamp.format(_range.start)}_${_stamp.format(_range.end)}.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        buildXlsx([XlsxSheet(summary ? 'Rekap absensi' : 'Absensi', rows)], headerArgb: AppColors.primaryHex),
       );
     } catch (e) {
       _toast(errorText(e));
@@ -1300,15 +1300,15 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                 },
               ),
             PopupMenuButton<bool>(
-              tooltip: 'Ekspor CSV',
+              tooltip: 'Ekspor Excel',
               icon: const Icon(Icons.ios_share),
               onSelected: _export,
               itemBuilder: (_) => const [
                 PopupMenuItem(
                   value: false,
-                  child: Text('Ekspor catatan (CSV)'),
+                  child: Text('Ekspor catatan (Excel)'),
                 ),
-                PopupMenuItem(value: true, child: Text('Ekspor rekap (CSV)')),
+                PopupMenuItem(value: true, child: Text('Ekspor rekap (Excel)')),
               ],
             ),
           ],
@@ -1324,7 +1324,7 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.surface,
                 border: Border(bottom: BorderSide(color: AppColors.border)),
               ),

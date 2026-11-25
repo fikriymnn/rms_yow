@@ -1,43 +1,65 @@
 import 'package:flutter/material.dart';
 
-/// Palet RMS: maroon + hitam dari logo, ditambah sage sebagai warna penengah.
-///
-/// - maroon  : aksi utama, item navigasi aktif, angka yang perlu ditindak
-/// - hitam   : struktur (rail/sidebar, kartu ringkasan, tombol sekunder kuat)
-/// - sage    : status baik/positif, sorotan kecil di atas latar gelap
-/// - latar   : putih hangat (krem tipis) agar tidak terasa "template"
+import 'app_palettes.dart';
+
+/// Warna aplikasi yang sedang aktif. Nilainya mengikuti tema klien ([AppPalette]) dan bisa
+/// berubah saat owner mengganti tema, jadi JANGAN dipakai di ekspresi `const`.
+/// Ganti tema lewat [AppColors.apply] lalu bangun ulang tampilan (lihat app_theme_provider.dart).
 abstract final class AppColors {
-  // ---- maroon (Kovalen) ----
-  static const primary = Color(0xFF7D0B1E);
-  static const primaryDeep = Color(0xFF5C0816); // tekan / hover tombol utama
-  static const primarySoft = Color(0xFFF5E4E7); // latar item terpilih, chip
-  static const rose = Color(0xFFC2263F); // lencana angka (keluarga maroon)
-  static const roseSoft = Color(0xFFFBE4E8);
+  static String paletteKey = AppPalette.kovalen.key;
 
-  // ---- hitam (Kovalen) ----
-  static const ink = Color(0xFF171717); // teks utama, rail, kartu gelap
-  static const inkSoft = Color(0xFF2A2826); // permukaan di atas latar gelap
-  static const inkLine = Color(0xFF3A3734); // garis/batang grafik di latar gelap
-  static const onInkMuted = Color(0xFFA8A29C); // teks redup di latar gelap
+  static Color primary = AppPalette.kovalen.primary;
+  static Color primaryDeep = AppPalette.kovalen.primaryDeep;
+  static Color primarySoft = AppPalette.kovalen.primarySoft;
+  static Color rose = AppPalette.kovalen.rose;
+  static Color roseSoft = AppPalette.kovalen.roseSoft;
+  static Color ink = AppPalette.kovalen.ink;
+  static Color inkSoft = AppPalette.kovalen.inkSoft;
+  static Color inkLine = AppPalette.kovalen.inkLine;
+  static Color onInkMuted = AppPalette.kovalen.onInkMuted;
+  static Color sage = AppPalette.kovalen.sage;
+  static Color sageSoft = AppPalette.kovalen.sageSoft;
+  static Color sageInk = AppPalette.kovalen.sageInk;
+  static Color sageOnInk = AppPalette.kovalen.sageOnInk;
+  static Color bg = AppPalette.kovalen.bg;
+  static Color surface = AppPalette.kovalen.surface;
+  static Color surfaceAlt = AppPalette.kovalen.surfaceAlt;
+  static Color sunken = AppPalette.kovalen.sunken;
+  static Color muted = AppPalette.kovalen.muted;
+  static Color faint = AppPalette.kovalen.faint;
+  static Color border = AppPalette.kovalen.border;
+  static Color divider = AppPalette.kovalen.divider;
 
-  // ---- sage (warna ketiga) ----
-  static const sage = Color(0xFF6F8467);
-  static const sageSoft = Color(0xFFE7EDE3);
-  static const sageInk = Color(0xFF4A5C44); // teks sage yang lolos kontras di latar terang
-  static const sageOnInk = Color(0xFF93A98A); // sage di atas hitam
-
-  // ---- netral hangat ----
-  static const bg = Color(0xFFF6F3EE); // latar halaman
-  static const surface = Color(0xFFFFFFFF); // kartu
-  static const surfaceAlt = Color(0xFFFBFAF7); // footer panel, baris ganjil
-  static const sunken = Color(0xFFECE6DD); // wadah segmen / track
-  static const muted = Color(0xFF6E6862); // teks sekunder
-  static const faint = Color(0xFF8C857E); // teks tersier, label kecil
-  static const border = Color(0xFFE7E1D8);
-  static const divider = Color(0xFFEFEAE2);
-
-  // ---- status ----
-  static const success = sageInk;
+  // ---- status (sama di semua tema) ----
+  static Color get success => sageInk;
   static const warning = Color(0xFFB7791F);
   static const danger = Color(0xFFC0262D);
+
+  /// Warna utama sebagai 'AARRGGBB' (untuk file Excel).
+  static String get primaryHex => primary.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase();
+
+  static void apply(AppPalette p) {
+    paletteKey = p.key;
+    primary = p.primary;
+    primaryDeep = p.primaryDeep;
+    primarySoft = p.primarySoft;
+    rose = p.rose;
+    roseSoft = p.roseSoft;
+    ink = p.ink;
+    inkSoft = p.inkSoft;
+    inkLine = p.inkLine;
+    onInkMuted = p.onInkMuted;
+    sage = p.sage;
+    sageSoft = p.sageSoft;
+    sageInk = p.sageInk;
+    sageOnInk = p.sageOnInk;
+    bg = p.bg;
+    surface = p.surface;
+    surfaceAlt = p.surfaceAlt;
+    sunken = p.sunken;
+    muted = p.muted;
+    faint = p.faint;
+    border = p.border;
+    divider = p.divider;
+  }
 }

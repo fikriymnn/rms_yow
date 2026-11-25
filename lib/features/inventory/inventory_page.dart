@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_providers.dart';
 import '../purchasing/purchasing_page.dart';
+import 'direct_purchases_page.dart';
 import 'ingredients_tab.dart';
 import 'recipes_tab.dart';
 import 'stock_history_page.dart';
@@ -26,6 +27,23 @@ class InventoryPage extends ConsumerWidget {
         appBar: RmsAppBar(
           title: const Text('Inventory'),
           actions: [
+            // tombol berlabel (bukan ikon saja) agar mudah ditemukan pengguna baru
+            if (user?.can('stock.read') ?? false)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DirectPurchasesPage()),
+                  ),
+                  icon: const Icon(Icons.shopping_cart_outlined, size: 18),
+                  label: const Text('Belanja'),
+                ),
+              ),
             IconButton(
               tooltip: 'Riwayat stok',
               icon: const Icon(Icons.history_rounded),

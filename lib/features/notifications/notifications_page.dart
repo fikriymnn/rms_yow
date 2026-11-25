@@ -169,7 +169,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                                           ),
                                         ),
                                         if (_unreadAtOpen.contains(n.id))
-                                          const Icon(
+                                          Icon(
                                             Icons.circle,
                                             size: 10,
                                             color: AppColors.rose,

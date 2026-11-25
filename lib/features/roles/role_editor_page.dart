@@ -231,7 +231,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
                       title: Text('Kembalikan ke template'),
                     ),
                   ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: ListTile(
                     leading: Icon(Icons.delete_outline_rounded, color: AppColors.danger),
@@ -345,7 +345,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Buka tiap fitur lalu centang aksi yang boleh dilakukan role ini. Setiap aksi ada '
                 'penjelasan singkatnya. Perubahan berlaku di perangkat pengguna dalam sekitar 1 menit.',
                 style: TextStyle(color: AppColors.muted, fontSize: 12.5),
@@ -366,7 +366,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
                     padding: const EdgeInsets.all(14),
                     child: Row(
                       children: [
-                        const Icon(Icons.menu_book_outlined, color: AppColors.sageInk),
+                        Icon(Icons.menu_book_outlined, color: AppColors.sageInk),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -380,7 +380,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
                             ),
                           ),
                         ),
-                        const Icon(Icons.chevron_right_rounded, color: AppColors.sageInk),
+                        Icon(Icons.chevron_right_rounded, color: AppColors.sageInk),
                       ],
                     ),
                   ),
@@ -467,7 +467,7 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
           style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Isi otomatis dari template, atau pilih Custom untuk mengatur sendiri. '
           'Centang dari template tetap bisa diubah sebelum disimpan.',
           style: TextStyle(color: AppColors.muted, fontSize: 12.5),

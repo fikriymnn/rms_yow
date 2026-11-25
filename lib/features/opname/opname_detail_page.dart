@@ -420,7 +420,7 @@ class _OpnameDetailPageState extends ConsumerState<OpnameDetailPage> {
                   key: const ValueKey('dirty'),
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const PulseDot(color: AppColors.warning),
+                    PulseDot(color: AppColors.warning),
                     const SizedBox(width: 6),
                     Text(
                       '$unsaved belum disimpan',
@@ -950,7 +950,7 @@ class _OpnameDetailPageState extends ConsumerState<OpnameDetailPage> {
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surface,
           border: Border(top: BorderSide(color: AppColors.border)),
         ),

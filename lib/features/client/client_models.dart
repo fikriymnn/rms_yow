@@ -45,6 +45,7 @@ class ClientInfo {
     required this.subscription,
     this.features,
     this.releaseChannel = 'stable',
+    this.theme = 'kovalen',
   });
   final String code;
   final String name;
@@ -52,6 +53,7 @@ class ClientInfo {
   /// null = semua modul disewa.
   final List<String>? features;
   final String releaseChannel;
+  final String theme; // tema warna aplikasi (dipilih owner)
   final Subscription subscription;
 
   bool hasModule(String key) => features == null || features!.contains(key);
@@ -61,6 +63,7 @@ class ClientInfo {
     name: m['name'] as String? ?? '',
     features: (m['features'] as List<dynamic>?)?.cast<String>(),
     releaseChannel: m['release_channel'] as String? ?? 'stable',
+    theme: m['theme'] as String? ?? 'kovalen',
     subscription: Subscription.fromJson(
       Map<String, dynamic>.from(m['subscription'] as Map? ?? const {}),
     ),
@@ -71,6 +74,7 @@ class ClientInfo {
     'name': name,
     'features': features,
     'release_channel': releaseChannel,
+    'theme': theme,
     'subscription': subscription.toJson(),
   };
 }

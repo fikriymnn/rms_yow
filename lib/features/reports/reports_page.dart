@@ -9,6 +9,11 @@ import 'package:rms_yow/core/reason_dialog.dart';
 import 'package:rms_yow/features/audit/audit_log.dart';
 import 'package:rms_yow/features/audit/audit_providers.dart';
 import 'package:rms_yow/features/auth/auth_providers.dart';
+import 'package:rms_yow/features/export/export_builders.dart';
+import 'package:rms_yow/features/export/export_pdf.dart';
+import 'package:rms_yow/features/export/export_service.dart';
+import 'package:rms_yow/features/export/export_tab.dart';
+import 'package:rms_yow/features/export/xlsx_writer.dart';
 import 'package:rms_yow/features/printing/printer_service.dart';
 import 'package:rms_yow/features/printing/printer_settings.dart';
 import 'package:rms_yow/features/printing/receipt_template.dart';
@@ -33,6 +38,8 @@ class ReportsPage extends ConsumerStatefulWidget {
 
 class _ReportsPageState extends ConsumerState<ReportsPage> {
   DateTime _day = DateTime.now();
+  OrderSource? _source; // null = semua sumber
+  String _search = ''; // cari no. order / no. pesanan online / nomor antrean
   static final _dateFmt = DateFormat('EEE, d MMM yyyy');
   static final _timeFmt = DateFormat('HH:mm');
 
@@ -54,6 +61,52 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     if (d != null) setState(() => _day = d);
   }
 
+  /// Unduh laporan tanggal yang dipilih, mengikuti filter sumber pesanan.
+  Future<void> _download(String kind) async {
+    final start = DateTime(_day.year, _day.month, _day.day);
+    final end = DateTime(_day.year, _day.month, _day.day + 1);
+    final stamp = DateFormat('yyyyMMdd').format(start);
+    final tag = _source == null ? '' : '_${_source!.name}';
+    final label = DateFormat('d MMM yyyy', 'id_ID').format(start);
+    try {
+      final d = await loadExportData(ref, start.millisecondsSinceEpoch, end.millisecondsSinceEpoch, _source);
+      if (d.soldOrders.isEmpty && kind != 'pdf') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tidak ada transaksi pada tanggal ini')));
+        }
+        return;
+      }
+      switch (kind) {
+        case 'xlsx':
+          XlsxSheet sheet(String n, List<List<Object?>> rows) => XlsxSheet(
+            n,
+            rows,
+            boldRows: {if (rows.length > 1 && rows.last.first == 'TOTAL') rows.length - 1},
+          );
+          await shareBytes(
+            'rms_laporan${tag}_$stamp.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            buildXlsx([
+              XlsxSheet('Info', [
+                ['Laporan RMS'],
+                ['Tanggal', label],
+                ['Sumber pesanan', d.sourceLabel],
+              ], headerRows: 0, boldRows: {0}),
+              sheet('Sumber pesanan', sourceRows(d)),
+              sheet('Penjualan per order', ordersRows(d)),
+              sheet('Penjualan per item', itemsRows(d)),
+            ], headerArgb: AppColors.primaryHex),
+          );
+        case 'pdf':
+          await shareBytes('rms_ringkasan${tag}_$stamp.pdf', 'application/pdf', await buildSummaryPdf(d, label));
+        case 'trx':
+          await shareBytes('rms_transaksi${tag}_$stamp.pdf', 'application/pdf', await buildTransactionsPdf(d, label));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mengunduh: $e')));
+    }
+  }
+
   Future<void> _detail(Order o) async {
     final isManager =
         ref.read(appUserProvider).value?.can('orders.refund') ?? false;
@@ -72,9 +125,13 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 Row(
                   children: [
                     StatusPill(
-                      o.payMethod?.name.toUpperCase() ?? '-',
+                      o.payMethod?.label ?? '-',
                       tone: Tone.info,
                     ),
+                    if (o.source.isOnline) ...[
+                      const SizedBox(width: 6),
+                      StatusPill(o.source.label, tone: Tone.success),
+                    ],
                     if (refunded) ...[
                       const SizedBox(width: 6),
                       const StatusPill('Refund', tone: Tone.danger),
@@ -91,6 +148,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     ),
                   ],
                 ),
+                if (o.externalNo != null || o.queueNo != null) ...[
+                  const SizedBox(height: 10),
+                  if (o.externalNo != null)
+                    Text(
+                      'No. pesanan ${o.source.label}: ${o.externalNo}',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700),
+                    ),
+                  if (o.queueNo != null)
+                    Text(
+                      'Nomor antrean ${o.queueNo} · ${o.type == OrderType.takeaway ? 'Takeaway' : 'Makan di sini'}',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted),
+                    ),
+                ],
                 const SizedBox(height: 14),
                 for (final it in o.items)
                   Padding(
@@ -141,7 +211,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       'Alasan refund: ${o.refundReason ?? '-'}',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
-                        color: const Color(0xFF7D0B1E),
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -218,7 +288,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           AuditAction.refund,
           reason: reason,
           order: o,
-          detail: o.payMethod?.name.toUpperCase() ?? '',
+          detail: o.payMethod?.label ?? '',
           amount: o.total,
         );
   }
@@ -237,7 +307,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       _day.day + 1,
     ).millisecondsSinceEpoch;
 
-    final paid =
+    final dayPaid =
         orders
             .where(
               (o) =>
@@ -248,6 +318,24 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             )
             .toList()
           ..sort((a, b) => (b.paidAt ?? 0).compareTo(a.paidAt ?? 0));
+    // semua angka di bawah mengikuti filter sumber pesanan
+    final paid = _source == null ? dayPaid : dayPaid.where((o) => o.source == _source).toList();
+    final bySource = <OrderSource, ({int n, int total})>{};
+    for (final o in dayPaid) {
+      final cur = bySource[o.source] ?? (n: 0, total: 0);
+      bySource[o.source] = (n: cur.n + 1, total: cur.total + o.total);
+    }
+    final q = _search.trim().toLowerCase();
+    final shownTrx = q.isEmpty
+        ? paid
+        : paid
+              .where(
+                (o) =>
+                    o.number.toLowerCase().contains(q) ||
+                    (o.externalNo ?? '').toLowerCase().contains(q) ||
+                    (o.queueNo ?? '').toLowerCase() == q,
+              )
+              .toList();
 
     final total = paid.fold<int>(0, (s, o) => s + o.total);
     final sub = paid.fold<int>(0, (s, o) => s + o.subtotal);
@@ -259,6 +347,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         .where(
           (o) =>
               o.status == OrderStatus.refunded &&
+              (_source == null || o.source == _source) &&
               (o.refundedAt ?? 0) >= start &&
               (o.refundedAt ?? 0) < end,
         )
@@ -358,7 +447,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          e.key.name.toUpperCase(),
+                          e.key.label,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -461,7 +550,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       title: 'Transaksi (${paid.length})',
       child: Column(
         children: [
-          for (final o in paid)
+          TextField(
+            onChanged: (v) => setState(() => _search = v),
+            decoration: const InputDecoration(
+              hintText: 'Cari no. order / no. pesanan online',
+              isDense: true,
+              prefixIcon: Icon(Icons.search),
+            ),
+          ),
+          const SizedBox(height: 6),
+          for (final o in shownTrx)
             InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () => _detail(o),
@@ -487,7 +585,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             ),
                           ),
                           Text(
-                            '${o.payMethod?.name.toUpperCase() ?? '-'}'
+                            '${o.payMethod?.label ?? '-'}'
+                            '${o.source.isOnline ? ' • ${o.source.label} ${o.externalNo ?? ''}' : ''}'
+                            '${o.queueNo != null ? ' • No. ${o.queueNo}' : ''}'
                             '${o.status == OrderStatus.refunded ? ' • REFUND' : ''}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
@@ -509,7 +609,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             : null,
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right,
                       size: 18,
                       color: AppColors.muted,
@@ -564,7 +664,51 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       ),
     );
 
+    final sources = bySource.entries.toList()..sort((a, b) => b.value.total.compareTo(a.value.total));
+    final sourceTotal = max(1, sources.fold<int>(0, (s, e) => s + e.value.total));
+    final sourceCard = SectionCard(
+      title: 'Sumber pesanan',
+      child: Column(
+        children: [
+          for (final e in sources)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${e.key.label} · ${e.value.n} order',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Text(
+                        rupiah.format(e.value.total),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: e.value.total / sourceTotal,
+                      minHeight: 6,
+                      color: e.key.isOnline ? AppColors.sage : AppColors.ink,
+                      backgroundColor: AppColors.sunken,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+
     final left = <Widget>[
+      if (_source == null && sources.length > 1) sourceCard,
       if (paid.isNotEmpty) rincian,
       if (methods.isNotEmpty) metodeCard,
       if (top.isNotEmpty) topCard,
@@ -581,7 +725,27 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
 
     return Scaffold(
-      appBar: RmsAppBar(title: const Text('Laporan')),
+      appBar: RmsAppBar(
+        title: const Text('Laporan'),
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Unduh laporan hari ini',
+            onSelected: _download,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'xlsx', child: Text('Excel (.xlsx) — semua data hari ini')),
+              PopupMenuItem(value: 'pdf', child: Text('PDF ringkasan')),
+              PopupMenuItem(value: 'trx', child: Text('PDF daftar transaksi')),
+            ],
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Chip(
+                avatar: Icon(Icons.download_rounded, size: 18),
+                label: Text('Unduh'),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: LayoutBuilder(
         builder: (context, c) {
           final wide = c.maxWidth >= 900;
@@ -596,6 +760,27 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 onToday: _isToday
                     ? null
                     : () => setState(() => _day = DateTime.now()),
+              ),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final src in <OrderSource?>[null, ...OrderSource.values])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(
+                            src == null
+                                ? 'Semua sumber'
+                                : '${src.label}${bySource[src] == null ? '' : ' · ${bySource[src]!.n}'}',
+                          ),
+                          selected: _source == src,
+                          onSelected: (_) => setState(() => _source = src),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               WindowNotice(rangeStart: _day),

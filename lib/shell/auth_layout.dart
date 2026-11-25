@@ -279,7 +279,7 @@ class _BrandPanel extends StatelessWidget {
                 Text(
                   'Satu sistem untuk\nseluruh restoran Anda.',
                   style: GoogleFonts.plusJakartaSans(
-                    color: const Color(0xFFF6F3EE),
+                    color: AppColors.bg,
                     fontSize: 38,
                     height: 1.15,
                     fontWeight: FontWeight.w800,

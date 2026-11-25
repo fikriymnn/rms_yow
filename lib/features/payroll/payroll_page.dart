@@ -298,7 +298,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
           tileColor: AppColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-            side: const BorderSide(color: AppColors.border),
+            side: BorderSide(color: AppColors.border),
           ),
           title: Text(e.name, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
           subtitle: Text(p == null ? e.roleLabel : '${e.roleLabel} • ${summary(p)}'),
@@ -682,7 +682,7 @@ class _PayRunPageState extends ConsumerState<PayRunPage> {
                           tileColor: AppColors.surface,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
-                            side: const BorderSide(color: AppColors.border),
+                            side: BorderSide(color: AppColors.border),
                           ),
                           title: Text(s.userName, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
                           subtitle: Text('${s.days} hari hadir • ${kSchemeLabels[s.scheme] ?? s.scheme}'),

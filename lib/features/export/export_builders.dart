@@ -1,13 +1,10 @@
-import 'package:intl/intl.dart';
-
 import '../finance/expense.dart';
 import '../finance/profit_loss.dart';
 import '../inventory/inventory_models.dart';
 import '../orders/order_models.dart';
 
-final _dt = DateFormat('yyyy-MM-dd HH:mm');
-String _t(int ms) =>
-    ms == 0 ? '' : _dt.format(DateTime.fromMillisecondsSinceEpoch(ms));
+/// Tanggal sebagai DateTime asli (di Excel bisa diurutkan & difilter); kosong bila 0.
+DateTime? _t(int ms) => ms == 0 ? null : DateTime.fromMillisecondsSinceEpoch(ms);
 
 class ExportData {
   const ExportData({
@@ -19,6 +16,7 @@ class ExportData {
     required this.avgCost,
     required this.start,
     required this.end,
+    this.source,
   });
 
   final List<Order> orders;
@@ -30,6 +28,12 @@ class ExportData {
   final int start; // inklusif
   final int end; // eksklusif
 
+  /// Filter sumber pesanan untuk data penjualan (null = semua). Laba rugi selalu semua sumber,
+  /// karena biaya & HPP tidak bisa dipisah per sumber.
+  final OrderSource? source;
+
+  String get sourceLabel => source?.label ?? 'Semua sumber';
+
   bool inRange(int t) => t >= start && t < end;
 
   List<Order> get soldOrders =>
@@ -38,18 +42,61 @@ class ExportData {
             (o) =>
                 (o.status == OrderStatus.paid ||
                     o.status == OrderStatus.refunded) &&
-                inRange(o.paidAt ?? 0),
+                inRange(o.paidAt ?? 0) &&
+                (source == null || o.source == source),
           )
           .toList()
         ..sort((a, b) => (a.paidAt ?? 0).compareTo(b.paidAt ?? 0));
+
+  /// Penjualan per sumber (tanpa filter sumber), untuk ringkasan.
+  Map<OrderSource, ({int n, int total})> get bySource {
+    final m = <OrderSource, ({int n, int total})>{};
+    for (final o in orders) {
+      if ((o.status != OrderStatus.paid && o.status != OrderStatus.refunded) || !inRange(o.paidAt ?? 0)) {
+        continue;
+      }
+      final c = m[o.source] ?? (n: 0, total: 0);
+      m[o.source] = (n: c.n + 1, total: c.total + o.total);
+    }
+    return m;
+  }
 }
 
-List<List<Object?>> ordersRows(ExportData d) => [
+List<List<Object?>> ordersRows(ExportData d) => _withTotal(_ordersRows(d), const {
+  'Subtotal',
+  'Diskon',
+  'Pajak',
+  'Service',
+  'Total',
+});
+
+/// Tambah baris TOTAL di bawah untuk kolom-kolom angka yang disebut.
+List<List<Object?>> _withTotal(List<List<Object?>> rows, Set<String> sumCols) {
+  if (rows.length <= 1) return rows;
+  final head = rows.first;
+  final total = List<Object?>.filled(head.length, null);
+  total[0] = 'TOTAL';
+  for (var c = 0; c < head.length; c++) {
+    if (!sumCols.contains(head[c])) continue;
+    num s = 0;
+    for (final r in rows.skip(1)) {
+      final v = r[c];
+      if (v is num) s += v;
+    }
+    total[c] = s;
+  }
+  return [...rows, total];
+}
+
+List<List<Object?>> _ordersRows(ExportData d) => [
   [
     'Nomor',
     'Tanggal bayar',
     'Tipe',
     'Meja',
+    'Nomor antrean',
+    'Sumber',
+    'No. pesanan online',
     'Status',
     'Metode',
     'Subtotal',
@@ -68,8 +115,11 @@ List<List<Object?>> ordersRows(ExportData d) => [
       _t(o.paidAt ?? 0),
       o.type == OrderType.takeaway ? 'Takeaway' : 'Dine-in',
       d.tables[o.tableId] ?? '',
-      o.status.name,
-      o.payMethod?.name ?? '',
+      o.queueNo ?? '',
+      o.source.label,
+      o.externalNo ?? '',
+      o.status == OrderStatus.refunded ? 'Refund' : 'Lunas',
+      o.payMethod?.label ?? '',
       o.subtotal,
       o.discount,
       o.tax,
@@ -82,10 +132,39 @@ List<List<Object?>> ordersRows(ExportData d) => [
     ],
 ];
 
-List<List<Object?>> itemsRows(ExportData d) => [
+/// Daftar transaksi ringkas (untuk PDF / cek silang dengan aplikasi online).
+List<List<Object?>> transactionRows(ExportData d) => [
+  ['Waktu', 'No. order', 'Sumber', 'No. pesanan online', 'Antrean', 'Metode', 'Total', 'Status'],
+  for (final o in d.soldOrders)
+    [
+      _t(o.paidAt ?? 0),
+      o.number,
+      o.source.label,
+      o.externalNo ?? '',
+      o.queueNo ?? '',
+      o.payMethod?.label ?? '',
+      o.total,
+      o.status == OrderStatus.refunded ? 'Refund' : 'Lunas',
+    ],
+];
+
+/// Ringkasan per sumber pesanan.
+List<List<Object?>> sourceRows(ExportData d) {
+  final m = d.bySource.entries.toList()..sort((a, b) => b.value.total.compareTo(a.value.total));
+  final rows = <List<Object?>>[
+    ['Sumber', 'Jumlah order', 'Total penjualan'],
+    for (final e in m) [e.key.label, e.value.n, e.value.total],
+  ];
+  return _withTotal(rows, const {'Jumlah order', 'Total penjualan'});
+}
+
+List<List<Object?>> itemsRows(ExportData d) => _withTotal(_itemsRows(d), const {'Qty', 'Total'});
+
+List<List<Object?>> _itemsRows(ExportData d) => [
   [
     'Nomor',
     'Tanggal bayar',
+    'Sumber',
     'Item',
     'Qty',
     'Harga',
@@ -98,16 +177,19 @@ List<List<Object?>> itemsRows(ExportData d) => [
       [
         o.number,
         _t(o.paidAt ?? 0),
+        o.source.label,
         it.name,
         it.qty,
         it.price,
         it.total,
         it.note,
-        o.status.name,
+        o.status == OrderStatus.refunded ? 'Refund' : 'Lunas',
       ],
 ];
 
-List<List<Object?>> expensesRows(ExportData d) {
+List<List<Object?>> expensesRows(ExportData d) => _withTotal(_expensesRows(d), const {'Jumlah'});
+
+List<List<Object?>> _expensesRows(ExportData d) {
   final list = d.expenses.where((e) => d.inRange(e.at)).toList()
     ..sort((a, b) => a.at.compareTo(b.at));
   return [

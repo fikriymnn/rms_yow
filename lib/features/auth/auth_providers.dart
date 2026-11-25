@@ -7,6 +7,7 @@ import '../notifications/notification_service.dart';
 import 'dart:async'; // di paling atas
 import '../../core/api/api_client.dart';
 import '../roles/role_models.dart';
+import '../client/client_models.dart';
 import '../client/client_providers.dart';
 import '../../core/config/app_config.dart';
 
@@ -235,6 +236,14 @@ class SessionNotifier extends AsyncNotifier<Session?> {
           ? null
           : OutletInfo.fromJson(m['outlet'] as Map<String, dynamic>);
       if (u.isOwner) await _refreshOwnerOutlet();
+      // tema warna klien diganti owner di perangkat lain: terapkan di sini dalam <= 1 menit
+      final mc = m['client'];
+      if (mc is Map) {
+        final info = ClientInfo.fromJson(Map<String, dynamic>.from(mc));
+        if (info.theme != ref.read(clientProvider).value?.info.theme) {
+          await ref.read(clientProvider.notifier).applyInfo(info);
+        }
+      }
       final userSame =
           u.permSignature == old.permSignature &&
           u.roleKey == old.roleKey &&

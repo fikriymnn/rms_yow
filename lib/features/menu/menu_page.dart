@@ -71,7 +71,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
           Widget card(MenuItem m) {
             final on = avail[m.id] ?? true;
             return Material(
-              color: on ? AppColors.surface : const Color(0xFFF1EDE7),
+              color: on ? AppColors.surface : AppColors.divider,
               borderRadius: BorderRadius.circular(14),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -160,7 +160,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.info_outline,
                         size: 18,
                         color: AppColors.primary,

@@ -197,7 +197,7 @@ class _Tile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
+            Icon(Icons.chevron_right_rounded, color: AppColors.faint),
           ],
         ),
       ),

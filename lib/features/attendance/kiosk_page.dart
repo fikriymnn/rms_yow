@@ -500,7 +500,7 @@ class _KioskPageState extends ConsumerState<KioskPage>
               margin: const EdgeInsets.only(bottom: 10),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [AppColors.ink, AppColors.inkSoft],
                 ),
               ),

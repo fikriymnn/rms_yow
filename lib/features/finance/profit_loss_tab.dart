@@ -108,7 +108,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [AppColors.ink, AppColors.inkSoft],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -155,7 +155,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                 fontSize: 32,
                 fontWeight: FontWeight.w800,
                 color: positive
-                    ? const Color(0xFF93A98A)
+                    ? AppColors.sageOnInk
                     : const Color(0xFFE59AA6),
               ),
             ),
@@ -283,7 +283,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, size: 18, color: AppColors.primary),
+          Icon(Icons.info_outline, size: 18, color: AppColors.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

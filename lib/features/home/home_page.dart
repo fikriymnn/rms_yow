@@ -273,7 +273,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 String _where(Order o, Map<String, String> tableNames) {
   final name = tableNames[o.tableId] ?? '';
   return o.type == OrderType.takeaway
-      ? 'Bawa pulang'
+      ? 'Takeaway'
       : name.isEmpty
       ? 'Makan di tempat'
       : (name.toLowerCase().startsWith('meja') ? name : 'Meja $name');
@@ -378,7 +378,7 @@ class _SalesHero extends StatelessWidget {
                 fontSize: 34,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -1.2,
-                color: const Color(0xFFF6F3EE),
+                color: AppColors.bg,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
@@ -446,7 +446,7 @@ class _Greeting extends StatelessWidget {
               height: 1.2,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.6,
-              color: const Color(0xFFF6F3EE),
+              color: AppColors.bg,
             ),
           ),
           const SizedBox(height: 12),
@@ -624,7 +624,7 @@ class _TodoCard extends StatelessWidget {
                       ),
                     ),
                     if (items[i].onTap != null)
-                      const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
+                      Icon(Icons.chevron_right_rounded, color: AppColors.faint),
                   ],
                 ),
               ),
@@ -753,7 +753,7 @@ class _WeekBars extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10.5,
                         fontWeight: i == 6 ? FontWeight.w800 : FontWeight.w600,
-                        color: i == 6 ? const Color(0xFFF6F3EE) : const Color(0xFF8C857E),
+                        color: i == 6 ? AppColors.bg : AppColors.faint,
                       ),
                     ),
                   ],

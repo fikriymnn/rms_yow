@@ -67,12 +67,12 @@ class AuthErrorBox extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.error_outline, size: 18, color: Color(0xFF7D0B1E)),
+        Icon(Icons.error_outline, size: 18, color: AppColors.primary),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             message,
-            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF7D0B1E)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.primary),
           ),
         ),
       ],
@@ -212,7 +212,7 @@ class DeviceNameTile extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.tablet_android_outlined, size: 20, color: AppColors.muted),
+          Icon(Icons.tablet_android_outlined, size: 20, color: AppColors.muted),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -231,7 +231,7 @@ class DeviceNameTile extends ConsumerWidget {
               ],
             ),
           ),
-          const Icon(Icons.lock_outline, size: 16, color: AppColors.muted),
+          Icon(Icons.lock_outline, size: 16, color: AppColors.muted),
         ],
       ),
     );
@@ -297,11 +297,11 @@ Future<void> showActivatedDialog(
     builder: (ctx) => AlertDialog(
       icon: Container(
         padding: const EdgeInsets.all(14),
-        decoration: const BoxDecoration(
-          color: Color(0xFFE7EDE3),
+        decoration: BoxDecoration(
+          color: AppColors.sageSoft,
           shape: BoxShape.circle,
         ),
-        child: const Icon(Icons.check_rounded, size: 34, color: AppColors.success),
+        child: Icon(Icons.check_rounded, size: 34, color: AppColors.success),
       ),
       title: Text(
         reactivated ? 'Selamat, akun Anda aktif kembali!' : 'Langganan berhasil diperpanjang',
@@ -614,7 +614,7 @@ class _SubscriptionPageState extends ConsumerState<SubscriptionPage> {
         : _statusCard(
             icon: Icons.verified_outlined,
             fg: AppColors.success,
-            bg: const Color(0xFFE7EDE3),
+            bg: AppColors.sageSoft,
             title: 'Langganan aktif',
             message:
                 'Langganan ${c!.info.name} aktif hingga ${formatClientDateLong(sub.validUntil)} '

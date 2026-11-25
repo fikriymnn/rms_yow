@@ -95,7 +95,7 @@ class _RoleCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${role.key} • ${role.userCount} pengguna',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.muted,
                         fontSize: 12.5,
                       ),
@@ -121,7 +121,7 @@ class _RoleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.muted),
+              Icon(Icons.chevron_right, color: AppColors.muted),
             ],
           ),
         ),

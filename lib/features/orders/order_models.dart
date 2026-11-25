@@ -13,7 +13,30 @@ enum OrderStatus { open, paid, voided, refunded }
 
 enum KitchenStatus { newItem, preparing, ready, served }
 
-enum PayMethod { cash, qris, card, other }
+enum PayMethod { cash, qris, card, other, online }
+
+/// Label tampilan metode bayar. `online` = dibayar lewat aplikasi pesan-antar.
+extension PayMethodLabel on PayMethod {
+  String get label => switch (this) {
+    PayMethod.cash => 'Tunai',
+    PayMethod.qris => 'QRIS',
+    PayMethod.card => 'Kartu',
+    PayMethod.other => 'Lainnya',
+    PayMethod.online => 'Aplikasi online',
+  };
+}
+
+/// Asal pesanan: datang langsung atau aplikasi pesan-antar (untuk filter laporan & cek silang).
+enum OrderSource {
+  walkin('Langsung'),
+  gofood('GoFood'),
+  grabfood('GrabFood'),
+  shopeefood('ShopeeFood');
+
+  const OrderSource(this.label);
+  final String label;
+  bool get isOnline => this != OrderSource.walkin;
+}
 
 String? _text(Object? v) {
   final s = v is String ? v.trim() : '';
@@ -31,6 +54,7 @@ class OrderItem {
     required this.price,
     this.qty = 1,
     this.note = '',
+    this.addedAt,
   });
 
   final String id;
@@ -39,6 +63,9 @@ class OrderItem {
   final int price;
   final int qty;
   final String note;
+
+  /// Waktu item masuk pesanan (untuk KPI dapur). Item lama: null -> pakai waktu pesanan.
+  final int? addedAt;
 
   int get total => price * qty;
 
@@ -49,6 +76,7 @@ class OrderItem {
     price: price,
     qty: qty ?? this.qty,
     note: note ?? this.note,
+    addedAt: addedAt,
   );
 
   factory OrderItem.fromMap(Map<String, dynamic> m, {String fallbackId = ''}) =>
@@ -59,6 +87,7 @@ class OrderItem {
         price: (m['price'] as num?)?.toInt() ?? 0,
         qty: (m['qty'] as num?)?.toInt() ?? 1,
         note: m['note'] as String? ?? '',
+        addedAt: (m['addedAt'] as num?)?.toInt(),
       );
 
   Map<String, dynamic> toMap() => {
@@ -68,6 +97,7 @@ class OrderItem {
     'price': price,
     'qty': qty,
     'note': note,
+    if (addedAt != null) 'addedAt': addedAt,
   };
 }
 
@@ -100,6 +130,8 @@ class Order {
     this.paidByName,
     this.charges = const [],
     this.queueNo,
+    this.source = OrderSource.walkin,
+    this.externalNo,
   });
 
   final String id;
@@ -122,6 +154,8 @@ class Order {
   final String? paidByName;
   final List<ChargeLine> charges; // salinan tarif pajak / service
   final String? queueNo;
+  final OrderSource source;
+  final String? externalNo; // nomor pesanan di aplikasi online (GoFood dsb.)
 
   int get subtotal => items.fold(0, (s, i) => s + i.total);
   int get _base => max(0, subtotal - discount);
@@ -171,10 +205,13 @@ class Order {
     String? paidByName,
     List<ChargeLine>? charges,
     String? queueNo,
+    OrderType? type,
+    OrderSource? source,
+    String? externalNo,
   }) => Order(
     id: id,
     number: number,
-    type: type,
+    type: type ?? this.type,
     tableId: tableId,
     createdAt: createdAt,
     createdBy: createdBy,
@@ -192,6 +229,8 @@ class Order {
     paidByName: paidByName ?? this.paidByName,
     charges: charges ?? this.charges,
     queueNo: queueNo ?? this.queueNo,
+    source: source ?? this.source,
+    externalNo: externalNo ?? this.externalNo,
   );
 
   factory Order.fromMap(Map<String, dynamic> m) {
@@ -226,6 +265,8 @@ class Order {
       paidByName: m['paidByName'] as String?,
       charges: _chargesFrom(m, items, discount),
       queueNo: _text(m['queueNo']),
+      source: _byName(OrderSource.values, m['source'], OrderSource.walkin),
+      externalNo: _text(m['externalNo']),
     );
   }
 
@@ -291,6 +332,8 @@ class Order {
     'total': total,
     'charges': [for (final a in appliedCharges) a.line.toMap(a.amount)],
     'queueNo': queueNo,
+    'source': source.name,
+    if (externalNo != null) 'externalNo': externalNo,
     'shiftId': shiftId,
     'refundedAt': refundedAt,
     'refundShiftId': refundShiftId,

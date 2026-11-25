@@ -103,7 +103,7 @@ class _RecipesTabState extends ConsumerState<RecipesTab> {
                     : ok
                     ? StatusPill('Margin $pct%', tone: _marginTone(pct))
                     : const StatusPill('Belum ada resep', tone: Tone.warning),
-                const Icon(
+                Icon(
                   Icons.chevron_right,
                   size: 20,
                   color: AppColors.muted,
@@ -361,7 +361,7 @@ class RecipeEditorPage extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.no_food_outlined, size: 18, color: AppColors.muted),
+                Icon(Icons.no_food_outlined, size: 18, color: AppColors.muted),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

@@ -79,7 +79,7 @@ List<RLine> buildReceipt({
   final queue = order.queueNo;
   final hasQueue = queue != null && queue.isNotEmpty;
   final type = hasQueue
-      ? 'Foodcourt'
+      ? (order.type == OrderType.takeaway ? 'Takeaway' : 'Makan di sini')
       : order.type == OrderType.takeaway
       ? 'Takeaway'
       : 'Dine-in ${tableName ?? ''}'.trim();
@@ -96,6 +96,7 @@ List<RLine> buildReceipt({
   add('No   : ${order.number}');
   add('Tgl  : ${DateFormat('dd/MM/yy HH:mm').format(d)}');
   add('Tipe : $type');
+  if (order.source.isOnline) add('${order.source.label}: ${order.externalNo ?? '-'}');
   if (cashier != null && cashier.isNotEmpty) add('Kasir: $cashier');
   add(line);
 
@@ -121,7 +122,7 @@ List<RLine> buildReceipt({
   if (order.payMethod != null) {
     add(
       _lr(
-        'Bayar (${order.payMethod!.name.toUpperCase()})',
+        'Bayar (${order.payMethod!.label.toUpperCase()})',
         _n(order.paidAmount),
         w,
       ),
@@ -172,6 +173,13 @@ List<RLine> buildKitchenSlip({
   if (hasQueue) {
     center('NOMOR ANTRIAN', bold: true);
     center('>>> $queue <<<', bold: true);
+    if (order.source.isOnline) {
+      center('${order.source.label.toUpperCase()} ${order.externalNo ?? ''}'.trim(), bold: true);
+    } else if (order.type == OrderType.takeaway) {
+      center('TAKEAWAY', bold: true);
+    }
+  } else if (order.source.isOnline) {
+    center('${order.source.label.toUpperCase()} ${order.externalNo ?? ''}'.trim(), bold: true);
   } else if (order.type == OrderType.takeaway) {
     center('TAKEAWAY', bold: true);
   } else if (tableName != null && tableName.isNotEmpty) {

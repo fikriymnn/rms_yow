@@ -23,6 +23,7 @@ import '../orders/order_providers.dart';
 import '../tables/dining_table.dart';
 import '../tables/table_hold.dart';
 import '../charges/charge_providers.dart';
+import '../orders/queue_board_page.dart';
 import '../orders/queue_providers.dart';
 import 'package:rms_yow/core/ui/motion.dart';
 import 'package:rms_yow/shell/app_bar.dart';
@@ -80,6 +81,8 @@ class _PosPageState extends ConsumerState<PosPage>
   }
 
   List<Widget> _actions() => [
+    // foodcourt: panggil nomor antrean saat pesanan siap (berlaku walau modul KDS mati)
+    if (widget.foodcourt) const QueueBoardButton(),
     if (widget.order != null)
       IconButton(
         tooltip: 'Batalkan order',
@@ -287,6 +290,7 @@ class _PosPageState extends ConsumerState<PosPage>
           menuItemId: m.id,
           name: m.name,
           price: m.price,
+          addedAt: DateTime.now().millisecondsSinceEpoch,
         ),
       );
     }
@@ -306,6 +310,7 @@ class _PosPageState extends ConsumerState<PosPage>
           menuItemId: it.menuItemId,
           name: it.name,
           price: it.price,
+          addedAt: DateTime.now().millisecondsSinceEpoch,
         ),
       );
     }
@@ -402,20 +407,24 @@ class _PosPageState extends ConsumerState<PosPage>
       return;
     }
     final foodcourt = widget.foodcourt;
-    final r =
-        await showAppDialog<
-          ({PayMethod method, int paid, bool hold, String? queueNo})
-        >(
-          context: context,
-          builder: (_) => _PayDialog(
-            total: _order.total,
-            canHold: widget.table != null,
-            queueMode: foodcourt,
-            activeQueues: foodcourt
-                ? ref.read(activeQueueNumbersProvider)
-                : const {},
-          ),
-        );
+    // nomor pesanan online 2 hari terakhir: peringatan bila tercatat dua kali
+    final since = DateTime.now().subtract(const Duration(days: 2)).millisecondsSinceEpoch;
+    final recentExternal = <String, String>{
+      for (final o in ref.read(ordersProvider).value ?? const <Order>[])
+        if (o.externalNo != null && o.createdAt >= since && o.id != _order.id)
+          '${o.source.name}:${o.externalNo!.toLowerCase()}': o.number,
+    };
+    final r = await showAppDialog<PayResult>(
+      context: context,
+      builder: (_) => _PayDialog(
+        total: _order.total,
+        canHold: widget.table != null,
+        queueMode: foodcourt,
+        sourceMode: widget.table == null,
+        activeQueues: foodcourt ? ref.read(activeQueueNumbersProvider) : const {},
+        recentExternal: recentExternal,
+      ),
+    );
     if (r == null || !mounted) return;
 
     _paying = true;
@@ -429,6 +438,11 @@ class _PosPageState extends ConsumerState<PosPage>
       paidBy: me?.uid,
       paidByName: me?.name,
       queueNo: r.queueNo,
+      source: r.source,
+      externalNo: r.externalNo,
+      type: r.takeaway == null
+          ? null
+          : (r.takeaway! ? OrderType.takeaway : OrderType.dineIn),
     );
     try {
       await ref.read(orderRepositoryProvider).save(paid);
@@ -524,7 +538,7 @@ class _PosPageState extends ConsumerState<PosPage>
             Expanded(child: _menuPane(menu, extent: w >= 1100 ? 210 : 190)),
             Container(
               width: cartW,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.surface,
                 border: Border(left: BorderSide(color: AppColors.border)),
               ),
@@ -627,12 +641,12 @@ class _PosPageState extends ConsumerState<PosPage>
     );
   }
 
-  static const _palette = <({Color bg, Color fg})>[
+  static List<({Color bg, Color fg})> get _palette => [ // getter: ikut tema aktif
     (bg: AppColors.primarySoft, fg: AppColors.primary),
     (bg: AppColors.roseSoft, fg: AppColors.rose),
     (bg: Color(0xFFF7EBD6), fg: Color(0xFF8A5A12)),
-    (bg: Color(0xFFE7EDE3), fg: Color(0xFF4A5C44)),
-    (bg: Color(0xFFF1EDE7), fg: Color(0xFF1D4ED8)),
+    (bg: AppColors.sageSoft, fg: AppColors.sageInk),
+    (bg: AppColors.divider, fg: Color(0xFF1D4ED8)),
   ];
 
   Widget _menuCard(MenuItem m) {
@@ -964,7 +978,7 @@ class _PosPageState extends ConsumerState<PosPage>
         ),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.surface,
             border: Border(top: BorderSide(color: AppColors.border)),
           ),
@@ -987,7 +1001,7 @@ class _PosPageState extends ConsumerState<PosPage>
                       'buka shift di tab Kas sebelum membayar.',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: const Color(0xFF7D0B1E),
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -1094,7 +1108,7 @@ class _Stepper extends StatelessWidget {
         ),
         IconButton(
           visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.add, size: 20, color: AppColors.primary),
+          icon: Icon(Icons.add, size: 20, color: AppColors.primary),
           onPressed: onInc,
         ),
       ],
@@ -1102,18 +1116,32 @@ class _Stepper extends StatelessWidget {
   );
 }
 
+typedef PayResult = ({
+  PayMethod method,
+  int paid,
+  bool hold,
+  String? queueNo,
+  OrderSource source,
+  String? externalNo,
+  bool? takeaway, // foodcourt: null = tidak ditanyakan
+});
+
 class _PayDialog extends StatefulWidget {
   const _PayDialog({
     required this.total,
     this.canHold = false,
     this.queueMode = false,
+    this.sourceMode = false,
     this.activeQueues = const {},
+    this.recentExternal = const {},
   });
   final int total;
   final bool canHold; // pesanan makan di tempat (punya meja)
   final bool queueMode; // outlet foodcourt: nomor antrian wajib diisi
+  final bool sourceMode; // pesanan tanpa meja: pilih sumber (langsung / GoFood / ...)
   final Map<String, String>
   activeQueues; // nomor yang masih dipakai -> no. order
+  final Map<String, String> recentExternal; // "gofood:f-123" -> no. order (2 hari terakhir)
   @override
   State<_PayDialog> createState() => _PayDialogState();
 }
@@ -1125,13 +1153,19 @@ class _PayDialogState extends State<_PayDialog> {
   );
   bool _hold = false;
   final _queue = TextEditingController();
+  final _ext = TextEditingController();
+  OrderSource _source = OrderSource.walkin;
+  bool _takeaway = false; // foodcourt: makan di sini (bawaan) / takeaway
 
-  int get _paid => _method == PayMethod.cash
+  bool get _online => _source.isOnline;
+  PayMethod get _effMethod => _online ? PayMethod.online : _method;
+  int get _paid => _effMethod == PayMethod.cash
       ? (int.tryParse(_cash.text) ?? 0)
       : widget.total;
   bool get _ok =>
       _paid >= widget.total &&
-      (!widget.queueMode || _queue.text.trim().isNotEmpty);
+      (!widget.queueMode || _queue.text.trim().isNotEmpty) &&
+      (!_online || _ext.text.trim().isNotEmpty);
 
   List<int> get _quick {
     final t = widget.total;
@@ -1152,6 +1186,7 @@ class _PayDialogState extends State<_PayDialog> {
   void dispose() {
     _cash.dispose();
     _queue.dispose();
+    _ext.dispose();
     super.dispose();
   }
 
@@ -1160,6 +1195,9 @@ class _PayDialogState extends State<_PayDialog> {
     final ok = _ok;
     final dup = widget.queueMode
         ? widget.activeQueues[_queue.text.trim().toLowerCase()]
+        : null;
+    final extDup = _online
+        ? widget.recentExternal['${_source.name}:${_ext.text.trim().toLowerCase()}']
         : null;
     return AlertDialog(
       title: const Text('Pembayaran'),
@@ -1197,11 +1235,62 @@ class _PayDialogState extends State<_PayDialog> {
                   ],
                 ),
               ),
+              if (widget.sourceMode) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Sumber pesanan',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.muted),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final src in OrderSource.values)
+                      ChoiceChip(
+                        label: Text(src.label),
+                        selected: _source == src,
+                        onSelected: (_) => setState(() => _source = src),
+                      ),
+                  ],
+                ),
+                if (_online) ...[
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _ext,
+                    maxLength: 40,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText: 'Nomor pesanan ${_source.label}',
+                      hintText: 'Lihat di aplikasi ${_source.label}',
+                      counterText: '',
+                      helperText: extDup != null
+                          ? 'Nomor ini sudah dicatat di pesanan $extDup. Pastikan tidak dobel.'
+                          : 'Untuk cek silang dengan riwayat di aplikasi ${_source.label}.',
+                      helperMaxLines: 2,
+                      helperStyle: extDup != null ? const TextStyle(color: Color(0xFF8A5A12)) : null,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ],
+              ],
+              if (widget.queueMode && !_online) ...[
+                const SizedBox(height: 12),
+                SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, icon: Icon(Icons.restaurant_outlined, size: 18), label: Text('Makan di sini')),
+                    ButtonSegment(value: true, icon: Icon(Icons.shopping_bag_outlined, size: 18), label: Text('Takeaway')),
+                  ],
+                  selected: {_takeaway},
+                  onSelectionChanged: (v) => setState(() => _takeaway = v.first),
+                ),
+              ],
               if (widget.queueMode) ...[
                 const SizedBox(height: 16),
                 TextField(
                   controller: _queue,
-                  autofocus: true,
+                  autofocus: !widget.sourceMode,
                   maxLength: 10,
                   textCapitalization: TextCapitalization.characters,
                   decoration: InputDecoration(
@@ -1218,20 +1307,42 @@ class _PayDialogState extends State<_PayDialog> {
                 ),
               ],
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  for (final m in PayMethod.values)
-                    ChoiceChip(
-                      avatar: Icon(_icon(m), size: 18),
-                      label: Text(m.name.toUpperCase()),
-                      selected: _method == m,
-                      onSelected: (_) => setState(() => _method = m),
-                    ),
-                ],
-              ),
-              if (_method == PayMethod.cash) ...[
+              if (_online)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.sageSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.phone_iphone_rounded, color: AppColors.sageInk),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Dibayar lewat aplikasi ${_source.label}. Tidak masuk uang laci.',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.sageInk, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final m in PayMethod.values)
+                      if (m != PayMethod.online)
+                        ChoiceChip(
+                          avatar: Icon(_icon(m), size: 18),
+                          label: Text(m.label),
+                          selected: _method == m,
+                          onSelected: (_) => setState(() => _method = m),
+                        ),
+                  ],
+                ),
+              if (!_online && _method == PayMethod.cash) ...[
                 const SizedBox(height: 16),
                 TextField(
                   controller: _cash,
@@ -1261,7 +1372,7 @@ class _PayDialogState extends State<_PayDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: ok ? const Color(0xFFE7EDE3) : AppColors.roseSoft,
+                    color: ok ? AppColors.sageSoft : AppColors.roseSoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -1272,8 +1383,8 @@ class _PayDialogState extends State<_PayDialog> {
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
                           color: ok
-                              ? const Color(0xFF4A5C44)
-                              : const Color(0xFF7D0B1E),
+                              ? AppColors.sageInk
+                              : AppColors.primary,
                         ),
                       ),
                       const Spacer(),
@@ -1287,8 +1398,8 @@ class _PayDialogState extends State<_PayDialog> {
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: ok
-                              ? const Color(0xFF4A5C44)
-                              : const Color(0xFF7D0B1E),
+                              ? AppColors.sageInk
+                              : AppColors.primary,
                         ),
                       ),
                     ],
@@ -1324,11 +1435,14 @@ class _PayDialogState extends State<_PayDialog> {
         ),
         FilledButton(
           onPressed: ok
-              ? () => Navigator.pop(context, (
-                  method: _method,
+              ? () => Navigator.pop<PayResult>(context, (
+                  method: _effMethod,
                   paid: _paid,
                   hold: _hold,
                   queueNo: widget.queueMode ? _queue.text.trim() : null,
+                  source: widget.sourceMode ? _source : OrderSource.walkin,
+                  externalNo: _online ? _ext.text.trim() : null,
+                  takeaway: widget.queueMode ? (_online || _takeaway) : null,
                 ))
               : null,
           child: Text(dup != null ? 'Tetap pakai nomor ini' : 'Konfirmasi'),

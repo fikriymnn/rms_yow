@@ -87,7 +87,7 @@ class DateBar extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.calendar_month_outlined,
                     size: 18,
                     color: AppColors.primary,

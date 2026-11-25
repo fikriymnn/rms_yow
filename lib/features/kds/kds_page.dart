@@ -8,7 +8,7 @@ import 'package:rms_yow/features/tables/dining_table.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/ui_kit.dart';
-import '../orders/items_status.dart';
+import '../kitchen_kpi/kitchen_kpi_page.dart';
 import '../orders/order_models.dart';
 import '../orders/order_providers.dart';
 import '../tables/tables_providers.dart';
@@ -46,17 +46,22 @@ class _KdsPageState extends ConsumerState<KdsPage> {
     Iterable<OrderItem> items,
     KitchenStatus s,
   ) async {
-    final repo = ref.read(itemStatusRepositoryProvider);
-    for (final it in items) {
-      await repo.save(ItemStatus(id: it.id, orderId: o.id, status: s));
-    }
+    // mencatat waktu & petugas tiap tahap (riwayat & KPI dapur)
+    await ref.read(itemStatusRepositoryProvider).setStatus(o.id, items, s);
   }
 
   bool get _foodcourt => ref.read(activeOutletProvider)?.isFoodcourt ?? false;
 
   String _where(Order o, Map<String, String> tables) {
     final q = o.queueNo;
-    if (q != null && q.isNotEmpty) return 'No. $q';
+    if (q != null && q.isNotEmpty) {
+      // dapur perlu tahu: dibungkus atau tidak, dan dari aplikasi mana
+      final tags = [
+        if (o.source.isOnline) o.source.label else if (o.type == OrderType.takeaway) 'Takeaway',
+      ];
+      return ['No. $q', ...tags].join(' · ');
+    }
+    if (o.source.isOnline) return 'Takeaway · ${o.source.label}';
     if (o.tableId == null) return 'Takeaway';
     final name = tables[o.tableId] ?? '';
     if (name.isEmpty) return 'Meja';
@@ -96,12 +101,24 @@ class _KdsPageState extends ConsumerState<KdsPage> {
     final tickets = _showReady ? readyList : queue;
 
     return Scaffold(
-      appBar: RmsAppBar(title: const Text('Dapur')),
+      appBar: RmsAppBar(
+        title: const Text('Dapur'),
+        actions: [
+          IconButton(
+            tooltip: 'Riwayat & KPI dapur',
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const KitchenKpiPage()),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Container(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.surface,
               border: Border(bottom: BorderSide(color: AppColors.border)),
             ),

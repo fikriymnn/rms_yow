@@ -157,7 +157,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
         ),
       ),
       dialogTheme: DialogThemeData(
@@ -169,7 +169,7 @@ abstract final class AppTheme {
         contentTextStyle: _t(14.5, FontWeight.w400, const Color(0xFF3F3A35)),
         barrierColor: const Color(0x73171717),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         modalBarrierColor: Color(0x73171717),
@@ -206,7 +206,7 @@ abstract final class AppTheme {
         labelColor: AppColors.ink,
         unselectedLabelColor: AppColors.muted,
         indicatorSize: TabBarIndicatorSize.label,
-        indicator: const UnderlineTabIndicator(
+        indicator: UnderlineTabIndicator(
           borderSide: BorderSide(width: 3, color: AppColors.primary),
           borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
         ),
@@ -219,7 +219,7 @@ abstract final class AppTheme {
         backgroundColor: AppColors.surface,
         selectedColor: AppColors.primarySoft,
         checkmarkColor: AppColors.primary,
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         labelStyle: _t(13, FontWeight.w600, AppColors.ink),
@@ -269,7 +269,7 @@ abstract final class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.ink,
           backgroundColor: AppColors.surface,
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
           minimumSize: const Size(64, 50),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: buttonShape,
@@ -310,7 +310,7 @@ abstract final class AppTheme {
           iconColor: WidgetStateProperty.resolveWith(
             (s) => s.contains(WidgetState.selected) ? Colors.white : AppColors.muted,
           ),
-          side: const WidgetStatePropertyAll(BorderSide(color: AppColors.border)),
+          side: WidgetStatePropertyAll(BorderSide(color: AppColors.border)),
           textStyle: WidgetStatePropertyAll(_t(13.5, FontWeight.w700)),
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -345,7 +345,7 @@ abstract final class AppTheme {
         subtitleTextStyle: _t(13, FontWeight.w400, AppColors.muted),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
         color: AppColors.divider,
         thickness: 1,
         space: 1,
@@ -372,7 +372,7 @@ abstract final class AppTheme {
         textColor: Colors.white,
         textStyle: _t(10.5, FontWeight.w800),
       ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
+      progressIndicatorTheme: ProgressIndicatorThemeData(
         color: AppColors.primary,
         linearTrackColor: AppColors.primarySoft,
         circularTrackColor: Colors.transparent,
@@ -385,10 +385,10 @@ abstract final class AppTheme {
         textStyle: _t(14, FontWeight.w600, AppColors.ink),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
         ),
       ),
-      menuTheme: const MenuThemeData(
+      menuTheme: MenuThemeData(
         style: MenuStyle(
           backgroundColor: WidgetStatePropertyAll(AppColors.surface),
           surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
@@ -400,7 +400,7 @@ abstract final class AppTheme {
         headerBackgroundColor: AppColors.ink,
         headerForegroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-        todayBorder: const BorderSide(color: AppColors.primary),
+        todayBorder: BorderSide(color: AppColors.primary),
       ),
       timePickerTheme: TimePickerThemeData(
         backgroundColor: AppColors.surface,

@@ -305,7 +305,7 @@ class PayablesTab extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               colors: [AppColors.ink, AppColors.inkSoft],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -407,7 +407,7 @@ class PayablesTab extends ConsumerWidget {
                               color: AppColors.danger,
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.chevron_right,
                             size: 20,
                             color: AppColors.muted,
@@ -516,7 +516,7 @@ class SupplierLedgerPage extends ConsumerWidget {
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: e.amount < 0
-                                      ? const Color(0xFFE7EDE3)
+                                      ? AppColors.sageSoft
                                       : AppColors.roseSoft,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -526,8 +526,8 @@ class SupplierLedgerPage extends ConsumerWidget {
                                       : Icons.inventory_2_outlined,
                                   size: 18,
                                   color: e.amount < 0
-                                      ? const Color(0xFF4A5C44)
-                                      : const Color(0xFF7D0B1E),
+                                      ? AppColors.sageInk
+                                      : AppColors.primary,
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -669,7 +669,7 @@ Future<void> showPaymentDialog(
                         'Melebihi sisa hutang',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: const Color(0xFF7D0B1E),
+                          color: AppColors.primary,
                         ),
                       ),
                     ),

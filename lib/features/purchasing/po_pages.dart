@@ -504,7 +504,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline, size: 15, color: AppColors.muted),
+              Icon(Icons.info_outline, size: 15, color: AppColors.muted),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -551,7 +551,7 @@ class _PoEditorPageState extends ConsumerState<PoEditorPage> {
     }
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
@@ -887,13 +887,13 @@ class PoDetailView extends ConsumerWidget {
                   Icons.cancel_outlined,
                   'Ditolak. Alasannya ada di Persetujuan → Pengajuan saya. Buat PO baru bila perlu.',
                   AppColors.roseSoft,
-                  const Color(0xFF7D0B1E),
+                  AppColors.primary,
                 ),
               if (po.status == PoStatus.cancelled)
                 banner(
                   Icons.block,
                   'PO ini dibatalkan.',
-                  const Color(0xFFF1EDE7),
+                  AppColors.divider,
                   AppColors.muted,
                 ),
               Container(
@@ -1030,7 +1030,7 @@ class PoDetailView extends ConsumerWidget {
                                   ),
                                   minHeight: 5,
                                   color: AppColors.success,
-                                  backgroundColor: const Color(0xFFE7EDE3),
+                                  backgroundColor: AppColors.sageSoft,
                                 ),
                               ),
                             ],
@@ -1054,13 +1054,13 @@ class PoDetailView extends ConsumerWidget {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE7EDE3),
+                                  color: AppColors.sageSoft,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.inventory_2_outlined,
                                   size: 18,
-                                  color: Color(0xFF4A5C44),
+                                  color: AppColors.sageInk,
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -1106,7 +1106,7 @@ class PoDetailView extends ConsumerWidget {
         if (actions.isNotEmpty)
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.surface,
               border: Border(top: BorderSide(color: AppColors.border)),
             ),
@@ -1327,7 +1327,7 @@ Future<void> showReceiveDialog(
                         'Pembayaran melebihi total',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: const Color(0xFF7D0B1E),
+                          color: AppColors.primary,
                         ),
                       ),
                     )

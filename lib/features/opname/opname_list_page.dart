@@ -197,7 +197,7 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.storefront_outlined, size: 18, color: AppColors.faint),
+                    Icon(Icons.storefront_outlined, size: 18, color: AppColors.faint),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(

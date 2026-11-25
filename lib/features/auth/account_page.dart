@@ -15,8 +15,11 @@ import 'outlet_picker_page.dart';
 import 'package:rms_yow/features/attendance/pin_dialogs.dart';
 import 'package:rms_yow/features/update/update_service.dart';
 import 'package:rms_yow/features/update/update_ui.dart';
+import '../../core/theme/app_palettes.dart';
 import '../client/client_pages.dart';
+import '../client/theme_page.dart';
 import '../help/help_page.dart';
+import '../voice/voice_settings_page.dart';
 import '../client/client_providers.dart';
 import '../payroll/my_payslips_page.dart';
 import 'package:rms_yow/core/ui/motion.dart';
@@ -241,7 +244,7 @@ class AccountPage extends ConsumerWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, size: 20, color: AppColors.muted),
+            Icon(Icons.chevron_right, size: 20, color: AppColors.muted),
           ],
         ),
       ),
@@ -274,7 +277,7 @@ class AccountPage extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [AppColors.ink, AppColors.inkSoft],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -401,13 +404,13 @@ class AccountPage extends ConsumerWidget {
                 child: ExpansionTile(
                   shape: const RoundedRectangleBorder(),
                   collapsedShape: const RoundedRectangleBorder(),
-                  leading: const Icon(Icons.block, color: AppColors.danger),
+                  leading: Icon(Icons.block, color: AppColors.danger),
                   title: Text(
                     '${rejected.length} data ditolak server',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF7D0B1E),
+                      color: AppColors.primary,
                     ),
                   ),
                   children: [
@@ -420,7 +423,7 @@ class AccountPage extends ConsumerWidget {
                             r,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12.5,
-                              color: const Color(0xFF7D0B1E),
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -453,6 +456,16 @@ class AccountPage extends ConsumerWidget {
             ),
           if (client != null && isOwner)
             _actionTile(
+              Icons.palette_outlined,
+              'Tema warna',
+              'Untuk semua outlet & perangkat: ${AppPalette.byKey(client.info.theme).name}',
+              () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(builder: (_) => const ThemePage()),
+              ),
+            ),
+          if (client != null && isOwner)
+            _actionTile(
               Icons.key_outlined,
               'Password akun restoran',
               'Email & password untuk mengaktifkan perangkat',
@@ -468,6 +481,15 @@ class AccountPage extends ConsumerWidget {
                 MaterialPageRoute(builder: (_) => const MyPayslipsPage()),
               ),
             ),
+          _actionTile(
+            Icons.record_voice_over_outlined,
+            'Notifikasi suara',
+            'Umumkan pesanan baru / siap di perangkat ini',
+            () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const VoiceSettingsPage()),
+            ),
+          ),
           _actionTile(
             Icons.lock_outline,
             'Ganti password akun saya',

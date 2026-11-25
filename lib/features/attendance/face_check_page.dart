@@ -257,7 +257,7 @@ class _FaceCheckPageState extends State<FaceCheckPage> {
                   : (active ? Icons.visibility : Icons.radio_button_unchecked),
               size: 16,
               color: done
-                  ? const Color(0xFF93A98A)
+                  ? AppColors.sageOnInk
                   : (active ? const Color(0xFFE59AA6) : Colors.white54),
             ),
             const SizedBox(width: 6),

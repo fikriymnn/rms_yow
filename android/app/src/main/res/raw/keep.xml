@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bunyi notifikasi pesanan dipanggil lewat nama (push FCM & kanal notifikasi), bukan dari kode,
+     jadi harus dijaga agar tidak dibuang saat build release (shrinkResources). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/pesanan_baru,@raw/pesanan_siap" />

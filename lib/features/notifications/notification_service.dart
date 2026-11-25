@@ -12,12 +12,18 @@ import '../../core/sync/sync_controller.dart';
 import '../approvals/approval_providers.dart';
 import 'notification_providers.dart';
 import 'notification_router.dart';
+import '../auth/auth_providers.dart';
+import '../voice/voice_service.dart';
 
+// Kanal pesanan "_v2": memakai bunyi sendiri (res/raw). Bunyi kanal Android tidak bisa diubah
+// setelah dibuat, jadi kanal lama diganti id baru. Server mengirim id yang sama (fcm.py).
 const _kitchenChannel = AndroidNotificationChannel(
-  'kitchen_orders',
+  'kitchen_orders_v2',
   'Pesanan dapur',
   description: 'Pesanan baru untuk dapur',
   importance: Importance.max,
+  playSound: true,
+  sound: RawResourceAndroidNotificationSound('pesanan_baru'),
 );
 const _approvalChannel = AndroidNotificationChannel(
   'approvals',
@@ -26,10 +32,12 @@ const _approvalChannel = AndroidNotificationChannel(
   importance: Importance.high,
 );
 const _readyChannel = AndroidNotificationChannel(
-  'order_ready',
-  'Item siap diantar',
-  description: 'Item pesanan yang sudah siap diantar ke meja',
+  'order_ready_v2',
+  'Pesanan siap',
+  description: 'Pesanan yang sudah siap diantar / diambil',
   importance: Importance.max,
+  playSound: true,
+  sound: RawResourceAndroidNotificationSound('pesanan_siap'),
 );
 
 final notificationServiceProvider = Provider<NotificationService>(
@@ -95,15 +103,32 @@ class NotificationService {
   Future<void> _register(String token) async {
     _token = token;
     try {
+      // pengaturan suara perangkat ini ikut dikirim: server mengirim push pesanan (dengan
+      // kalimat yang dibacakan) ke perangkat yang menyalakannya untuk outlet yang dibuka
+      final v = await _ref.read(voiceSettingsProvider.future);
+      final outlet = _ref.read(activeOutletIdProvider);
       await _ref
           .read(apiClientProvider)
           .post(
             '/notifications/devices',
-            data: {'token': token, 'platform': 'android'},
+            data: {
+              'token': token,
+              'platform': 'android',
+              'announce_new': v.newOrder,
+              'announce_ready': v.ready,
+              'outlet_id': ?outlet,
+            },
           );
     } catch (_) {
       /* dicoba lagi saat aplikasi dibuka berikutnya */
     }
+  }
+
+  /// Panggil saat pengaturan suara atau outlet aktif berubah.
+  Future<void> syncVoice() async {
+    if (!_supported || !_ready) return;
+    final t = _token ?? await FirebaseMessaging.instance.getToken();
+    if (t != null) await _register(t);
   }
 
   void _tap(String? type, String? id) {
@@ -131,6 +156,9 @@ class NotificationService {
       'order_ready' => _readyChannel,
       _ => _approvalChannel,
     };
+    // perangkat yang menyalakan pengumuman: saat aplikasi terbuka, suara dibacakan
+    // OrderAnnouncer dari data sinkron, jadi notifikasi ini tampil tanpa bunyi
+    final silent = (m.data['speak'] ?? '').toString().isNotEmpty;
     await _local.show(
       id: (m.messageId ?? '${n.title}${n.body}').hashCode & 0x7fffffff,
       title: n.title,
@@ -142,6 +170,7 @@ class NotificationService {
           channelDescription: ch.description,
           importance: ch.importance,
           priority: Priority.high,
+          silent: silent,
         ),
       ),
       payload: jsonEncode({'type': type, 'id': m.data['id']}),

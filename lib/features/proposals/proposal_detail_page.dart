@@ -357,7 +357,7 @@ class ProposalDetailView extends ConsumerWidget {
         if (showActions)
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.surface,
               border: Border(top: BorderSide(color: AppColors.border)),
             ),

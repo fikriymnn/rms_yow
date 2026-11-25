@@ -125,7 +125,7 @@ Future<void> showExpenseDialog(
                         'Buka shift dulu di tab Kas.',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: const Color(0xFF7D0B1E),
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -331,10 +331,10 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                   color: AppColors.roseSoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.receipt_long_outlined,
                   size: 18,
-                  color: Color(0xFF7D0B1E),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(width: 10),

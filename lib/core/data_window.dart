@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 const kWindowDays = <String, int>{
   'orders': 90,
   'audit_logs': 90,
-  'item_status': 30,
+  'item_status': 90, // riwayat dan KPI dapur sampai 90 hari
   'shifts': 180,
 };
 

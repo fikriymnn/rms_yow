@@ -183,7 +183,7 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
       shaderCallback: (rect) {
         final dx = rect.width * (2.4 * _c.value - 1.2);
         return LinearGradient(
-          colors: const [Color(0xFFECE6DD), Color(0xFFF8F5F0), Color(0xFFECE6DD)],
+          colors: [AppColors.sunken, Color(0xFFF8F5F0), AppColors.sunken],
           stops: const [0.35, 0.5, 0.65],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -397,8 +397,9 @@ class _PressableState extends State<Pressable> {
 
 /// Titik status yang berdenyut pelan (mis. "Online", pesanan baru).
 class PulseDot extends StatefulWidget {
-  const PulseDot({super.key, this.color = AppColors.sage, this.size = 8});
-  final Color color;
+  const PulseDot({super.key, Color? color, this.size = 8}) : _color = color;
+  final Color? _color; // null = warna aksen tema (bisa berubah)
+  Color get color => _color ?? AppColors.sage;
   final double size;
 
   @override

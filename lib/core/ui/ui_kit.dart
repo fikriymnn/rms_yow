@@ -12,7 +12,7 @@ enum Tone { neutral, success, warning, danger, info }
   Tone.warning => (fg: const Color(0xFF8A5A12), bg: const Color(0xFFF7EBD6)),
   Tone.danger => (fg: const Color(0xFFA3161F), bg: const Color(0xFFFBE3E1)),
   Tone.info => (fg: AppColors.primary, bg: AppColors.primarySoft),
-  Tone.neutral => (fg: AppColors.muted, bg: const Color(0xFFF1EDE7)),
+  Tone.neutral => (fg: AppColors.muted, bg: AppColors.divider),
 };
 
 /// Lencana status kecil, mis. "12 mnt", "Habis", "Disetujui".
@@ -219,7 +219,7 @@ class EmptyState extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1EDE7),
+                color: AppColors.divider,
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Icon(icon, size: 26, color: AppColors.faint),

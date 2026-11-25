@@ -97,7 +97,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     colors: [AppColors.primary, Color(0xFFA8323F)],
                   ),
                   borderRadius: BorderRadius.circular(14),
@@ -137,7 +137,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.muted),
+              Icon(Icons.chevron_right, color: AppColors.muted),
             ],
           ),
         ),
@@ -179,7 +179,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.cloud_off_outlined,
                       size: 40,
                       color: AppColors.muted,
@@ -231,7 +231,7 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     colors: [AppColors.ink, AppColors.inkSoft],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,

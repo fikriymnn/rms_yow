@@ -262,7 +262,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [AppColors.ink, AppColors.inkSoft],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -299,7 +299,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
                   height: 9,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isOpen ? const Color(0xFF93A98A) : Colors.white38,
+                    color: isOpen ? AppColors.sageOnInk : Colors.white38,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -416,7 +416,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
             'Absen ${q.kind == 'in' ? 'masuk' : 'pulang'} '
             '${_hm.format(DateTime.fromMillisecondsSinceEpoch(q.clientTime))} ditolak: ${q.error}',
             AppColors.roseSoft,
-            const Color(0xFF7D0B1E),
+            AppColors.primary,
             trailing: IconButton(
               tooltip: 'Tutup',
               visualDensity: VisualDensity.compact,
@@ -431,7 +431,7 @@ class _ClockPageState extends ConsumerState<ClockPage> {
             'Lupa absen pulang (${_day.format(DateTime.fromMillisecondsSinceEpoch(r.clockInAt))}). '
             'Hubungi manager untuk mengoreksi jam pulang.',
             AppColors.roseSoft,
-            const Color(0xFF7D0B1E),
+            AppColors.primary,
           ),
       ],
     );

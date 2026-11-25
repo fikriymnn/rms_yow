@@ -6,8 +6,8 @@ import '../../core/ui/motion.dart';
 import '../../shell/app_bar.dart';
 import 'help_content.dart';
 
-TextStyle _t(double size, FontWeight w, [Color c = AppColors.ink, double h = 1.5]) =>
-    GoogleFonts.plusJakartaSans(fontSize: size, fontWeight: w, color: c, height: h);
+TextStyle _t(double size, FontWeight w, [Color? c, double h = 1.5]) =>
+    GoogleFonts.plusJakartaSans(fontSize: size, fontWeight: w, color: c ?? AppColors.ink, height: h);
 
 /// Panduan penggunaan: daftar topik + pencarian. [initialTopic] langsung membuka satu topik.
 class HelpPage extends StatefulWidget {
@@ -123,7 +123,7 @@ class _TopicTile extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
+          Icon(Icons.chevron_right_rounded, color: AppColors.faint),
         ],
       ),
     ),
@@ -192,7 +192,7 @@ class HelpTopicPage extends StatelessWidget {
                   width: 6,
                   height: 6,
                   margin: const EdgeInsets.only(top: 8, right: 10),
-                  decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
                 ),
                 Expanded(child: Text(it, style: _t(14, FontWeight.w400, const Color(0xFF3F3A35)))),
               ],
@@ -254,7 +254,7 @@ class HelpTopicPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              border: n == 0 ? null : const Border(top: BorderSide(color: AppColors.divider)),
+              border: n == 0 ? null : Border(top: BorderSide(color: AppColors.divider)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,7 +320,7 @@ class ApprovalFlowDiagram extends StatelessWidget {
         ],
       ),
     );
-    const arrow = Padding(
+    final arrow = Padding(
       padding: EdgeInsets.symmetric(horizontal: 2),
       child: Icon(Icons.arrow_forward_rounded, size: 18, color: AppColors.faint),
     );

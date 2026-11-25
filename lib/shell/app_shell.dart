@@ -175,7 +175,7 @@ class _OfflineBar extends StatelessWidget {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.cloud_off_rounded, size: 16, color: AppColors.onInkMuted),
+        Icon(Icons.cloud_off_rounded, size: 16, color: AppColors.onInkMuted),
         const SizedBox(width: 8),
         Flexible(
           child: Text(
@@ -225,7 +225,7 @@ class _PhoneShell extends StatelessWidget {
     return Scaffold(
       body: content,
       bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surface,
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
@@ -433,7 +433,7 @@ class _Sidebar extends ConsumerWidget {
         if (compact) {
           if (last != null) {
             nav.add(
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 26, vertical: 8),
                 child: Divider(color: AppColors.inkLine, height: 1),
               ),
@@ -541,7 +541,7 @@ class _Sidebar extends ConsumerWidget {
         color: AppColors.inkSoft,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Text(_initials(user.name), style: _jk(14, FontWeight.w800, const Color(0xFFF6F3EE))),
+      child: Text(_initials(user.name), style: _jk(14, FontWeight.w800, AppColors.bg)),
     );
     return PopupMenuButton<String>(
       tooltip: user.name,
@@ -561,7 +561,7 @@ class _Sidebar extends ConsumerWidget {
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'logout',
           child: Row(
             children: [
