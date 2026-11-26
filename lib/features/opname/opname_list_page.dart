@@ -72,59 +72,62 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           title: const Text('Opname baru'),
-          content: SizedBox(
-            width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Semua bahan beserta stok sistemnya masuk ke tiket ini. '
-                  'Isi stok fisik tiap bahan, lalu kirim.',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.4, color: AppColors.muted),
-                ),
-                const SizedBox(height: 14),
-                InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Outlet'),
-                  child: Text(
-                    outlet.name,
-                    style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700),
+          content: SingleChildScrollView(
+            // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+            child: SizedBox(
+              width: 420,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Semua bahan beserta stok sistemnya masuk ke tiket ini. '
+                    'Isi stok fisik tiap bahan, lalu kirim.',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.4, color: AppColors.muted),
                   ),
-                ),
-                const SizedBox(height: 12),
-                InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () async {
-                    final now = DateTime.now();
-                    final d = await showDatePicker(
-                      context: ctx,
-                      initialDate: date,
-                      firstDate: now.subtract(const Duration(days: 60)),
-                      lastDate: now,
-                    );
-                    if (d != null) setS(() => date = d);
-                  },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Tanggal opname',
-                      suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
-                    ),
+                  const SizedBox(height: 14),
+                  InputDecorator(
+                    decoration: const InputDecoration(labelText: 'Outlet'),
                     child: Text(
-                      _dateFmt.format(date),
-                      style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600),
+                      outlet.name,
+                      style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: note,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Catatan (opsional)',
-                    hintText: 'mis. Opname akhir bulan',
+                  const SizedBox(height: 12),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () async {
+                      final now = DateTime.now();
+                      final d = await showDatePicker(
+                        context: ctx,
+                        initialDate: date,
+                        firstDate: now.subtract(const Duration(days: 60)),
+                        lastDate: now,
+                      );
+                      if (d != null) setS(() => date = d);
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Tanggal opname',
+                        suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
+                      ),
+                      child: Text(
+                        _dateFmt.format(date),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: note,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Catatan (opsional)',
+                      hintText: 'mis. Opname akhir bulan',
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -172,10 +175,10 @@ class _StockOpnamePageState extends ConsumerState<StockOpnamePage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Stok opname'),
-        actions: [
-          IconButton(
-            tooltip: 'Panduan',
-            icon: const Icon(Icons.menu_book_outlined),
+        pageActions: [
+          PageAction(
+            icon: Icons.menu_book_outlined,
+            label: 'Panduan',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute<void>(builder: (_) => const HelpPage(initialTopic: 'opname')),

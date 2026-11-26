@@ -76,10 +76,20 @@ class RmsApp extends ConsumerWidget {
     return MaterialApp(
       title: 'RMS',
       navigatorKey: rootNavigatorKey,
-      builder: (context, child) => UpdateOffer(
-        navigatorKey: rootNavigatorKey,
-        child: child ?? const SizedBox.shrink(),
-      ),
+      builder: (context, child) {
+        // ukuran huruf sistem tetap dihormati, tapi dibatasi (maks 120%) agar tata letak
+        // kartu/tombol tidak pecah di HP yang hurufnya diperbesar
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(
+            textScaler: mq.textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.2),
+          ),
+          child: UpdateOffer(
+            navigatorKey: rootNavigatorKey,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       themeMode: ThemeMode.light,

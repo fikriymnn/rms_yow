@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../core/layout/form_factor.dart';
 import '../core/theme/app_colors.dart';
 import '../core/ui/motion.dart';
+import '../core/ui/ui_kit.dart';
 import '../features/auth/auth_providers.dart';
 import '../features/notifications/notification_providers.dart';
 import '../features/notifications/notification_router.dart';
@@ -27,13 +28,40 @@ class ShellScope extends InheritedWidget {
   bool updateShouldNotify(ShellScope oldWidget) => false;
 }
 
+/// Aksi halaman di AppBar. Selalu tampil BERLABEL agar pengguna baru tidak menebak arti ikon:
+/// - HP: ikon + label kecil di bawahnya (sebanyak yang muat; sisanya masuk tombol "Lainnya").
+/// - Tablet/Web: tombol ikon + label di sampingnya.
+class PageAction {
+  const PageAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.shortLabel,
+    this.primary = false,
+    this.destructive = false,
+    this.badge = 0,
+  });
+  final IconData icon;
+  final String label;
+
+  /// Label ringkas untuk HP (mis. "KPI" untuk "Riwayat & KPI dapur").
+  final String? shortLabel;
+  final VoidCallback? onPressed;
+
+  /// Aksi utama halaman (diberi warna).
+  final bool primary;
+  final bool destructive;
+  final int badge;
+}
+
 /// AppBar aplikasi. Sama dengan [AppBar], ditambah lonceng notifikasi otomatis
-/// di ujung kanan bila halaman ini tab utama.
+/// di ujung kanan bila halaman ini tab utama, dan [pageActions] berlabel.
 class RmsAppBar extends StatelessWidget implements PreferredSizeWidget {
   const RmsAppBar({
     super.key,
     this.title,
     this.actions,
+    this.pageActions,
     this.bottom,
     this.leading,
     this.automaticallyImplyLeading = true,
@@ -45,7 +73,12 @@ class RmsAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   final Widget? title;
+
+  /// Widget bebas di kanan (setelah [pageActions]).
   final List<Widget>? actions;
+
+  /// Tombol aksi halaman yang selalu berlabel (lihat [PageAction]).
+  final List<PageAction>? pageActions;
   final PreferredSizeWidget? bottom;
   final Widget? leading;
   final bool automaticallyImplyLeading;
@@ -65,6 +98,23 @@ class RmsAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final bell = showBell ?? ShellScope.inShell(context);
+    final acts = pageActions ?? const <PageAction>[];
+    final width = MediaQuery.sizeOf(context).width;
+    final wide = width >= kTabletMin;
+    // HP: berapa tombol ringkas (~64 dp) yang muat tanpa menghimpit judul (sisakan ~120 dp)
+    final back = leading != null || (automaticallyImplyLeading && (Navigator.maybeOf(context)?.canPop() ?? false));
+    final room = width - 16 - (bell ? 52 : 0) - (back ? 56 : 0) - 120 - (actions?.length ?? 0) * 60;
+    final slots = math.max(1, (room / 64).floor());
+    final List<Widget> built = acts.isEmpty
+        ? const <Widget>[]
+        : wide
+        ? [for (final a in acts) _WideAction(a)]
+        : acts.length <= slots
+        ? [for (final a in acts) _CompactAction(a)]
+        : [
+            for (final a in acts.take(slots - 1)) _CompactAction(a),
+            _MoreActions(acts.sublist(slots - 1)),
+          ];
     return AppBar(
       title: title,
       leading: leading,
@@ -76,12 +126,186 @@ class RmsAppBar extends StatelessWidget implements PreferredSizeWidget {
       systemOverlayStyle: systemOverlayStyle,
       shape: shape,
       actions: [
+        ...built,
         ...?actions,
         if (bell) ...[const SizedBox(width: 4), const NotificationBell()],
         const SizedBox(width: 4),
       ],
     );
   }
+}
+
+/// Satu [PageAction] sebagai tombol berlabel (ringkas di HP, lebar di tablet/web).
+/// Untuk aksi yang mengurus provider sendiri, mis. tombol Antrean.
+class PageActionButton extends StatelessWidget {
+  const PageActionButton(this.action, {super.key});
+  final PageAction action;
+
+  @override
+  Widget build(BuildContext context) => MediaQuery.sizeOf(context).width >= kTabletMin
+      ? _WideAction(action)
+      : _CompactAction(action);
+}
+
+Widget _withBadge(Widget icon, int n) => n <= 0
+    ? icon
+    : Stack(
+        clipBehavior: Clip.none,
+        children: [
+          icon,
+          Positioned(
+            top: -5,
+            right: -8,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 17),
+              height: 17,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: AppColors.surface, width: 2),
+              ),
+              child: Text(
+                n > 99 ? '99+' : '$n',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+
+/// HP: ikon dengan label kecil di bawahnya.
+class _CompactAction extends StatelessWidget {
+  const _CompactAction(this.a);
+  final PageAction a;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = a.onPressed != null;
+    final fg = a.destructive
+        ? AppColors.danger
+        : a.primary
+        ? AppColors.primary
+        : AppColors.ink;
+    return Center(
+      child: Tooltip(
+        message: a.label,
+        child: Semantics(
+          button: true,
+          enabled: enabled,
+          label: a.label,
+          excludeSemantics: true,
+          child: Opacity(
+            opacity: enabled ? 1 : 0.4,
+            child: Pressable(
+              onTap: a.onPressed,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 54, maxWidth: 86, minHeight: 50),
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                decoration: BoxDecoration(
+                  color: a.primary ? AppColors.primarySoft : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _withBadge(Icon(a.icon, size: 22, color: fg), a.badge),
+                    const SizedBox(height: 3),
+                    Text(
+                      a.shortLabel ?? a.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        height: 1.1,
+                        color: fg,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tablet/Web: tombol ikon + label di samping.
+class _WideAction extends StatelessWidget {
+  const _WideAction(this.a);
+  final PageAction a;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = _withBadge(Icon(a.icon, size: 20), a.badge);
+    final Widget b = a.primary
+        ? FilledButton.icon(
+            onPressed: a.onPressed,
+            icon: icon,
+            label: Text(a.label),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+          )
+        : TextButton.icon(
+            onPressed: a.onPressed,
+            icon: icon,
+            label: Text(a.label),
+            style: TextButton.styleFrom(
+              foregroundColor: a.destructive ? AppColors.danger : AppColors.ink,
+              minimumSize: const Size(0, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+          );
+    return Center(
+      child: Padding(padding: const EdgeInsets.only(left: 4), child: b),
+    );
+  }
+}
+
+/// HP dengan >2 aksi: tombol "Lainnya" yang membuka daftar aksi berlabel.
+class _MoreActions extends StatelessWidget {
+  const _MoreActions(this.actions);
+  final List<PageAction> actions;
+
+  @override
+  Widget build(BuildContext context) => _CompactAction(
+    PageAction(
+      icon: Icons.more_horiz_rounded,
+      label: 'Lainnya',
+      badge: actions.fold<int>(0, (s, a) => s + a.badge),
+      onPressed: () async {
+        final i = await showChoiceSheet<int>(
+          context: context,
+          title: 'Pilihan lainnya',
+          choices: [
+            for (var k = 0; k < actions.length; k++)
+              SheetChoice<int>(
+                value: k,
+                icon: actions[k].icon,
+                label: actions[k].label,
+                destructive: actions[k].destructive,
+                enabled: actions[k].onPressed != null,
+              ),
+          ],
+        );
+        if (i != null) actions[i].onPressed?.call();
+      },
+    ),
+  );
 }
 
 // ---------------------------------------------------------------- lonceng

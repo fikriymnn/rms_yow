@@ -88,10 +88,16 @@ class _PosPageState extends ConsumerState<PosPage>
   List<Widget> _actions() => [
     // foodcourt: panggil nomor antrean saat pesanan siap (berlaku walau modul KDS mati)
     if (widget.foodcourt) const QueueBoardButton(),
+  ];
+
+  /// Aksi berlabel di AppBar (bukan ikon saja).
+  List<PageAction> _pageActions() => [
     if (widget.order != null)
-      IconButton(
-        tooltip: 'Batalkan order',
-        icon: const Icon(Icons.delete_outline),
+      PageAction(
+        icon: Icons.delete_outline,
+        label: 'Batalkan order',
+        shortLabel: 'Batalkan',
+        destructive: true,
         onPressed: _cancel,
       ),
   ];
@@ -137,30 +143,33 @@ class _PosPageState extends ConsumerState<PosPage>
               .toInt();
           return AlertDialog(
             title: const Text('Diskon manual'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(value: false, label: Text('Rp')),
-                    ButtonSegment(value: true, label: Text('%')),
-                  ],
-                  selected: {pct},
-                  onSelectionChanged: (s) => setS(() => pct = s.first),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: c,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: pct ? 'Persen' : 'Nominal (Rp)',
+            content: SingleChildScrollView(
+              // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: false, label: Text('Rp')),
+                      ButtonSegment(value: true, label: Text('%')),
+                    ],
+                    selected: {pct},
+                    onSelectionChanged: (s) => setS(() => pct = s.first),
                   ),
-                  onChanged: (_) => setS(() {}),
-                ),
-                const SizedBox(height: 8),
-                Text('Potongan: ${rupiah.format(amount)}'),
-              ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: pct ? 'Persen' : 'Nominal (Rp)',
+                    ),
+                    onChanged: (_) => setS(() {}),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Potongan: ${rupiah.format(amount)}'),
+                ],
+              ),
             ),
             actions: [
               if (_order.discount > 0)
@@ -558,7 +567,7 @@ class _PosPageState extends ConsumerState<PosPage>
     if (wide) {
       final cartW = w >= 1100 ? 420.0 : 360.0;
       return Scaffold(
-        appBar: RmsAppBar(title: titleWidget, actions: _actions()),
+        appBar: RmsAppBar(title: titleWidget, pageActions: _pageActions(), actions: _actions()),
         body: Row(
           children: [
             Expanded(child: _menuPane(menu, extent: w >= 1100 ? 210 : 190)),
@@ -577,6 +586,7 @@ class _PosPageState extends ConsumerState<PosPage>
     return Scaffold(
       appBar: RmsAppBar(
         title: titleWidget,
+        pageActions: _pageActions(),
         actions: _actions(),
         bottom: TabBar(
           controller: _tab,
@@ -640,15 +650,18 @@ class _PosPageState extends ConsumerState<PosPage>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'Lihat pesanan',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  Expanded(
+                    child: Text(
+                      'Lihat pesanan',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   Text(
                     rupiah.format(o.total),
                     style: GoogleFonts.plusJakartaSans(
@@ -799,6 +812,7 @@ class _PosPageState extends ConsumerState<PosPage>
               suffixIcon: _query.isEmpty
                   ? null
                   : IconButton(
+                      tooltip: 'Hapus pencarian',
                       icon: const Icon(Icons.close),
                       onPressed: () {
                         _search.clear();
@@ -831,17 +845,20 @@ class _PosPageState extends ConsumerState<PosPage>
               ? const EmptyState(
                   icon: Icons.restaurant_menu,
                   title: 'Belum ada menu',
+                  message: 'Owner/manager menambahkan menu lewat tab Menu.',
                 )
               : shown.isEmpty
               ? const EmptyState(
                   icon: Icons.search_off,
                   title: 'Menu tidak ditemukan',
+                  message: 'Coba kata lain atau pilih kategori "Semua".',
                 )
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: extent,
-                    mainAxisExtent: 112,
+                    // nama menu 2 baris tetap utuh, juga saat huruf HP diperbesar
+                    mainAxisExtent: 120 * textScaleOf(context),
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                   ),
@@ -935,20 +952,31 @@ class _PosPageState extends ConsumerState<PosPage>
             const SizedBox(height: 8),
             Row(
               children: [
-                if (s != KitchenStatus.newItem)
-                  StatusPill(
-                    s.label,
-                    tone: s == KitchenStatus.ready
-                        ? Tone.success
-                        : s == KitchenStatus.preparing
-                        ? Tone.warning
-                        : Tone.neutral,
+                // status mengisi sisa ruang (boleh menyusut) agar tombol tidak terdorong keluar
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: s == KitchenStatus.newItem
+                        ? const SizedBox.shrink()
+                        : StatusPill(
+                            s.label,
+                            tone: s == KitchenStatus.ready
+                                ? Tone.success
+                                : s == KitchenStatus.preparing
+                                ? Tone.warning
+                                : Tone.neutral,
+                          ),
                   ),
-                const Spacer(),
-                IconButton(
-                  tooltip: 'Catatan',
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.edit_note),
+                ),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.ink,
+                    minimumSize: const Size(0, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.edit_note, size: 20),
+                  label: Text(it.note.isEmpty ? 'Catatan' : 'Ubah'),
                   onPressed: () => _note(i),
                 ),
                 _Stepper(
@@ -972,7 +1000,8 @@ class _PosPageState extends ConsumerState<PosPage>
     final noShift = ref.watch(currentShiftProvider) == null;
     final qty = o.items.fold<int>(0, (s, i) => s + i.qty);
 
-    return Column(
+    return LayoutBuilder(
+      builder: (context, box) => Column(
       children: [
         if (header)
           Padding(
@@ -1002,96 +1031,100 @@ class _PosPageState extends ConsumerState<PosPage>
                   itemBuilder: (_, i) => _cartItem(i),
                 ),
         ),
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border(top: BorderSide(color: AppColors.border)),
+        ConstrainedBox(
+          // keyboard terbuka / HP pendek: ringkasan bisa digulir, daftar pesanan tetap terlihat
+          constraints: BoxConstraints(
+            maxHeight: box.maxHeight.isFinite ? box.maxHeight * 0.66 : double.infinity,
           ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_needsName) ...[
-                  TextField(
-                    controller: _name,
-                    maxLength: 40,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Atas nama',
-                      hintText: 'Nama pelanggan takeaway',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
-                      isDense: true,
-                      counterText: '',
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                if (noShift)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.roseSoft,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Belum ada shift aktif. Pesanan tetap bisa disimpan; '
-                      'buka shift di tab Kas sebelum membayar.',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: AppColors.primary,
+          child: SingleChildScrollView(
+            child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_needsName) ...[
+                    TextField(
+                      controller: _name,
+                      maxLength: 40,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        labelText: 'Atas nama',
+                        hintText: 'Nama pelanggan takeaway',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
+                        isDense: true,
+                        counterText: '',
                       ),
+                      onChanged: (_) => setState(() {}),
                     ),
-                  ),
-                _line('Subtotal', o.subtotal),
-                if (o.discount > 0) _line('Diskon', -o.discount),
-                for (final a in o.appliedCharges) _line(a.line.label, a.amount),
-                const Divider(height: 20),
-                _line('Total', o.total, bold: true),
-                const SizedBox(height: 6),
-                if (isManager && o.items.isNotEmpty)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: _discount,
-                      icon: const Icon(Icons.sell_outlined, size: 18),
-                      label: Text(o.discount > 0 ? 'Ubah diskon' : 'Diskon'),
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (!widget.foodcourt) ...[
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: o.items.isEmpty ? null : _save,
-                          child: const Text('Open Bill'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                    ],
-                    Expanded(
-                      flex: 2,
-                      child: FilledButton(
-                        onPressed: (o.items.isEmpty || !canPay) ? null : _pay,
-                        child: Text(
-                          o.items.isEmpty
-                              ? 'Bayar'
-                              : 'Bayar ${rupiah.format(o.total)}',
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 10),
                   ],
-                ),
-              ],
+                  if (noShift)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 10),
+                      child: InfoBanner(
+                        'Pesanan tetap bisa disimpan. Buka kas di menu Kas sebelum menerima pembayaran.',
+                        title: 'Kas belum dibuka',
+                        tone: Tone.warning,
+                      ),
+                    ),
+                  _line('Subtotal', o.subtotal),
+                  if (o.discount > 0) _line('Diskon', -o.discount),
+                  for (final a in o.appliedCharges) _line(a.line.label, a.amount),
+                  const Divider(height: 20),
+                  _line('Total', o.total, bold: true),
+                  const SizedBox(height: 6),
+                  if (isManager && o.items.isNotEmpty)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: _discount,
+                        icon: const Icon(Icons.sell_outlined, size: 18),
+                        label: Text(o.discount > 0 ? 'Ubah diskon' : 'Diskon'),
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (!widget.foodcourt) ...[
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: o.items.isEmpty ? null : _save,
+                            icon: const Icon(Icons.receipt_long_outlined, size: 19),
+                            label: const Text('Open Bill'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Expanded(
+                        flex: 2,
+                        child: FilledButton.icon(
+                          onPressed: (o.items.isEmpty || !canPay) ? null : _pay,
+                          icon: const Icon(Icons.payments_outlined, size: 20),
+                          label: Text(
+                            o.items.isEmpty
+                                ? 'Bayar'
+                                : 'Bayar ${rupiah.format(o.total)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
+        ),
       ],
+    ),
     );
   }
 
@@ -1111,7 +1144,9 @@ class _PosPageState extends ConsumerState<PosPage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: label0),
+          Expanded(
+            child: Text(label, style: label0),
+          ),
           Text(rupiah.format(value), style: value0),
         ],
       ),
@@ -1136,6 +1171,7 @@ class _Stepper extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
+          tooltip: 'Kurangi',
           visualDensity: VisualDensity.compact,
           icon: const Icon(Icons.remove, size: 20),
           onPressed: onDec,
@@ -1149,6 +1185,7 @@ class _Stepper extends StatelessWidget {
           ),
         ),
         IconButton(
+          tooltip: 'Tambah',
           visualDensity: VisualDensity.compact,
           icon: Icon(Icons.add, size: 20, color: AppColors.primary),
           onPressed: onInc,
@@ -1368,6 +1405,14 @@ class _PayDialogState extends State<_PayDialog> {
                 ),
               ],
               const SizedBox(height: 16),
+              if (!_online)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    'Metode pembayaran',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.muted),
+                  ),
+                ),
               if (_online)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -1438,7 +1483,8 @@ class _PayDialogState extends State<_PayDialog> {
                   ),
                   child: Row(
                     children: [
-                      Text(
+                      Expanded(
+                        child: Text(
                         ok ? 'Kembalian' : 'Uang kurang',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13.5,
@@ -1448,7 +1494,7 @@ class _PayDialogState extends State<_PayDialog> {
                               : AppColors.primary,
                         ),
                       ),
-                      const Spacer(),
+                      ),
                       Text(
                         rupiah.format(
                           ok
@@ -1494,7 +1540,8 @@ class _PayDialogState extends State<_PayDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Batal'),
         ),
-        FilledButton(
+        FilledButton.icon(
+          icon: const Icon(Icons.check_rounded, size: 20),
           onPressed: ok
               ? () => Navigator.pop<PayResult>(context, (
                   method: _effMethod,
@@ -1507,7 +1554,7 @@ class _PayDialogState extends State<_PayDialog> {
                   takeaway: widget.queueMode ? (_online || _takeaway) : null,
                 ))
               : null,
-          child: Text(dup != null ? 'Tetap pakai nomor ini' : 'Konfirmasi'),
+          label: Text(dup != null ? 'Tetap pakai nomor ini' : 'Konfirmasi bayar'),
         ),
       ],
     );

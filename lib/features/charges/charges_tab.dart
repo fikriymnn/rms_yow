@@ -315,11 +315,13 @@ class ChargesTab extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            k,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+          Expanded(
+            child: Text(
+              k,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
           ),
           Text(
@@ -360,7 +362,7 @@ class ChargesTab extends ConsumerWidget {
               onPressed: () =>
                   _edit(context, ref, null, direct: direct, all: charges),
               icon: const Icon(Icons.add),
-              label: const Text('Biaya'),
+              label: const Text('Tambah biaya'),
             )
           : null,
       body: ListView(

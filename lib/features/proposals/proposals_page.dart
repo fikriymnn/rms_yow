@@ -69,7 +69,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> {
                     ),
                   ),
                   icon: const Icon(Icons.add),
-                  label: const Text('Usulan'),
+                  label: const Text('Usulan baru'),
                 ),
           body: Column(
             children: [

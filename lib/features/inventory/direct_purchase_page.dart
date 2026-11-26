@@ -358,7 +358,10 @@ class _IngredientPickerState extends State<_IngredientPicker> {
   @override
   Widget build(BuildContext context) {
     final list = widget.all.where((i) => _q.isEmpty || i.name.toLowerCase().contains(_q)).toList();
-    return DraggableScrollableSheet(
+    // naik di atas keyboard: hasil pencarian tidak tertutup
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.75,
       maxChildSize: 0.95,
@@ -395,6 +398,7 @@ class _IngredientPickerState extends State<_IngredientPicker> {
                   ),
           ),
         ],
+      ),
       ),
     );
   }

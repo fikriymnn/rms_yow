@@ -7,6 +7,7 @@ import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palettes.dart';
 import '../../core/ui/motion.dart';
+import '../../core/ui/ui_kit.dart';
 import 'client_models.dart';
 import 'client_providers.dart';
 
@@ -80,7 +81,7 @@ class _ThemePageState extends ConsumerState<ThemePage> {
                   crossAxisCount: cols,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  mainAxisExtent: 196,
+                  mainAxisExtent: 196 * textScaleOf(context),
                 ),
                 itemCount: AppPalette.all.length,
                 itemBuilder: (_, i) {

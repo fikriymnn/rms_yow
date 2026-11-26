@@ -129,7 +129,7 @@ class _IngredientsTabState extends ConsumerState<IngredientsTab> {
           ? FloatingActionButton.extended(
               onPressed: () => _edit(context, ref, null),
               icon: const Icon(Icons.add),
-              label: const Text('Bahan'),
+              label: const Text('Tambah bahan'),
             )
           : canRequest
           ? FloatingActionButton.extended(

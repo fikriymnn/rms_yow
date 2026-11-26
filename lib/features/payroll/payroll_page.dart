@@ -76,27 +76,31 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           title: const Text('Periode gaji'),
-          content: SizedBox(
-            width: 380,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Tanggal mulai periode gaji setiap bulan.'),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  initialValue: day,
-                  decoration: const InputDecoration(labelText: 'Mulai tanggal'),
-                  items: [
-                    for (var d = 1; d <= 28; d++)
-                      DropdownMenuItem(
-                        value: d,
-                        child: Text(d == 1 ? '1 (tgl 1 s.d. akhir bulan)' : '$d (s.d. tgl ${d - 1} bulan berikutnya)'),
-                      ),
-                  ],
-                  onChanged: (v) => setS(() => day = v ?? 1),
-                ),
-              ],
+          content: SingleChildScrollView(
+            // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+            child: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Tanggal mulai periode gaji setiap bulan.'),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    isExpanded: true, // pilihan bernama panjang tidak overflow
+                    initialValue: day,
+                    decoration: const InputDecoration(labelText: 'Mulai tanggal'),
+                    items: [
+                      for (var d = 1; d <= 28; d++)
+                        DropdownMenuItem(
+                          value: d,
+                          child: Text(d == 1 ? '1 (tgl 1 s.d. akhir bulan)' : '$d (s.d. tgl ${d - 1} bulan berikutnya)'),
+                        ),
+                    ],
+                    onChanged: (v) => setS(() => day = v ?? 1),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -148,41 +152,45 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
           final valid = outletId != null && !end.isBefore(start);
           return AlertDialog(
             title: const Text('Periode gaji baru'),
-            content: SizedBox(
-              width: 400,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_isOwner && _outlets.length > 1) ...[
-                    DropdownButtonFormField<String>(
-                      initialValue: outletId,
-                      decoration: const InputDecoration(labelText: 'Outlet'),
-                      items: [
-                        for (final o in _outlets) DropdownMenuItem(value: o.id, child: Text(o.name)),
+            content: SingleChildScrollView(
+              // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+              child: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_isOwner && _outlets.length > 1) ...[
+                      DropdownButtonFormField<String>(
+                        isExpanded: true, // pilihan bernama panjang tidak overflow
+                        initialValue: outletId,
+                        decoration: const InputDecoration(labelText: 'Outlet'),
+                        items: [
+                          for (final o in _outlets) DropdownMenuItem(value: o.id, child: Text(o.name)),
+                        ],
+                        onChanged: (v) => setS(() => outletId = v),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(onPressed: () => pick(true), child: Text('Mulai ${fmtIsoDate(isoDate(start))}')),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(onPressed: () => pick(false), child: Text('Akhir ${fmtIsoDate(isoDate(end))}')),
+                        ),
                       ],
-                      onChanged: (v) => setS(() => outletId = v),
                     ),
                     const SizedBox(height: 12),
+                    Text(
+                      'Slip dibuat untuk karyawan yang gajinya sudah diatur, dihitung dari absensi periode ini. '
+                      'Masih bisa diubah sebelum diterbitkan.',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.muted),
+                    ),
                   ],
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(onPressed: () => pick(true), child: Text('Mulai ${fmtIsoDate(isoDate(start))}')),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton(onPressed: () => pick(false), child: Text('Akhir ${fmtIsoDate(isoDate(end))}')),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Slip dibuat untuk karyawan yang gajinya sudah diatur, dihitung dari absensi periode ini. '
-                    'Masih bisa diubah sebelum diterbitkan.',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.muted),
-                  ),
-                ],
+                ),
               ),
             ),
             actions: [
@@ -319,10 +327,11 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
       child: Scaffold(
         appBar: RmsAppBar(
           title: const Text('Penggajian'),
-          actions: [
-            IconButton(
-              tooltip: 'Aturan potongan terlambat',
-              icon: const Icon(Icons.timer_off_outlined),
+          pageActions: [
+            PageAction(
+              icon: Icons.timer_off_outlined,
+              label: 'Aturan potongan terlambat',
+              shortLabel: 'Terlambat',
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute<void>(
@@ -330,8 +339,12 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
                 ),
               ),
             ),
-            if (owner)
-              IconButton(tooltip: 'Pengaturan periode', icon: const Icon(Icons.tune), onPressed: _settings),
+            if (owner) PageAction(
+              icon: Icons.tune,
+              label: 'Pengaturan periode',
+              shortLabel: 'Periode',
+              onPressed: _settings,
+            ),
           ],
           bottom: const TabBar(tabs: [Tab(text: 'Periode gaji'), Tab(text: 'Gaji karyawan')]),
         ),
@@ -346,6 +359,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: DropdownButtonFormField<String?>(
+                  isExpanded: true, // pilihan bernama panjang tidak overflow
                   initialValue: _outletId,
                   decoration: const InputDecoration(labelText: 'Outlet', isDense: true),
                   items: [
@@ -474,6 +488,7 @@ class _ProfileDialogState extends ConsumerState<_ProfileDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DropdownButtonFormField<String>(
+                isExpanded: true, // pilihan bernama panjang tidak overflow
                 initialValue: _scheme,
                 decoration: const InputDecoration(labelText: 'Skema gaji'),
                 items: [
@@ -589,12 +604,13 @@ class _PayRunPageState extends ConsumerState<PayRunPage> {
         return Scaffold(
           appBar: RmsAppBar(
             title: Text(r == null ? 'Periode gaji' : periodText(r.periodStart, r.periodEnd)),
-            actions: [
-              if (r != null && r.isDraft)
-                IconButton(
-                  tooltip: 'Hapus draft',
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: _busy
+            pageActions: [
+              if (r != null && r.isDraft) PageAction(
+                icon: Icons.delete_outline,
+                label: 'Hapus draft',
+                shortLabel: 'Hapus',
+                destructive: true,
+                onPressed: _busy
                       ? null
                       : () async {
                           if (!await _confirm('Hapus draft periode?', 'Semua slip di draft ini ikut terhapus.', 'Hapus')) return;
@@ -605,7 +621,7 @@ class _PayRunPageState extends ConsumerState<PayRunPage> {
                             if (context.mounted) _toast(context, errorText(e));
                           }
                         },
-                ),
+              ),
             ],
           ),
           bottomNavigationBar: r == null || !r.isDraft
@@ -747,45 +763,48 @@ class _PayslipEditPageState extends ConsumerState<PayslipEditPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           title: Text(line == null ? 'Tambah komponen' : 'Ubah komponen'),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'earning', label: Text('Pendapatan')),
-                    ButtonSegment(value: 'deduction', label: Text('Potongan')),
-                  ],
-                  selected: {kind},
-                  onSelectionChanged: (v) => setS(() => kind = v.first),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final p in presets)
-                      ActionChip(
-                        label: Text(p),
-                        onPressed: () => setS(() {
-                          label.text = p;
-                          kind = (p == 'Kasbon' || p == 'Potongan lain') ? 'deduction' : 'earning';
-                        }),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextField(controller: label, decoration: const InputDecoration(labelText: 'Nama komponen')),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: amount,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: _digits,
-                  decoration: const InputDecoration(labelText: 'Nominal', prefixText: 'Rp '),
-                ),
-              ],
+          content: SingleChildScrollView(
+            // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+            child: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'earning', label: Text('Pendapatan')),
+                      ButtonSegment(value: 'deduction', label: Text('Potongan')),
+                    ],
+                    selected: {kind},
+                    onSelectionChanged: (v) => setS(() => kind = v.first),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final p in presets)
+                        ActionChip(
+                          label: Text(p),
+                          onPressed: () => setS(() {
+                            label.text = p;
+                            kind = (p == 'Kasbon' || p == 'Potongan lain') ? 'deduction' : 'earning';
+                          }),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(controller: label, decoration: const InputDecoration(labelText: 'Nama komponen')),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: amount,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: _digits,
+                    decoration: const InputDecoration(labelText: 'Nominal', prefixText: 'Rp '),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -845,10 +864,11 @@ class _PayslipEditPageState extends ConsumerState<PayslipEditPage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Slip gaji'),
-        actions: [
-          IconButton(
-            tooltip: 'Bagikan PDF',
-            icon: const Icon(Icons.ios_share),
+        pageActions: [
+          PageAction(
+            icon: Icons.ios_share,
+            label: 'Bagikan PDF',
+            shortLabel: 'Bagikan',
             onPressed: () => sharePayslipPdf(_slip, period: period, outlet: widget.run.outletName),
           ),
         ],

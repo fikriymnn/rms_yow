@@ -173,64 +173,67 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
         child: Icon(Icons.check_rounded, size: 32, color: AppColors.success),
       ),
       title: Text(widget.title, textAlign: TextAlign.center),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              [
-                o.number,
-                if (queue != null && queue.isNotEmpty) 'Antrean $queue',
-                if (queue == null && o.customerName != null) 'a.n. ${o.customerName}',
-                if (widget.tableName != null && widget.tableName!.isNotEmpty)
-                  widget.tableName!,
-                if (widget.showReceipt) 'Total ${rupiah.format(o.total)}',
-                if (!widget.showReceipt)
-                  '${(widget.kitchenItems ?? o.items).fold<int>(0, (n, i) => n + i.qty)} item '
-                      '${widget.kitchenAddition ? 'tambahan' : 'ke dapur'}',
-              ].join(' • '),
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: AppColors.muted, fontSize: 13),
-            ),
-            if (widget.change > 0) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text('Kembalian', style: GoogleFonts.plusJakartaSans(fontSize: 12.5)),
-                    Text(
-                      rupiah.format(widget.change),
-                      style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 18),
-            if (widget.showReceipt) ...[
-              _button(_Job.receipt, Icons.receipt_long_outlined, 'Cetak struk order'),
-              const SizedBox(height: 10),
-            ],
-            _button(
-              _Job.kitchen,
-              Icons.soup_kitchen_outlined,
-              widget.kitchenAddition ? 'Cetak struk dapur (tambahan)' : 'Cetak struk dapur',
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
+      content: SingleChildScrollView(
+        // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Text(
-                _error!,
-                style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.danger),
+                [
+                  o.number,
+                  if (queue != null && queue.isNotEmpty) 'Antrean $queue',
+                  if (queue == null && o.customerName != null) 'a.n. ${o.customerName}',
+                  if (widget.tableName != null && widget.tableName!.isNotEmpty)
+                    widget.tableName!,
+                  if (widget.showReceipt) 'Total ${rupiah.format(o.total)}',
+                  if (!widget.showReceipt)
+                    '${(widget.kitchenItems ?? o.items).fold<int>(0, (n, i) => n + i.qty)} item '
+                        '${widget.kitchenAddition ? 'tambahan' : 'ke dapur'}',
+                ].join(' • '),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(color: AppColors.muted, fontSize: 13),
               ),
+              if (widget.change > 0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Text('Kembalian', style: GoogleFonts.plusJakartaSans(fontSize: 12.5)),
+                      Text(
+                        rupiah.format(widget.change),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              if (widget.showReceipt) ...[
+                _button(_Job.receipt, Icons.receipt_long_outlined, 'Cetak struk order'),
+                const SizedBox(height: 10),
+              ],
+              _button(
+                _Job.kitchen,
+                Icons.soup_kitchen_outlined,
+                widget.kitchenAddition ? 'Cetak struk dapur (tambahan)' : 'Cetak struk dapur',
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.danger),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
       actions: [

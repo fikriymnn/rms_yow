@@ -228,6 +228,9 @@ class _PhoneShell extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           border: Border(top: BorderSide(color: AppColors.border)),
+          boxShadow: const [
+            BoxShadow(color: Color(0x12171717), blurRadius: 16, offset: Offset(0, -4)),
+          ],
         ),
         child: SafeArea(
           top: false,
@@ -266,45 +269,315 @@ class _PhoneShell extends StatelessWidget {
   void _openMore(BuildContext context, List<int> more) {
     showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
-                child: Text('Menu lainnya', style: _jk(17, FontWeight.w800, AppColors.ink, ls: -0.2)),
+      // owner punya banyak menu: tanpa ini lembar dibatasi ~9/16 layar dan menu terbawah
+      // (mis. Akun) terpotong. Sekarang tinggi mengikuti isi dan bisa digulir.
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => _MoreSheet(
+        items: items,
+        more: more,
+        selectedIndex: selectedIndex,
+        onSelect: (i) {
+          Navigator.pop(ctx);
+          onSelect(i);
+        },
+      ),
+    );
+  }
+}
+
+/// Isi "Lainnya" di HP: kartu profil (nama, role, outlet, status sinkron, tombol Akun)
+/// lalu menu dikelompokkan per bagian. Bisa digulir, jadi tidak ada menu yang terpotong.
+class _MoreSheet extends ConsumerWidget {
+  const _MoreSheet({
+    required this.items,
+    required this.more,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+  final List<ShellItem> items;
+  final List<int> more;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(appUserProvider).value;
+    final outlet = ref.watch(activeOutletProvider)?.name;
+    final sync = ref.watch(syncControllerProvider);
+    final mq = MediaQuery.of(context);
+    int? account;
+    final groups = <String, List<int>>{};
+    for (final i in more) {
+      if (items[i].group == 'Akun') {
+        account = i;
+        continue;
+      }
+      groups.putIfAbsent(items[i].group, () => <int>[]).add(i);
+    }
+    final acc = account;
+    var k = 0; // urutan animasi muncul
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: mq.size.height * 0.9),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(16, 0, 16, 20 + mq.padding.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (user != null)
+              _ProfileCard(
+                name: user.name,
+                role: user.roleLabel,
+                outlet: outlet,
+                sync: sync,
+                accountSelected: acc != null && acc == selectedIndex,
+                onOpenAccount: acc == null ? null : () => onSelect(acc),
+                onSync: () => ref.read(syncControllerProvider.notifier).syncNow(),
               ),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 3,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1.1,
+            for (final g in groups.entries) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 18, 4, 10),
+                child: Text(
+                  g.key.toUpperCase(),
+                  style: _jk(11.5, FontWeight.w800, AppColors.muted, ls: 1.1),
+                ),
+              ),
+              _TileGrid(
                 children: [
-                  for (var k = 0; k < more.length; k++)
+                  for (final i in g.value)
                     Entrance(
-                      index: k,
+                      index: k++,
                       child: _MoreTile(
-                        item: items[more[k]],
-                        selected: more[k] == selectedIndex,
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          onSelect(more[k]);
-                        },
+                        item: items[i],
+                        selected: i == selectedIndex,
+                        onTap: () => onSelect(i),
                       ),
                     ),
                 ],
               ),
             ],
-          ),
+            // data pengguna belum termuat: Akun tetap bisa dibuka sebagai tile biasa
+            if (user == null && acc != null) ...[
+              const SizedBox(height: 18),
+              _TileGrid(
+                children: [
+                  _MoreTile(
+                    item: items[acc],
+                    selected: acc == selectedIndex,
+                    onTap: () => onSelect(acc),
+                  ),
+                ],
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
+}
+
+/// Kartu profil di atas menu Lainnya.
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
+    required this.name,
+    required this.role,
+    required this.sync,
+    required this.accountSelected,
+    required this.onSync,
+    this.outlet,
+    this.onOpenAccount,
+  });
+  final String name;
+  final String role;
+  final String? outlet;
+  final SyncState sync;
+  final bool accountSelected;
+  final VoidCallback onSync;
+  final VoidCallback? onOpenAccount;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (sync) {
+      SyncState.idle => ('Tersinkron', AppColors.sageOnInk),
+      SyncState.syncing => ('Menyinkronkan…', const Color(0xFFE8C77A)),
+      SyncState.offline => ('Offline', const Color(0xFFE59AA6)),
+      SyncState.error => ('Gagal sinkron', const Color(0xFFE59AA6)),
+    };
+    final open = onOpenAccount;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.ink,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(_initials(name), style: _jk(16, FontWeight.w800, Colors.white)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _jk(15.5, FontWeight.w800, Colors.white),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      outlet == null || outlet!.isEmpty ? role : '$role • ${outlet!}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: _jk(12.5, FontWeight.w500, AppColors.onInkMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _InkPill(
+                  dot: color,
+                  label: label,
+                  trailing: Icons.refresh_rounded,
+                  tooltip: 'Ketuk untuk sinkron sekarang',
+                  onTap: onSync,
+                ),
+              ),
+              if (open != null) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _InkPill(
+                    icon: Icons.person_outline_rounded,
+                    label: 'Akun saya',
+                    trailing: Icons.chevron_right_rounded,
+                    highlighted: accountSelected,
+                    onTap: open,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tombol pil di atas latar gelap kartu profil.
+class _InkPill extends StatelessWidget {
+  const _InkPill({
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.dot,
+    this.trailing,
+    this.tooltip,
+    this.highlighted = false,
+  });
+  final String label;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final Color? dot;
+  final IconData? trailing;
+  final String? tooltip;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final pill = Material(
+      color: highlighted ? AppColors.primary : AppColors.inkSoft,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 46),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                if (dot != null)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                  )
+                else if (icon != null)
+                  Icon(icon, size: 18, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _jk(13, FontWeight.w700, Colors.white),
+                  ),
+                ),
+                if (trailing != null) Icon(trailing, size: 18, color: AppColors.onInkMuted),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return tooltip == null ? pill : Tooltip(message: tooltip!, child: pill);
+  }
+}
+
+/// Kisi tile menu: lebar sama, tinggi tiap baris mengikuti tile tertinggi (label 2 baris aman).
+class _TileGrid extends StatelessWidget {
+  const _TileGrid({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) {
+      const gap = 10.0;
+      final cols = c.maxWidth >= 520
+          ? 5
+          : c.maxWidth >= 330
+          ? 4
+          : 3;
+      final rows = <Widget>[];
+      for (var r = 0; r < children.length; r += cols) {
+        if (rows.isNotEmpty) rows.add(const SizedBox(height: gap));
+        rows.add(
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var k = 0; k < cols; k++) ...[
+                  if (k > 0) const SizedBox(width: gap),
+                  Expanded(
+                    child: r + k < children.length ? children[r + k] : const SizedBox.shrink(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows);
+    },
+  );
 }
 
 class _BarItem extends StatelessWidget {
@@ -349,7 +622,7 @@ class _BarItem extends StatelessWidget {
             const SizedBox(height: 4),
             AnimatedDefaultTextStyle(
               duration: Motion.fast,
-              style: _jk(11, selected ? FontWeight.w800 : FontWeight.w600, fg),
+              style: _jk(11.5, selected ? FontWeight.w800 : FontWeight.w600, fg),
               child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
           ],
@@ -368,30 +641,48 @@ class _MoreTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = selected ? Colors.white : AppColors.ink;
-    return Pressable(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.bg,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _badged(
-              Icon(item.icon, size: 24, color: fg),
-              item.badge,
-              ring: selected ? AppColors.primary : AppColors.bg,
-            ),
-            Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: _jk(13, FontWeight.w700, fg),
-            ),
-          ],
+    final iconBg = selected ? const Color(0x29FFFFFF) : AppColors.primarySoft;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.label,
+      excludeSemantics: true,
+      child: Pressable(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(6, 12, 6, 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : AppColors.bg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: _badged(
+                  Icon(item.icon, size: 22, color: selected ? Colors.white : AppColors.primary),
+                  item.badge,
+                  ring: selected ? AppColors.primary : AppColors.bg,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                item.label,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: _jk(12, FontWeight.w700, fg).copyWith(height: 1.2),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -463,7 +754,7 @@ class _Sidebar extends ConsumerWidget {
     }
 
     return SizedBox(
-      width: compact ? 96 : 256,
+      width: compact ? 100 : 256,
       child: SafeArea(
         right: false,
         child: Column(
@@ -667,7 +958,7 @@ class _NavTile extends StatelessWidget {
     final ring = selected ? AppColors.primary : AppColors.ink;
     final Widget inner = compact
         ? Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -675,9 +966,10 @@ class _NavTile extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   item.label,
-                  maxLines: 1,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
-                  style: _jk(11, selected ? FontWeight.w800 : FontWeight.w600, fg),
+                  style: _jk(11, selected ? FontWeight.w800 : FontWeight.w600, fg).copyWith(height: 1.15),
                 ),
               ],
             ),

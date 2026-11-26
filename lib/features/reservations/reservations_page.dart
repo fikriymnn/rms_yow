@@ -140,57 +140,62 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
     final seated = r.status == ReservationStatus.seated;
     final a = await showModalBottomSheet<String>(
       context: context,
+      // daftar aksi bisa lebih tinggi dari 9/16 layar HP: boleh tinggi + digulir
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                r.name,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(
+                  r.name,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+                subtitle: Text('${r.partySize} orang • ${r.phone}'),
+                trailing: StatusPill(r.status.label, tone: _tone(r.status)),
               ),
-              subtitle: Text('${r.partySize} orang • ${r.phone}'),
-              trailing: StatusPill(r.status.label, tone: _tone(r.status)),
-            ),
-            const Divider(height: 1),
-            if (booked) ...[
-              ListTile(
-                leading: const Icon(Icons.login),
-                title: const Text('Tamu datang (duduk)'),
-                onTap: () => Navigator.pop(ctx, 'seat'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit'),
-                onTap: () => Navigator.pop(ctx, 'edit'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.person_off_outlined),
-                title: const Text('Tidak datang'),
-                onTap: () => Navigator.pop(ctx, 'noshow'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.cancel_outlined),
-                title: const Text('Batalkan'),
-                onTap: () => Navigator.pop(ctx, 'cancel'),
-              ),
+              const Divider(height: 1),
+              if (booked) ...[
+                ListTile(
+                  leading: const Icon(Icons.login),
+                  title: const Text('Tamu datang (duduk)'),
+                  onTap: () => Navigator.pop(ctx, 'seat'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Edit'),
+                  onTap: () => Navigator.pop(ctx, 'edit'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.person_off_outlined),
+                  title: const Text('Tidak datang'),
+                  onTap: () => Navigator.pop(ctx, 'noshow'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.cancel_outlined),
+                  title: const Text('Batalkan'),
+                  onTap: () => Navigator.pop(ctx, 'cancel'),
+                ),
+              ],
+              if (seated)
+                ListTile(
+                  leading: const Icon(Icons.receipt_long_outlined),
+                  title: const Text('Buka pesanan meja'),
+                  onTap: () => Navigator.pop(ctx, 'open'),
+                ),
+              if (!booked)
+                ListTile(
+                  leading: const Icon(Icons.undo),
+                  title: const Text('Kembalikan ke "Dipesan"'),
+                  onTap: () => Navigator.pop(ctx, 'undo'),
+                ),
             ],
-            if (seated)
-              ListTile(
-                leading: const Icon(Icons.receipt_long_outlined),
-                title: const Text('Buka pesanan meja'),
-                onTap: () => Navigator.pop(ctx, 'open'),
-              ),
-            if (!booked)
-              ListTile(
-                leading: const Icon(Icons.undo),
-                title: const Text('Kembalikan ke "Dipesan"'),
-                onTap: () => Navigator.pop(ctx, 'undo'),
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -365,7 +370,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showReservationDialog(context, ref, day: _day),
         icon: const Icon(Icons.add),
-        label: const Text('Reservasi'),
+        label: const Text('Reservasi baru'),
       ),
       body: LayoutBuilder(
         builder: (context, c) {

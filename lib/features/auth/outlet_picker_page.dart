@@ -152,19 +152,18 @@ class _OutletPickerPageState extends ConsumerState<OutletPickerPage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Pilih outlet'),
-        actions: [
-          if (!widget.canPop)
-            IconButton(
-              tooltip: 'Keluar',
-              icon: const Icon(Icons.logout),
-              onPressed: () => ref.read(sessionProvider.notifier).logout(),
-            ),
+        pageActions: [
+          if (!widget.canPop) PageAction(
+            icon: Icons.logout,
+            label: 'Keluar',
+            onPressed: () => ref.read(sessionProvider.notifier).logout(),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _create,
         icon: const Icon(Icons.add_business_outlined),
-        label: const Text('Outlet'),
+        label: const Text('Tambah outlet'),
       ),
       body: FutureBuilder<List<OutletInfo>>(
         future: _future,

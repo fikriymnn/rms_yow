@@ -229,11 +229,13 @@ class _ExportTabState extends ConsumerState<ExportTab> {
                     color: AppColors.primary,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    _period,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      color: AppColors.muted,
+                  Flexible(
+                    child: Text(
+                      _period,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: AppColors.muted,
+                      ),
                     ),
                   ),
                 ],

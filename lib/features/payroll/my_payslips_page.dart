@@ -85,10 +85,11 @@ class _SlipPage extends StatelessWidget {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Slip gaji'),
-        actions: [
-          IconButton(
-            tooltip: 'Bagikan PDF',
-            icon: const Icon(Icons.ios_share),
+        pageActions: [
+          PageAction(
+            icon: Icons.ios_share,
+            label: 'Bagikan PDF',
+            shortLabel: 'Bagikan',
             onPressed: () => sharePayslipPdf(slip, period: period, outlet: slip.outletName),
           ),
         ],

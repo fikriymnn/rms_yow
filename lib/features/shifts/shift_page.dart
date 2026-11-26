@@ -119,83 +119,86 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
           final diff = v == null ? 0 : v - expected;
           return AlertDialog(
             title: const Text('Tutup shift'),
-            content: SizedBox(
-              width: 360,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Kas seharusnya',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12.5,
-                            color: AppColors.muted,
-                          ),
-                        ),
-                        Text(
-                          rupiah.format(expected),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: c,
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Uang fisik di laci',
-                      prefixText: 'Rp ',
-                    ),
-                    onChanged: (_) => setS(() {}),
-                  ),
-                  if (v != null) ...[
-                    const SizedBox(height: 12),
+            content: SingleChildScrollView(
+              // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+              child: SizedBox(
+                width: 360,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        color: diff == 0
-                            ? AppColors.sageSoft
-                            : diff < 0
-                            ? AppColors.roseSoft
-                            : const Color(0xFFF7EBD6),
+                        color: AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Row(
+                      child: Column(
                         children: [
                           Text(
-                            diff == 0 ? 'Pas' : (diff < 0 ? 'Kurang' : 'Lebih'),
+                            'Kas seharusnya',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 12.5,
+                              color: AppColors.muted,
                             ),
                           ),
-                          const Spacer(),
                           Text(
-                            rupiah.format(diff.abs()),
+                            rupiah.format(expected),
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
+                              fontSize: 26,
                               fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: c,
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Uang fisik di laci',
+                        prefixText: 'Rp ',
+                      ),
+                      onChanged: (_) => setS(() {}),
+                    ),
+                    if (v != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: diff == 0
+                              ? AppColors.sageSoft
+                              : diff < 0
+                              ? AppColors.roseSoft
+                              : const Color(0xFFF7EBD6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              diff == 0 ? 'Pas' : (diff < 0 ? 'Kurang' : 'Lebih'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              rupiah.format(diff.abs()),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
             actions: [
@@ -267,10 +270,11 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Kas & Shift'),
-        actions: [
-          IconButton(
-            tooltip: 'Printer & struk',
-            icon: const Icon(Icons.print_outlined),
+        pageActions: [
+          PageAction(
+            icon: Icons.print_outlined,
+            label: 'Printer & struk',
+            shortLabel: 'Printer',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PrinterSettingsPage()),
@@ -455,7 +459,11 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
           ),
         ),
         const SizedBox(height: 14),
-        FilledButton(onPressed: _open, child: const Text('Buka shift')),
+        FilledButton.icon(
+          onPressed: _open,
+          icon: const Icon(Icons.lock_open_rounded),
+          label: const Text('Buka shift'),
+        ),
       ],
     ),
   );
@@ -546,10 +554,11 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
             ),
             const SizedBox(height: 8),
           ],
-          FilledButton.tonal(
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+          FilledButton.tonalIcon(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
             onPressed: canClose ? () => _close(s, expected, t, out) : null,
-            child: const Text('Tutup shift'),
+            icon: const Icon(Icons.lock_outline_rounded),
+            label: const Text('Tutup shift & hitung uang'),
           ),
           if (!canClose)
             Padding(

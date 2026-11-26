@@ -60,7 +60,12 @@ class _ApprovalsPageState extends ConsumerState<ApprovalsPage> {
           child: Scaffold(
             appBar: RmsAppBar(
               title: const Text('Persetujuan'),
-              bottom: TabBar(tabs: [for (final t in tabs) Tab(text: t.$1)]),
+              // label panjang ("Menunggu saya", "Semua menunggu"): tab bisa digeser
+              bottom: TabBar(
+                isScrollable: tabs.length > 2,
+                tabAlignment: tabs.length > 2 ? TabAlignment.start : TabAlignment.fill,
+                tabs: [for (final t in tabs) Tab(text: t.$1)],
+              ),
             ),
             body: TabBarView(
               children: [

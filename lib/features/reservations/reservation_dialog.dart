@@ -79,6 +79,7 @@ Future<void> showReservationDialog(
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<int>(
+                        isExpanded: true, // pilihan bernama panjang tidak overflow
                         initialValue: duration,
                         decoration: const InputDecoration(labelText: 'Durasi'),
                         items: [

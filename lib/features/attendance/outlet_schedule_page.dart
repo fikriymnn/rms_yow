@@ -343,6 +343,7 @@ class _OutletSchedulePageState extends ConsumerState<OutletSchedulePage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       DropdownButtonFormField<String>(
+                        isExpanded: true, // pilihan bernama panjang tidak overflow
                         initialValue: _tz,
                         decoration: const InputDecoration(
                           labelText: 'Zona waktu outlet',

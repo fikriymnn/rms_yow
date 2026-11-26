@@ -411,7 +411,7 @@ class _OutletsAdminPageState extends ConsumerState<OutletsAdminPage> {
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => _edit(null),
       icon: const Icon(Icons.add_business_outlined),
-      label: const Text('Outlet'),
+      label: const Text('Tambah outlet'),
     ),
     body: FutureBuilder<List<_AdminOutlet>>(
       future: _future,

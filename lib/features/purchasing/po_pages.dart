@@ -92,7 +92,7 @@ class _PoTabState extends ConsumerState<PoTab> {
               MaterialPageRoute(builder: (_) => const PoEditorPage()),
             ),
             icon: const Icon(Icons.add),
-            label: const Text('PO baru'),
+            label: const Text('Buat PO'),
           ),
           body: Column(
             children: [

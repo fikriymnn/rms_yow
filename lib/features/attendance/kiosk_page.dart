@@ -284,28 +284,31 @@ class _KioskPageState extends ConsumerState<KioskPage>
           color: c.fg,
         ),
         title: Text(name, textAlign: TextAlign.center),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              rec == null
-                  ? 'Absen $label disimpan. Akan dikirim otomatis saat online.'
-                  : 'Absen $label tercatat',
-              textAlign: TextAlign.center,
-            ),
-            if (note != null) ...[
-              const SizedBox(height: 8),
+        content: SingleChildScrollView(
+          // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Text(
-                note,
+                rec == null
+                    ? 'Absen $label disimpan. Akan dikirim otomatis saat online.'
+                    : 'Absen $label tercatat',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: c.fg,
-                ),
               ),
+              if (note != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  note,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: c.fg,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
         actions: [
           FilledButton(
@@ -476,18 +479,20 @@ class _KioskPageState extends ConsumerState<KioskPage>
               ),
           ],
         ),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (v) {
-              if (v == 'reload') ref.invalidate(kioskStaffProvider);
-              if (v == 'logout') _logout(pending);
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'reload', child: Text('Muat ulang daftar')),
-              if (!widget.embedded)
-                const PopupMenuItem(value: 'logout', child: Text('Keluar akun kiosk')),
-            ],
+        pageActions: [
+          PageAction(
+            icon: Icons.refresh_rounded,
+            label: 'Muat ulang daftar',
+            shortLabel: 'Muat ulang',
+            onPressed: () => ref.invalidate(kioskStaffProvider),
           ),
+          if (!widget.embedded)
+            PageAction(
+              icon: Icons.logout_rounded,
+              label: 'Keluar akun kiosk',
+              shortLabel: 'Keluar',
+              onPressed: () => _logout(pending),
+            ),
         ],
       ),
       body: Padding(
@@ -593,9 +598,9 @@ class _KioskPageState extends ConsumerState<KioskPage>
                     child: GridView.builder(
                       padding: const EdgeInsets.only(bottom: 16),
                       gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                          SliverGridDelegateWithMaxCrossAxisExtent(
                             maxCrossAxisExtent: 420,
-                            mainAxisExtent: 72,
+                            mainAxisExtent: 72 * textScaleOf(context),
                             crossAxisSpacing: 10,
                             mainAxisSpacing: 10,
                           ),
@@ -657,30 +662,33 @@ class _PinDialogState extends State<_PinDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('Halo, ${widget.name}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Masukkan PIN absensi Anda'),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _c,
-            autofocus: true,
-            obscureText: true,
-            enabled: !_busy,
-            maxLength: 6,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 8,
+      content: SingleChildScrollView(
+        // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Masukkan PIN absensi Anda'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _c,
+              autofocus: true,
+              obscureText: true,
+              enabled: !_busy,
+              maxLength: 6,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 8,
+              ),
+              decoration: InputDecoration(errorText: _error, counterText: ''),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => _submit(),
             ),
-            decoration: InputDecoration(errorText: _error, counterText: ''),
-            onChanged: (_) => setState(() {}),
-            onSubmitted: (_) => _submit(),
-          ),
-        ],
+          ],
+        ),
       ),
       actions: [
         TextButton(

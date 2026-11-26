@@ -382,33 +382,31 @@ class RecipeEditorPage extends ConsumerWidget {
     return Scaffold(
       appBar: RmsAppBar(
         title: Text('Resep ${menu.name}'),
-        actions: [
-          if (canToggle)
-            PopupMenuButton<bool>(
-              tooltip: 'Pengaturan resep',
-              onSelected: (noRecipe) => ref
-                  .read(menuRepositoryProvider)
-                  .save(cur.copyWith(noRecipe: noRecipe)),
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: !cur.noRecipe,
-                  child: Text(cur.noRecipe ? 'Pakai resep' : 'Tandai tanpa resep'),
-                ),
-              ],
-            ),
-          IconButton(
-            tooltip: 'Riwayat resep',
-            icon: const Icon(Icons.history),
+        pageActions: [
+          PageAction(
+            icon: Icons.history,
+            label: 'Riwayat resep',
+            shortLabel: 'Riwayat',
             onPressed: () =>
                 showRecipeHistory(context, ref, menu.id, menu.name),
           ),
+          // dulu menu titik-tiga tersembunyi; kini tombol berlabel yang jelas
+          if (canToggle)
+            PageAction(
+              icon: cur.noRecipe ? Icons.receipt_long_outlined : Icons.do_not_disturb_on_outlined,
+              label: cur.noRecipe ? 'Pakai resep' : 'Tandai tanpa resep',
+              shortLabel: cur.noRecipe ? 'Pakai resep' : 'Tanpa resep',
+              onPressed: () => ref
+                  .read(menuRepositoryProvider)
+                  .save(cur.copyWith(noRecipe: !cur.noRecipe)),
+            ),
         ],
       ),
       floatingActionButton: isOwner
           ? FloatingActionButton.extended(
               onPressed: () => _add(context, ref, recipe, ings.values.toList()),
               icon: const Icon(Icons.add),
-              label: const Text('Bahan'),
+              label: const Text('Tambah bahan'),
             )
           : null,
       body: LayoutBuilder(

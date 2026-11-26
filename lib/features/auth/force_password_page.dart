@@ -87,11 +87,13 @@ class _ForcePasswordPageState extends ConsumerState<ForcePasswordPage> {
           color: ok ? AppColors.success : AppColors.muted,
         ),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 12.5,
-            color: ok ? AppColors.ink : AppColors.muted,
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.5,
+              color: ok ? AppColors.ink : AppColors.muted,
+            ),
           ),
         ),
       ],

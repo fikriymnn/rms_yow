@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/motion.dart';
+import '../../core/ui/ui_kit.dart';
 import '../../shell/app_bar.dart';
 import '../attendance/attendance_admin_page.dart';
 import '../auth/auth_providers.dart';
@@ -95,10 +96,10 @@ class MasterDataPage extends ConsumerWidget {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Data Master'),
-        actions: [
-          IconButton(
-            tooltip: 'Panduan',
-            icon: const Icon(Icons.menu_book_outlined),
+        pageActions: [
+          PageAction(
+            icon: Icons.menu_book_outlined,
+            label: 'Panduan',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute<void>(builder: (_) => const HelpPage()),
@@ -132,7 +133,7 @@ class MasterDataPage extends ConsumerWidget {
                     crossAxisCount: cols,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    mainAxisExtent: 84,
+                    mainAxisExtent: 84 * textScaleOf(context),
                   ),
                   children: [
                     for (final e in g.$2) Entrance(index: k++, child: _Tile(e)),

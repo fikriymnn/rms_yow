@@ -729,22 +729,39 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Laporan'),
-        actions: [
-          PopupMenuButton<String>(
-            tooltip: 'Unduh laporan hari ini',
-            onSelected: _download,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'xlsx', child: Text('Excel (.xlsx) — semua data hari ini')),
-              PopupMenuItem(value: 'pdf', child: Text('PDF ringkasan')),
-              PopupMenuItem(value: 'trx', child: Text('PDF daftar transaksi')),
-            ],
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Chip(
-                avatar: Icon(Icons.download_rounded, size: 18),
-                label: Text('Unduh'),
-              ),
-            ),
+        pageActions: [
+          PageAction(
+            icon: Icons.download_rounded,
+            label: 'Unduh laporan',
+            shortLabel: 'Unduh',
+            onPressed: () async {
+              final kind = await showChoiceSheet<String>(
+                context: context,
+                title: 'Unduh laporan',
+                subtitle: _dateFmt.format(_day),
+                choices: const [
+                  SheetChoice(
+                    value: 'xlsx',
+                    icon: Icons.table_chart_outlined,
+                    label: 'Excel (.xlsx)',
+                    subtitle: 'Semua data tanggal ini, bisa diolah lagi',
+                  ),
+                  SheetChoice(
+                    value: 'pdf',
+                    icon: Icons.picture_as_pdf_outlined,
+                    label: 'PDF ringkasan',
+                    subtitle: 'Ringkasan penjualan untuk dicetak/dibagikan',
+                  ),
+                  SheetChoice(
+                    value: 'trx',
+                    icon: Icons.receipt_long_outlined,
+                    label: 'PDF daftar transaksi',
+                    subtitle: 'Setiap transaksi beserta sumber pesanannya',
+                  ),
+                ],
+              );
+              if (kind != null) _download(kind);
+            },
           ),
         ],
       ),

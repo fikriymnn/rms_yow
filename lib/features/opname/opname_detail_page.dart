@@ -954,10 +954,14 @@ class _OpnameDetailPageState extends ConsumerState<OpnameDetailPage> {
           color: AppColors.surface,
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
-        child: Row(
+        // OverflowBar: berdampingan bila muat, bertumpuk bila HP sempit / huruf besar
+        child: OverflowBar(
+          spacing: 10,
+          overflowSpacing: 8,
+          alignment: left == null ? MainAxisAlignment.end : MainAxisAlignment.spaceBetween,
+          overflowAlignment: OverflowBarAlignment.end,
           children: [
             ?left,
-            const Spacer(),
             ?right,
           ],
         ),

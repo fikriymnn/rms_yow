@@ -414,7 +414,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showExpenseDialog(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Biaya'),
+        label: const Text('Catat biaya'),
       ),
       body: LayoutBuilder(
         builder: (context, c) {

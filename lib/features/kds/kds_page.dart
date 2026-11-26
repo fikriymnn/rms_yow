@@ -104,10 +104,11 @@ class _KdsPageState extends ConsumerState<KdsPage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Dapur'),
-        actions: [
-          IconButton(
-            tooltip: 'Riwayat & KPI dapur',
-            icon: const Icon(Icons.insights_outlined),
+        pageActions: [
+          PageAction(
+            icon: Icons.insights_outlined,
+            label: 'Riwayat & KPI dapur',
+            shortLabel: 'KPI',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute<void>(builder: (_) => const KitchenKpiPage()),
@@ -166,7 +167,8 @@ class _KdsPageState extends ConsumerState<KdsPage> {
                           .floor()
                           .clamp(1, 6)
                           .toInt();
-                      final w = (avail - gap * (cols - 1)) / cols;
+                      // dibulatkan ke bawah: pecahan piksel bisa membuat tiket terakhir turun baris
+                      final w = ((avail - gap * (cols - 1)) / cols).floorToDouble();
                       return SingleChildScrollView(
                         padding: const EdgeInsets.all(12),
                         child: Wrap(

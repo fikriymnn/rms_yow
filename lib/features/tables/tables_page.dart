@@ -173,18 +173,26 @@ class _TablesPageState extends ConsumerState<TablesPage> {
         ? EmptyState(
             icon: Icons.table_restaurant_outlined,
             title: 'Belum ada meja',
-            message: canManage ? 'Tambahkan dengan tombol + Meja' : null,
+            message: canManage
+                ? 'Tambahkan meja agar pesanan makan di tempat bisa dicatat per meja.'
+                : 'Minta owner/manager menambahkan meja. Pesanan bawa pulang tetap bisa lewat tombol Takeaway.',
+            actionLabel: canManage ? 'Tambah meja' : null,
+            onAction: canManage ? () => _edit(context, repo, null, false) : null,
           )
         : visible.isEmpty
-        ? const EmptyState(
+        ? EmptyState(
             icon: Icons.filter_alt_off_outlined,
             title: 'Tidak ada meja pada filter ini',
+            actionLabel: 'Tampilkan semua meja',
+            actionIcon: Icons.select_all_rounded,
+            onAction: () => setState(() => _filter = _Filter.all),
           )
         : GridView.builder(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 190,
-              mainAxisExtent: 128,
+              // tinggi kartu ikut skala huruf HP agar isi tidak terpotong
+              mainAxisExtent: 128 * textScaleOf(context),
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
             ),
@@ -220,26 +228,21 @@ class _TablesPageState extends ConsumerState<TablesPage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Meja'),
-        actions: [
+        pageActions: [
           if (canReserve)
-          IconButton(
-            tooltip: 'Reservasi',
-            icon: const Icon(Icons.event_available_outlined),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ReservationsPage()),
+            PageAction(
+              icon: Icons.event_available_outlined,
+              label: 'Reservasi',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReservationsPage()),
+              ),
             ),
-          ),
-          const SizedBox(width: 4),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.ink,
-              minimumSize: const Size(0, 44),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-            ),
+          PageAction(
+            icon: Icons.shopping_bag_outlined,
+            label: 'Takeaway',
+            primary: true,
             onPressed: () => openPos(),
-            icon: const Icon(Icons.shopping_bag_outlined, size: 19),
-            label: const Text('Takeaway'),
           ),
         ],
       ),
@@ -247,7 +250,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
           ? FloatingActionButton.extended(
               onPressed: () => _edit(context, repo, null, false),
               icon: const Icon(Icons.add),
-              label: const Text('Meja'),
+              label: const Text('Tambah meja'),
             )
           : null,
       body: LayoutBuilder(
@@ -256,28 +259,38 @@ class _TablesPageState extends ConsumerState<TablesPage> {
           final main = Column(
             children: [
               filters,
-              if (!wide && takeaways.isNotEmpty)
+              // gestur tersembunyi dijelaskan, agar pengelola baru tahu cara mengubah meja
+              if (canManage && tables.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        for (final o in takeaways)
-                          ActionChip(
-                            avatar: const Icon(
-                              Icons.shopping_bag_outlined,
-                              size: 18,
-                            ),
-                            label: Text(
-                              '${o.customerName ?? o.number} • ${rupiah.format(o.total)}',
-                            ),
-                            onPressed: () => openPos(order: o),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Text(
+                    'Ketuk meja untuk memesan • tekan lama untuk mengubah/menghapus',
+                    maxLines: 2,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
+                  ),
+                ),
+              // takeaway aktif: satu baris yang bisa digeser (dulu Wrap; banyak takeaway
+              // membuat daftar meja terdorong habis / overflow di HP)
+              if (!wide && takeaways.isNotEmpty)
+                SizedBox(
+                  height: 60,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
+                    itemCount: takeaways.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (_, k) {
+                      final o = takeaways[k];
+                      return Center(
+                        child: ActionChip(
+                          avatar: const Icon(Icons.shopping_bag_outlined, size: 18),
+                          label: Text(
+                            '${o.customerName ?? o.number} • ${rupiah.format(o.total)}',
                           ),
-                      ],
-                    ),
+                          onPressed: () => openPos(order: o),
+                        ),
+                      );
+                    },
                   ),
                 ),
               Expanded(child: grid),
@@ -415,20 +428,23 @@ class _TablesPageState extends ConsumerState<TablesPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(existing == null ? 'Meja baru' : 'Edit meja'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'Nama (mis. T1)'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: cap,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Kapasitas'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Nama (mis. T1)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: cap,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Kapasitas'),
+              ),
+            ],
+          ),
         ),
         actions: [
           if (existing != null && !occupied)
@@ -466,34 +482,39 @@ class _TablesPageState extends ConsumerState<TablesPage> {
   ) async {
     final a = await showModalBottomSheet<String>(
       context: context,
+      // daftar aksi bisa lebih tinggi dari 9/16 layar HP: boleh tinggi + digulir
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                t.name,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(
+                  t.name,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                subtitle: Text(
+                  'Sudah dibayar (${h.orderNumber}) • pelanggan masih di meja',
                 ),
               ),
-              subtitle: Text(
-                'Sudah dibayar (${h.orderNumber}) • pelanggan masih di meja',
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.add_shopping_cart),
+                title: const Text('Tambah pesanan'),
+                onTap: () => Navigator.pop(ctx, 'add'),
               ),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.add_shopping_cart),
-              title: const Text('Tambah pesanan'),
-              onTap: () => Navigator.pop(ctx, 'add'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.event_seat_outlined),
-              title: const Text('Kosongkan meja'),
-              onTap: () => Navigator.pop(ctx, 'free'),
-            ),
-          ],
+              ListTile(
+                leading: const Icon(Icons.event_seat_outlined),
+                title: const Text('Kosongkan meja'),
+                onTap: () => Navigator.pop(ctx, 'free'),
+              ),
+            ],
+          ),
         ),
       ),
     );

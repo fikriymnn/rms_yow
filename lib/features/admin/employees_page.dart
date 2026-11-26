@@ -246,39 +246,44 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
     final canAccount = me?.can('users.create') ?? false;
     final a = await showModalBottomSheet<String>(
       context: context,
+      // daftar aksi bisa lebih tinggi dari 9/16 layar HP: boleh tinggi + digulir
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                e.name,
-                style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text(
-                e.hasAccount ? '@${e.username} • ${e.roleName}' : 'Belum punya akun login',
-              ),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit data & PIN'),
-              onTap: () => Navigator.pop(ctx, 'edit'),
-            ),
-            if (!e.hasAccount && e.active && canAccount)
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               ListTile(
-                leading: const Icon(Icons.key_outlined),
-                title: const Text('Buat akun login'),
-                subtitle: const Text('Agar karyawan bisa masuk aplikasi'),
-                onTap: () => Navigator.pop(ctx, 'account'),
+                title: Text(
+                  e.name,
+                  style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  e.hasAccount ? '@${e.username} • ${e.roleName}' : 'Belum punya akun login',
+                ),
               ),
-            if (!e.hasAccount)
+              const Divider(height: 1),
               ListTile(
-                leading: Icon(Icons.delete_outline, color: AppColors.danger),
-                title: const Text('Hapus'),
-                onTap: () => Navigator.pop(ctx, 'delete'),
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit data & PIN'),
+                onTap: () => Navigator.pop(ctx, 'edit'),
               ),
-          ],
+              if (!e.hasAccount && e.active && canAccount)
+                ListTile(
+                  leading: const Icon(Icons.key_outlined),
+                  title: const Text('Buat akun login'),
+                  subtitle: const Text('Agar karyawan bisa masuk aplikasi'),
+                  onTap: () => Navigator.pop(ctx, 'account'),
+                ),
+              if (!e.hasAccount)
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: AppColors.danger),
+                  title: const Text('Hapus'),
+                  onTap: () => Navigator.pop(ctx, 'delete'),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -418,7 +423,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage> {
                 ? FloatingActionButton.extended(
                     onPressed: d.outlets.isEmpty ? null : () => _create(d.outlets),
                     icon: const Icon(Icons.person_add_alt),
-                    label: const Text('Karyawan'),
+                    label: const Text('Tambah karyawan'),
                   )
                 : null,
             body: ListView(

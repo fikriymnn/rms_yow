@@ -154,7 +154,7 @@ class SuppliersTab extends ConsumerWidget {
           ? FloatingActionButton.extended(
               onPressed: () => _edit(context, ref, null),
               icon: const Icon(Icons.add),
-              label: const Text('Supplier'),
+              label: const Text('Tambah supplier'),
             )
           : canRequest
           ? FloatingActionButton.extended(

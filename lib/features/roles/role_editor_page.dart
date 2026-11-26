@@ -218,27 +218,22 @@ class _RoleEditorPageState extends ConsumerState<RoleEditorPage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: Text(_isNew ? 'Role baru' : role!.name),
-        actions: [
+        // dulu menu titik-tiga tersembunyi; kini tombol berlabel
+        pageActions: [
+          if (!_isNew && !_readOnly && fromTemplate)
+            PageAction(
+              icon: Icons.restart_alt_rounded,
+              label: 'Kembalikan ke template',
+              shortLabel: 'Reset',
+              onPressed: _reset,
+            ),
           if (!_isNew && !_readOnly)
-            PopupMenuButton<String>(
-              onSelected: (v) => v == 'reset' ? _reset() : _delete(),
-              itemBuilder: (_) => [
-                if (fromTemplate)
-                  const PopupMenuItem(
-                    value: 'reset',
-                    child: ListTile(
-                      leading: Icon(Icons.restart_alt_rounded),
-                      title: Text('Kembalikan ke template'),
-                    ),
-                  ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: ListTile(
-                    leading: Icon(Icons.delete_outline_rounded, color: AppColors.danger),
-                    title: Text('Hapus role', style: TextStyle(color: AppColors.danger)),
-                  ),
-                ),
-              ],
+            PageAction(
+              icon: Icons.delete_outline_rounded,
+              label: 'Hapus role',
+              shortLabel: 'Hapus',
+              destructive: true,
+              onPressed: _delete,
             ),
         ],
       ),

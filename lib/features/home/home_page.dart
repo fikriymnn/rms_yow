@@ -461,12 +461,14 @@ class _Greeting extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                shiftOpen ? 'Kas sudah dibuka' : 'Kas belum dibuka',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: shiftOpen ? AppColors.sageOnInk : AppColors.onInkMuted,
+              Flexible(
+                child: Text(
+                  shiftOpen ? 'Kas sudah dibuka' : 'Kas belum dibuka',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: shiftOpen ? AppColors.sageOnInk : AppColors.onInkMuted,
+                  ),
                 ),
               ),
             ],
@@ -491,51 +493,59 @@ class _QuickActions extends StatelessWidget {
   final List<_QuickAction> actions;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      for (var i = 0; i < actions.length; i++) ...[
-        if (i > 0) const SizedBox(width: 10),
-        Expanded(
-          child: Pressable(
-            onTap: actions[i].onTap,
-            child: Semantics(
-              button: true,
-              label: actions[i].label,
-              child: Container(
-                height: 82,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: i == 0 ? AppColors.primary : AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: i == 0 ? null : Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(
-                      actions[i].icon,
-                      size: 22,
-                      color: i == 0 ? Colors.white : AppColors.ink,
-                    ),
-                    Text(
-                      actions[i].label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: i == 0 ? Colors.white : AppColors.ink,
-                      ),
-                    ),
-                  ],
-                ),
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) {
+      // HP sempit + 4 aksi: kisi 2x2 agar label (mis. "Persetujuan") terbaca utuh
+      final cols = actions.length == 4 && c.maxWidth < 440 ? 2 : actions.length;
+      const gap = 10.0;
+      final w = ((c.maxWidth - gap * (cols - 1)) / cols).floorToDouble();
+      return Wrap(
+        spacing: gap,
+        runSpacing: gap,
+        children: [
+          for (var i = 0; i < actions.length; i++)
+            SizedBox(width: w, child: _tile(context, i)),
+        ],
+      );
+    },
+  );
+
+  Widget _tile(BuildContext context, int i) => Pressable(
+    onTap: actions[i].onTap,
+    child: Semantics(
+      button: true,
+      label: actions[i].label,
+      child: Container(
+        height: 82 * textScaleOf(context),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: i == 0 ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: i == 0 ? null : Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(
+              actions[i].icon,
+              size: 22,
+              color: i == 0 ? Colors.white : AppColors.ink,
+            ),
+            Text(
+              actions[i].label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: i == 0 ? Colors.white : AppColors.ink,
               ),
             ),
-          ),
+          ],
         ),
-      ],
-    ],
+      ),
+    ),
   );
 }
 

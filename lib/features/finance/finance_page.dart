@@ -27,7 +27,12 @@ class FinancePage extends ConsumerWidget {
       child: Scaffold(
         appBar: RmsAppBar(
           title: const Text('Keuangan'),
-          bottom: TabBar(tabs: tabs),
+          // 4 tab di HP sempit: bisa digeser agar label tidak terpotong
+          bottom: TabBar(
+            tabs: tabs,
+            isScrollable: tabs.length > 3,
+            tabAlignment: tabs.length > 3 ? TabAlignment.start : TabAlignment.fill,
+          ),
         ),
         body: TabBarView(
           children: [

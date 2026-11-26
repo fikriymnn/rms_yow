@@ -119,6 +119,9 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      // ukuran sentuh standar (48 dp) juga di Windows/Web: perangkat kasir sering layar sentuh
+      visualDensity: VisualDensity.standard,
+      materialTapTargetSize: MaterialTapTargetSize.padded,
       colorScheme: scheme,
       textTheme: textTheme,
       scaffoldBackgroundColor: AppColors.bg,
@@ -139,7 +142,9 @@ abstract final class AppTheme {
         backgroundColor: AppColors.bg,
         foregroundColor: AppColors.ink,
         elevation: 0,
-        scrolledUnderElevation: 0,
+        // garis bayangan tipis saat isi digulir di bawah AppBar (batas jelas, tidak berat)
+        scrolledUnderElevation: 1,
+        shadowColor: const Color(0x33171717),
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
         toolbarHeight: 64,
@@ -165,6 +170,9 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+        // HP kecil: dialog lebih lebar (bawaan 40 dp tiap sisi terlalu sempit untuk formulir)
+        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
         titleTextStyle: _t(19, FontWeight.w800, AppColors.ink).copyWith(letterSpacing: -0.3),
         contentTextStyle: _t(14.5, FontWeight.w400, const Color(0xFF3F3A35)),
         barrierColor: const Color(0x73171717),
@@ -221,14 +229,14 @@ abstract final class AppTheme {
         checkmarkColor: AppColors.primary,
         side: BorderSide(color: AppColors.border),
         shape: const StadiumBorder(),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        labelStyle: _t(13, FontWeight.w600, AppColors.ink),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        labelStyle: _t(13.5, FontWeight.w600, AppColors.ink),
         secondaryLabelStyle: _t(13, FontWeight.w800, AppColors.primary),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: outline(AppColors.border),
         enabledBorder: outline(AppColors.border),
         focusedBorder: outline(AppColors.ink, 1.6),
@@ -246,7 +254,7 @@ abstract final class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.sunken,
           disabledForegroundColor: AppColors.faint,
-          minimumSize: const Size(64, 50),
+          minimumSize: const Size(64, 52),
           padding: const EdgeInsets.symmetric(horizontal: 22),
           shape: buttonShape,
           textStyle: buttonText,
@@ -259,7 +267,7 @@ abstract final class AppTheme {
           backgroundColor: AppColors.ink,
           foregroundColor: Colors.white,
           elevation: 0,
-          minimumSize: const Size(64, 50),
+          minimumSize: const Size(64, 52),
           padding: const EdgeInsets.symmetric(horizontal: 22),
           shape: buttonShape,
           textStyle: buttonText,
@@ -270,7 +278,7 @@ abstract final class AppTheme {
           foregroundColor: AppColors.ink,
           backgroundColor: AppColors.surface,
           side: BorderSide(color: AppColors.border),
-          minimumSize: const Size(64, 50),
+          minimumSize: const Size(64, 52),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: buttonShape,
           textStyle: buttonText,
@@ -279,6 +287,8 @@ abstract final class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           shape: buttonShape,
           textStyle: buttonText,
         ),
@@ -340,6 +350,8 @@ abstract final class AppTheme {
       ),
       listTileTheme: ListTileThemeData(
         iconColor: AppColors.muted,
+        minTileHeight: 56,
+        minVerticalPadding: 10,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         titleTextStyle: _t(15, FontWeight.w600, AppColors.ink),
         subtitleTextStyle: _t(13, FontWeight.w400, AppColors.muted),

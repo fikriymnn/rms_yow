@@ -546,10 +546,11 @@ class _ClockPageState extends ConsumerState<ClockPage> {
     return Scaffold(
       appBar: RmsAppBar(
         title: const Text('Absensi'),
-        actions: [
-          IconButton(
-            tooltip: 'Segarkan lokasi',
-            icon: const Icon(Icons.my_location),
+        pageActions: [
+          PageAction(
+            icon: Icons.my_location,
+            label: 'Segarkan lokasi',
+            shortLabel: 'Lokasi',
             onPressed: _startLocation,
           ),
         ],

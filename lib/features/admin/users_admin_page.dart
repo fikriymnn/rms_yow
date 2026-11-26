@@ -187,6 +187,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
                       const SizedBox(height: 12),
                     ],
                     DropdownButtonFormField<String>(
+                      isExpanded: true, // pilihan bernama panjang tidak overflow
                       initialValue: role,
                       decoration: const InputDecoration(labelText: 'Role'),
                       items: [
@@ -244,23 +245,28 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
     if (hasKiosk) {
       final k = await showModalBottomSheet<String>(
         context: context,
+        // daftar aksi bisa lebih tinggi dari 9/16 layar HP: boleh tinggi + digulir
+        isScrollControlled: true,
+        useSafeArea: true,
         builder: (ctx) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.badge_outlined),
-                title: const Text('Akun untuk karyawan'),
-                subtitle: const Text('Pilih dari data karyawan'),
-                onTap: () => Navigator.pop(ctx, 'employee'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.tablet_android_outlined),
-                title: const Text('Akun perangkat Absen bersama'),
-                subtitle: const Text('HP/tablet bersama untuk absen dengan PIN'),
-                onTap: () => Navigator.pop(ctx, 'kiosk'),
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.badge_outlined),
+                  title: const Text('Akun untuk karyawan'),
+                  subtitle: const Text('Pilih dari data karyawan'),
+                  onTap: () => Navigator.pop(ctx, 'employee'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.tablet_android_outlined),
+                  title: const Text('Akun perangkat Absen bersama'),
+                  subtitle: const Text('HP/tablet bersama untuk absen dengan PIN'),
+                  onTap: () => Navigator.pop(ctx, 'kiosk'),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -330,40 +336,45 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
   Future<void> _actions(ManagedUser u, List<OutletInfo> outlets) async {
     final a = await showModalBottomSheet<String>(
       context: context,
+      // daftar aksi bisa lebih tinggi dari 9/16 layar HP: boleh tinggi + digulir
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                u.name,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(
+                  u.name,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+                subtitle: Text('${u.username} • ${_roleName(u.roleKey)}'),
               ),
-              subtitle: Text('${u.username} • ${_roleName(u.roleKey)}'),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Ubah role'),
-              onTap: () => Navigator.pop(ctx, 'edit'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.lock_reset),
-              title: const Text('Reset password'),
-              onTap: () => Navigator.pop(ctx, 'reset'),
-            ),
-            ListTile(
-              leading: Icon(
-                u.active ? Icons.block : Icons.check_circle_outline,
-                color: u.active ? AppColors.danger : AppColors.success,
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Ubah role'),
+                onTap: () => Navigator.pop(ctx, 'edit'),
               ),
-              title: Text(u.active ? 'Nonaktifkan' : 'Aktifkan'),
-              onTap: () => Navigator.pop(ctx, 'toggle'),
-            ),
-          ],
+              ListTile(
+                leading: const Icon(Icons.lock_reset),
+                title: const Text('Reset password'),
+                onTap: () => Navigator.pop(ctx, 'reset'),
+              ),
+              ListTile(
+                leading: Icon(
+                  u.active ? Icons.block : Icons.check_circle_outline,
+                  color: u.active ? AppColors.danger : AppColors.success,
+                ),
+                title: Text(u.active ? 'Nonaktifkan' : 'Aktifkan'),
+                onTap: () => Navigator.pop(ctx, 'toggle'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -516,7 +527,7 @@ class _UsersAdminPageState extends ConsumerState<UsersAdminPage> {
             floatingActionButton: FloatingActionButton.extended(
               onPressed: d.outlets.isEmpty ? null : () => _create(d.outlets),
               icon: const Icon(Icons.person_add_alt),
-              label: const Text('Akun'),
+              label: const Text('Buat akun login'),
             ),
             body: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),

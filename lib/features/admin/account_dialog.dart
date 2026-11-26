@@ -163,6 +163,7 @@ Future<bool> showCreateAccountDialog(
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true, // pilihan bernama panjang tidak overflow
                     initialValue: role,
                     decoration: const InputDecoration(labelText: 'Role (hak akses)'),
                     items: [

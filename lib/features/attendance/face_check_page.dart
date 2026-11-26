@@ -261,13 +261,15 @@ class _FaceCheckPageState extends State<FaceCheckPage> {
                   : (active ? const Color(0xFFE59AA6) : Colors.white54),
             ),
             const SizedBox(width: 6),
-            Text(
+            Flexible(
+              child: Text(
               text,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: done || active ? Colors.white : Colors.white54,
               ),
+            ),
             ),
           ],
         ),

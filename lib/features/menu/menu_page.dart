@@ -42,7 +42,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
           ? FloatingActionButton.extended(
               onPressed: () => _edit(context, repo, null),
               icon: const Icon(Icons.add),
-              label: const Text('Tambah'),
+              label: const Text('Tambah menu'),
             )
           : null,
       body: items.when(
@@ -107,7 +107,11 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Row(
+                            // Wrap: label "Habis" turun baris bila tidak muat (HP sempit)
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
                                   rupiah.format(m.price),
@@ -119,13 +123,11 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                                         : AppColors.muted,
                                   ),
                                 ),
-                                if (!on) ...[
-                                  const SizedBox(width: 8),
+                                if (!on)
                                   const StatusPill(
                                     'Habis di outlet ini',
                                     tone: Tone.danger,
                                   ),
-                                ],
                               ],
                             ),
                           ],
@@ -249,41 +251,44 @@ class _MenuPageState extends ConsumerState<MenuPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
         title: Text(existing == null ? 'Menu baru' : 'Edit menu'),
-        content: SizedBox(
-          width: 380,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: name,
-                decoration: const InputDecoration(labelText: 'Nama'),
-              ),
-              const SizedBox(height: 12),
-              CategoryField(controller: cat, categories: categories),
-              const SizedBox(height: 12),
-              TextField(
-                controller: price,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Harga (Rp)',
-                  prefixText: 'Rp ',
+        content: SingleChildScrollView(
+          // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+          child: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Nama'),
                 ),
-              ),
-              if (recipesOn) ...[
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Pakai resep'),
-                  subtitle: Text(
-                    useRecipe
-                        ? 'Stok bahan dipotong sesuai resep dan HPP dihitung.'
-                        : 'Tanpa resep: tidak memotong stok bahan (mis. minuman kemasan).',
+                const SizedBox(height: 12),
+                CategoryField(controller: cat, categories: categories),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: price,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Harga (Rp)',
+                    prefixText: 'Rp ',
                   ),
-                  value: useRecipe,
-                  onChanged: (v) => setLocal(() => useRecipe = v),
                 ),
+                if (recipesOn) ...[
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Pakai resep'),
+                    subtitle: Text(
+                      useRecipe
+                          ? 'Stok bahan dipotong sesuai resep dan HPP dihitung.'
+                          : 'Tanpa resep: tidak memotong stok bahan (mis. minuman kemasan).',
+                    ),
+                    value: useRecipe,
+                    onChanged: (v) => setLocal(() => useRecipe = v),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
         actions: [

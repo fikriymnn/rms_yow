@@ -199,12 +199,14 @@ class _IngredientStockCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text(
-                    qtyText(level),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: color,
+                  Flexible(
+                    child: Text(
+                      qtyText(level),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -265,46 +267,51 @@ Future<void> _menu(BuildContext context, WidgetRef ref, Ingredient i) async {
   final level = ref.read(stockLevelsProvider)[i.id] ?? 0;
   final a = await showModalBottomSheet<String>(
     context: context,
+    // daftar aksi bisa lebih tinggi dari 9/16 layar HP: boleh tinggi + digulir
+    isScrollControlled: true,
+    useSafeArea: true,
     builder: (ctx) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            title: Text(
-              i.name,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            subtitle: Text('Stok saat ini ${qtyText(level)} ${i.unit}'),
-          ),
-          const Divider(height: 1),
-          if (isOwner)
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             ListTile(
-              leading: const Icon(Icons.add_shopping_cart_rounded),
-              title: const Text('Belanja langsung (tanpa PO)'),
-              subtitle: const Text('Bisa sekaligus beberapa bahan'),
-              onTap: () => Navigator.pop(ctx, 'in'),
-            )
-          else if (ref.read(appUserProvider).value?.can('purchase_orders.create') ?? false)
-            const ListTile(
-              leading: Icon(Icons.info_outline),
               title: Text(
-                'Pembelian bahan dilakukan lewat PO (menu Pembelian)',
+                i.name,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
+              subtitle: Text('Stok saat ini ${qtyText(level)} ${i.unit}'),
             ),
-          ListTile(
-            leading: const Icon(Icons.delete_outline),
-            title: const Text('Waste / rusak'),
-            onTap: () => Navigator.pop(ctx, 'waste'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text('Riwayat mutasi'),
-            onTap: () => Navigator.pop(ctx, 'history'),
-          ),
-        ],
+            const Divider(height: 1),
+            if (isOwner)
+              ListTile(
+                leading: const Icon(Icons.add_shopping_cart_rounded),
+                title: const Text('Belanja langsung (tanpa PO)'),
+                subtitle: const Text('Bisa sekaligus beberapa bahan'),
+                onTap: () => Navigator.pop(ctx, 'in'),
+              )
+            else if (ref.read(appUserProvider).value?.can('purchase_orders.create') ?? false)
+              const ListTile(
+                leading: Icon(Icons.info_outline),
+                title: Text(
+                  'Pembelian bahan dilakukan lewat PO (menu Pembelian)',
+                ),
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Waste / rusak'),
+              onTap: () => Navigator.pop(ctx, 'waste'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('Riwayat mutasi'),
+              onTap: () => Navigator.pop(ctx, 'history'),
+            ),
+          ],
+        ),
       ),
     ),
   );

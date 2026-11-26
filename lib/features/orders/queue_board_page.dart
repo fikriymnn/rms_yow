@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/motion.dart';
 import '../../core/ui/ui_kit.dart';
+import '../../shell/app_bar.dart';
 import '../auth/auth_providers.dart';
 import '../kitchen_kpi/kitchen_kpi_page.dart';
 import '../voice/order_announcer.dart';
@@ -82,12 +83,13 @@ class _QueueBoardPageState extends ConsumerState<QueueBoardPage> {
     final ready = entries.where((e) => e.ready).toList();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: RmsAppBar(
         title: const Text('Antrean pesanan'),
-        actions: [
-          IconButton(
-            tooltip: 'Riwayat & KPI dapur',
-            icon: const Icon(Icons.insights_outlined),
+        pageActions: [
+          PageAction(
+            icon: Icons.insights_outlined,
+            label: 'Riwayat & KPI dapur',
+            shortLabel: 'KPI',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute<void>(builder: (_) => const KitchenKpiPage()),
@@ -311,19 +313,16 @@ class QueueBoardButton extends ConsumerWidget {
     final n = ref.watch(queueBoardProvider).length;
     final canUse = ref.watch(appUserProvider).value?.canAny(const ['orders.update', 'kitchen.update']) ?? false;
     if (!canUse) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: Badge(
-        isLabelVisible: n > 0,
-        label: Text('$n'),
-        backgroundColor: AppColors.primary,
-        child: IconButton(
-          tooltip: 'Antrean pesanan',
-          icon: const Icon(Icons.campaign_outlined),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(builder: (_) => const QueueBoardPage()),
-          ),
+    // berlabel (bukan ikon saja) agar kasir baru langsung paham fungsinya
+    return PageActionButton(
+      PageAction(
+        icon: Icons.campaign_outlined,
+        label: 'Antrean pesanan',
+        shortLabel: 'Antrean',
+        badge: n,
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(builder: (_) => const QueueBoardPage()),
         ),
       ),
     );

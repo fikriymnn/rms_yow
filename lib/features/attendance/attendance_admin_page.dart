@@ -289,40 +289,43 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
           final mins = out == null ? null : out.difference(inAt).inMinutes;
           return AlertDialog(
             title: Text('Koreksi ${r.userName}'),
-            content: SizedBox(
-              width: 400,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _timeTile(Icons.login, 'Masuk', fmt.format(inAt), () async {
-                    final v = await _pickDateTime(ctx, inAt);
-                    if (v != null) setS(() => inAt = v);
-                  }),
-                  const SizedBox(height: 8),
-                  _timeTile(
-                    Icons.logout,
-                    'Pulang',
-                    out == null ? 'belum diisi' : fmt.format(out),
-                    () async {
-                      final v = await _pickDateTime(ctx, out ?? inAt);
-                      if (v != null) setS(() => outAt = v);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    !valid
-                        ? 'Waktu pulang harus setelah waktu masuk.'
-                        : mins == null
-                        ? 'Belum ada waktu pulang.'
-                        : 'Durasi kerja: ${durationText(mins)}',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: valid ? AppColors.ink : AppColors.danger,
+            content: SingleChildScrollView(
+              // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+              child: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _timeTile(Icons.login, 'Masuk', fmt.format(inAt), () async {
+                      final v = await _pickDateTime(ctx, inAt);
+                      if (v != null) setS(() => inAt = v);
+                    }),
+                    const SizedBox(height: 8),
+                    _timeTile(
+                      Icons.logout,
+                      'Pulang',
+                      out == null ? 'belum diisi' : fmt.format(out),
+                      () async {
+                        final v = await _pickDateTime(ctx, out ?? inAt);
+                        if (v != null) setS(() => outAt = v);
+                      },
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(
+                      !valid
+                          ? 'Waktu pulang harus setelah waktu masuk.'
+                          : mins == null
+                          ? 'Belum ada waktu pulang.'
+                          : 'Durasi kerja: ${durationText(mins)}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: valid ? AppColors.ink : AppColors.danger,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -383,48 +386,51 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
               : (mins > worked ? 'Melebihi lama kerja (${durationText(worked)})' : null);
           return AlertDialog(
             title: Text('Setujui lembur ${r.userName}'),
-            content: SizedBox(
-              width: 400,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    r.overtimeMin > 0
-                        ? 'Terhitung lembur ${durationText(r.overtimeMin)} dari jadwal pulang. '
-                              'Anda bisa menyetujui sebagian saja.'
-                        : 'Tidak ada lembur terhitung dari jadwal. Isi menit lembur secara manual.',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted, height: 1.4),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: minC,
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setS(() {}),
-                    decoration: InputDecoration(
-                      labelText: 'Menit lembur disetujui',
-                      suffixText: 'menit',
-                      helperText: mins > 0 ? '= ${durationText(mins)}' : null,
-                      errorText: minC.text.isEmpty ? null : err,
+            content: SingleChildScrollView(
+              // HP kecil / keyboard terbuka: isi dialog bisa digulir, tidak overflow
+              child: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      r.overtimeMin > 0
+                          ? 'Terhitung lembur ${durationText(r.overtimeMin)} dari jadwal pulang. '
+                                'Anda bisa menyetujui sebagian saja.'
+                          : 'Tidak ada lembur terhitung dari jadwal. Isi menit lembur secara manual.',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted, height: 1.4),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: bonusC,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Bonus lembur',
-                      prefixText: 'Rp ',
-                      helperText: 'Masuk ke slip gaji bila "Bonus lembur" karyawan aktif',
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: minC,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setS(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'Menit lembur disetujui',
+                        suffixText: 'menit',
+                        helperText: mins > 0 ? '= ${durationText(mins)}' : null,
+                        errorText: minC.text.isEmpty ? null : err,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: noteC,
-                    maxLength: 255,
-                    decoration: const InputDecoration(labelText: 'Catatan (opsional)'),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: bonusC,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Bonus lembur',
+                        prefixText: 'Rp ',
+                        helperText: 'Masuk ke slip gaji bila "Bonus lembur" karyawan aktif',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: noteC,
+                      maxLength: 255,
+                      decoration: const InputDecoration(labelText: 'Catatan (opsional)'),
+                    ),
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -1279,13 +1285,12 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
       child: Scaffold(
         appBar: RmsAppBar(
           title: Text('Absensi${outlet == null ? '' : ' • ${outlet.name}'}'),
-          actions: [
-            if (ref.watch(appUserProvider).value?.can('attendance.schedule') ??
-                false)
-              IconButton(
-                tooltip: 'Jadwal buka-tutup',
-                icon: const Icon(Icons.calendar_month_outlined),
-                onPressed: () {
+          pageActions: [
+            if (ref.watch(appUserProvider).value?.can('attendance.schedule') ?? false) PageAction(
+              icon: Icons.calendar_month_outlined,
+              label: 'Jadwal buka-tutup',
+              shortLabel: 'Jadwal',
+              onPressed: () {
                   final id = ref.read(activeOutletIdProvider);
                   if (id == null) return;
                   Navigator.push(
@@ -1298,18 +1303,32 @@ class _AttendanceAdminPageState extends ConsumerState<AttendanceAdminPage> {
                     ),
                   );
                 },
-              ),
-            PopupMenuButton<bool>(
-              tooltip: 'Ekspor Excel',
-              icon: const Icon(Icons.ios_share),
-              onSelected: _export,
-              itemBuilder: (_) => const [
-                PopupMenuItem(
-                  value: false,
-                  child: Text('Ekspor catatan (Excel)'),
-                ),
-                PopupMenuItem(value: true, child: Text('Ekspor rekap (Excel)')),
-              ],
+            ),
+            PageAction(
+              icon: Icons.ios_share,
+              label: 'Ekspor Excel',
+              shortLabel: 'Ekspor',
+              onPressed: () async {
+                final summary = await showChoiceSheet<bool>(
+                  context: context,
+                  title: 'Ekspor ke Excel',
+                  choices: const [
+                    SheetChoice(
+                      value: false,
+                      icon: Icons.list_alt_rounded,
+                      label: 'Ekspor catatan',
+                      subtitle: 'Setiap absen masuk & pulang',
+                    ),
+                    SheetChoice(
+                      value: true,
+                      icon: Icons.summarize_outlined,
+                      label: 'Ekspor rekap',
+                      subtitle: 'Ringkasan per karyawan',
+                    ),
+                  ],
+                );
+                if (summary != null) await _export(summary);
+              },
             ),
           ],
           bottom: const TabBar(

@@ -25,42 +25,39 @@ class InventoryPage extends ConsumerWidget {
       length: showRecipes ? 3 : 2,
       child: Scaffold(
         appBar: RmsAppBar(
-          title: const Text('Inventory'),
-          actions: [
-            // tombol berlabel (bukan ikon saja) agar mudah ditemukan pengguna baru
+          // sama dengan nama menu di navigasi agar tidak membingungkan
+          title: const Text('Stok'),
+          // tombol berlabel (bukan ikon saja) agar mudah ditemukan pengguna baru
+          pageActions: [
             if (user?.can('stock.read') ?? false)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: FilledButton.tonalIcon(
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const DirectPurchasesPage()),
-                  ),
-                  icon: const Icon(Icons.shopping_cart_outlined, size: 18),
-                  label: const Text('Belanja'),
+              PageAction(
+                icon: Icons.shopping_cart_outlined,
+                label: 'Belanja',
+                primary: true,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DirectPurchasesPage()),
                 ),
               ),
-            IconButton(
-              tooltip: 'Riwayat stok',
-              icon: const Icon(Icons.history_rounded),
+            PageAction(
+              icon: Icons.history_rounded,
+              label: 'Riwayat stok',
+              shortLabel: 'Riwayat',
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const StockHistoryPage()),
               ),
             ),
             if (showPurchasing)
-            IconButton(
-              tooltip: 'Pembelian',
-              icon: const Icon(Icons.local_shipping_outlined),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PurchasingPage()),
+              PageAction(
+                icon: Icons.local_shipping_outlined,
+                label: 'Pembelian (PO)',
+                shortLabel: 'Pembelian',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PurchasingPage()),
+                ),
               ),
-            ),
           ],
           bottom: TabBar(
             tabs: [

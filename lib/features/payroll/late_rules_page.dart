@@ -176,6 +176,7 @@ class _LateRulesPageState extends ConsumerState<LateRulesPage> {
         children: [
           if (widget.outlets.length > 1) ...[
             DropdownButtonFormField<String>(
+              isExpanded: true, // pilihan bernama panjang tidak overflow
               initialValue: _outletId,
               decoration: const InputDecoration(labelText: 'Outlet', isDense: true),
               items: [
