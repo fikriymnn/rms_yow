@@ -272,7 +272,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
                               size: 18,
                             ),
                             label: Text(
-                              '${o.number} • ${rupiah.format(o.total)}',
+                              '${o.customerName ?? o.number} • ${rupiah.format(o.total)}',
                             ),
                             onPressed: () => openPos(order: o),
                           ),
@@ -314,7 +314,7 @@ class _TablesPageState extends ConsumerState<TablesPage> {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              o.number,
+                                              o.customerName == null ? o.number : '${o.customerName} · ${o.number}',
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w600,

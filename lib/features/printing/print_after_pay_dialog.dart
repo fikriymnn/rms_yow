@@ -183,6 +183,7 @@ class _PrintAfterPayDialogState extends State<_PrintAfterPayDialog> {
               [
                 o.number,
                 if (queue != null && queue.isNotEmpty) 'Antrean $queue',
+                if (queue == null && o.customerName != null) 'a.n. ${o.customerName}',
                 if (widget.tableName != null && widget.tableName!.isNotEmpty)
                   widget.tableName!,
                 if (widget.showReceipt) 'Total ${rupiah.format(o.total)}',

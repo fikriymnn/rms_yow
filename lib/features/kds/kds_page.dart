@@ -53,13 +53,14 @@ class _KdsPageState extends ConsumerState<KdsPage> {
   bool get _foodcourt => ref.read(activeOutletProvider)?.isFoodcourt ?? false;
 
   String _where(Order o, Map<String, String> tables) {
-    final q = o.queueNo;
+    // dipanggil dengan nomor atau atas nama
+    final q = o.queueNo != null ? 'No. ${o.queueNo}' : (o.tableId == null ? o.customerName : null);
     if (q != null && q.isNotEmpty) {
       // dapur perlu tahu: dibungkus atau tidak, dan dari aplikasi mana
       final tags = [
         if (o.source.isOnline) o.source.label else if (o.type == OrderType.takeaway) 'Takeaway',
       ];
-      return ['No. $q', ...tags].join(' · ');
+      return [q, ...tags].join(' · ');
     }
     if (o.source.isOnline) return 'Takeaway · ${o.source.label}';
     if (o.tableId == null) return 'Takeaway';

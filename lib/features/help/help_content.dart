@@ -161,6 +161,7 @@ const helpTopics = <HelpTopic>[
           'Saat bayar pesanan tanpa meja, pilih sumber pesanan: Langsung, GoFood, GrabFood, atau ShopeeFood.',
           'Pesanan online wajib diisi nomor pesanan dari aplikasinya, untuk cek silang di Laporan. Pembayarannya tercatat "Aplikasi online" (tidak masuk uang laci).',
           'Foodcourt: pilih "Makan di sini" atau "Takeaway" agar dapur tahu pesanan perlu dibungkus. Pesanan online otomatis takeaway.',
+          'Foodcourt: pelanggan dipanggil dengan Nomor antrean atau Atas nama (dipilih saat bayar). Takeaway di restoran wajib diisi atas nama.',
         ]),
       ]),
       HelpSection('Diskon, void, dan refund', [

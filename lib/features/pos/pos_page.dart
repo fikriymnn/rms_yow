@@ -57,6 +57,11 @@ class _PosPageState extends ConsumerState<PosPage>
   final _search = TextEditingController();
   late final TabController _tab;
 
+  /// Takeaway restoran: pesanan dipanggil "atas nama ..." (wajib diisi).
+  late final _name = TextEditingController(text: widget.order?.customerName ?? '');
+  bool get _needsName => widget.table == null && !widget.foodcourt;
+  bool get _nameOk => !_needsName || _name.text.trim().isNotEmpty;
+
   late final Set<String> _savedIds = {
     for (final i in widget.order?.items ?? <OrderItem>[]) i.id,
   };
@@ -233,6 +238,7 @@ class _PosPageState extends ConsumerState<PosPage>
 
   @override
   void dispose() {
+    _name.dispose();
     _tab.dispose();
     _search.dispose();
     super.dispose();
@@ -361,8 +367,20 @@ class _PosPageState extends ConsumerState<PosPage>
     ];
   }
 
+  /// Salin "atas nama" dari kolom isian ke pesanan.
+  void _applyName() {
+    if (!_needsName) return;
+    final n = _name.text.trim();
+    _order = n.isEmpty ? _order.copyWith(clearCustomerName: true) : _order.copyWith(customerName: n);
+  }
+
   Future<void> _save() async {
     if (_order.items.isEmpty) return;
+    if (!_nameOk) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Isi atas nama pelanggan dulu')));
+      return;
+    }
+    _applyName();
     final newItems = _newForKitchen();
     final saved = _order;
     await ref.read(orderRepositoryProvider).save(saved);
@@ -389,6 +407,11 @@ class _PosPageState extends ConsumerState<PosPage>
 
   Future<void> _pay() async {
     if (_paying || _order.items.isEmpty) return;
+    if (!_nameOk) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Isi atas nama pelanggan dulu')));
+      return;
+    }
+    _applyName();
     final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
     void say(String m, {int sec = 4}) {
@@ -438,6 +461,7 @@ class _PosPageState extends ConsumerState<PosPage>
       paidBy: me?.uid,
       paidByName: me?.name,
       queueNo: r.queueNo,
+      customerName: r.customerName,
       source: r.source,
       externalNo: r.externalNo,
       type: r.takeaway == null
@@ -499,7 +523,9 @@ class _PosPageState extends ConsumerState<PosPage>
     } else {
       nav.pop();
     }
-    final queueText = paid.queueNo == null ? '' : ' • Nomor ${paid.queueNo}';
+    final queueText = paid.queueNo != null
+        ? ' • Nomor ${paid.queueNo}'
+        : (paid.customerName != null ? ' • a.n. ${paid.customerName}' : '');
     say('Pembayaran berhasil$queueText');
   }
 
@@ -987,6 +1013,22 @@ class _PosPageState extends ConsumerState<PosPage>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (_needsName) ...[
+                  TextField(
+                    controller: _name,
+                    maxLength: 40,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Atas nama',
+                      hintText: 'Nama pelanggan takeaway',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                      isDense: true,
+                      counterText: '',
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 if (noShift)
                   Container(
                     width: double.infinity,
@@ -1121,6 +1163,7 @@ typedef PayResult = ({
   int paid,
   bool hold,
   String? queueNo,
+  String? customerName,
   OrderSource source,
   String? externalNo,
   bool? takeaway, // foodcourt: null = tidak ditanyakan
@@ -1154,6 +1197,9 @@ class _PayDialogState extends State<_PayDialog> {
   bool _hold = false;
   final _queue = TextEditingController();
   final _ext = TextEditingController();
+  // pilihan terakhir Nomor / Atas nama diingat selama aplikasi terbuka
+  static bool _lastByName = false;
+  bool _byName = _lastByName;
   OrderSource _source = OrderSource.walkin;
   bool _takeaway = false; // foodcourt: makan di sini (bawaan) / takeaway
 
@@ -1288,17 +1334,32 @@ class _PayDialogState extends State<_PayDialog> {
               ],
               if (widget.queueMode) ...[
                 const SizedBox(height: 16),
+                // pelanggan dipanggil dengan nomor antrean atau namanya (dibacakan suara)
+                SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, icon: Icon(Icons.tag_rounded, size: 18), label: Text('Nomor')),
+                    ButtonSegment(value: true, icon: Icon(Icons.person_outline_rounded, size: 18), label: Text('Atas nama')),
+                  ],
+                  selected: {_byName},
+                  onSelectionChanged: (v) => setState(() {
+                    _byName = v.first;
+                    _lastByName = _byName;
+                    _queue.clear();
+                  }),
+                ),
+                const SizedBox(height: 10),
                 TextField(
                   controller: _queue,
                   autofocus: !widget.sourceMode,
-                  maxLength: 10,
-                  textCapitalization: TextCapitalization.characters,
+                  maxLength: _byName ? 40 : 10,
+                  textCapitalization: _byName ? TextCapitalization.words : TextCapitalization.characters,
                   decoration: InputDecoration(
-                    labelText: 'Nomor antrian',
-                    hintText: 'Nomor yang diberikan ke pelanggan',
+                    labelText: _byName ? 'Atas nama' : 'Nomor antrian',
+                    hintText: _byName ? 'Nama pelanggan, mis. Budi' : 'Nomor yang diberikan ke pelanggan',
                     counterText: '',
                     helperText: dup != null
-                        ? 'Nomor ini masih dipakai pesanan $dup yang belum selesai.'
+                        ? '${_byName ? 'Nama' : 'Nomor'} ini masih dipakai pesanan $dup yang belum selesai.'
                         : null,
                     helperMaxLines: 2,
                     helperStyle: const TextStyle(color: Color(0xFF8A5A12)),
@@ -1439,7 +1500,8 @@ class _PayDialogState extends State<_PayDialog> {
                   method: _effMethod,
                   paid: _paid,
                   hold: _hold,
-                  queueNo: widget.queueMode ? _queue.text.trim() : null,
+                  queueNo: widget.queueMode && !_byName ? _queue.text.trim() : null,
+                  customerName: widget.queueMode && _byName ? _queue.text.trim() : null,
                   source: widget.sourceMode ? _source : OrderSource.walkin,
                   externalNo: _online ? _ext.text.trim() : null,
                   takeaway: widget.queueMode ? (_online || _takeaway) : null,

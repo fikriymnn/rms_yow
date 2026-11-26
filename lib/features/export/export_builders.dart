@@ -95,6 +95,7 @@ List<List<Object?>> _ordersRows(ExportData d) => [
     'Tipe',
     'Meja',
     'Nomor antrean',
+    'Atas nama',
     'Sumber',
     'No. pesanan online',
     'Status',
@@ -116,6 +117,7 @@ List<List<Object?>> _ordersRows(ExportData d) => [
       o.type == OrderType.takeaway ? 'Takeaway' : 'Dine-in',
       d.tables[o.tableId] ?? '',
       o.queueNo ?? '',
+      o.customerName ?? '',
       o.source.label,
       o.externalNo ?? '',
       o.status == OrderStatus.refunded ? 'Refund' : 'Lunas',
@@ -134,14 +136,14 @@ List<List<Object?>> _ordersRows(ExportData d) => [
 
 /// Daftar transaksi ringkas (untuk PDF / cek silang dengan aplikasi online).
 List<List<Object?>> transactionRows(ExportData d) => [
-  ['Waktu', 'No. order', 'Sumber', 'No. pesanan online', 'Antrean', 'Metode', 'Total', 'Status'],
+  ['Waktu', 'No. order', 'Sumber', 'No. pesanan online', 'Antrean / a.n.', 'Metode', 'Total', 'Status'],
   for (final o in d.soldOrders)
     [
       _t(o.paidAt ?? 0),
       o.number,
       o.source.label,
       o.externalNo ?? '',
-      o.queueNo ?? '',
+      o.callLabel ?? '',
       o.payMethod?.label ?? '',
       o.total,
       o.status == OrderStatus.refunded ? 'Refund' : 'Lunas',

@@ -14,10 +14,12 @@ import '../tables/dining_table.dart';
 import '../tables/tables_providers.dart';
 import 'voice_service.dart';
 
-/// Kalimat tujuan pesanan: "meja 4", "nomor 12", atau "takeaway".
+/// Kalimat tujuan pesanan: "meja 4", "nomor 12", "atas nama Budi", atau "takeaway".
 String spokenWhere(Order o, Map<String, String> tableNames) {
   final q = o.queueNo;
   if (q != null && q.isNotEmpty) return 'nomor $q';
+  final n = o.customerName;
+  if (o.tableId == null && n != null && n.isNotEmpty) return 'atas nama $n';
   if (o.tableId == null) return 'takeaway';
   final name = (tableNames[o.tableId] ?? '').trim();
   if (name.isEmpty) return 'meja';
@@ -26,13 +28,16 @@ String spokenWhere(Order o, Map<String, String> tableNames) {
 
 String newOrderSentence(Order o, Map<String, String> tables, {bool addition = false}) {
   final w = spokenWhere(o, tables);
+  if (w.startsWith('atas nama ')) {
+    return addition ? 'Tambahan pesanan $w' : 'Pesanan $w sudah dibuat';
+  }
   return addition ? 'Tambahan pesanan untuk $w' : 'Pesanan untuk $w sudah dibuat';
 }
 
 String readySentence(Order o, Map<String, String> tables) {
   final w = spokenWhere(o, tables);
-  if (o.queueNo != null && o.queueNo!.isNotEmpty) return 'Pesanan $w siap diambil';
-  if (o.tableId == null) return 'Pesanan takeaway siap';
+  if (w.startsWith('nomor ') || w.startsWith('atas nama ')) return 'Pesanan $w siap diambil';
+  if (w == 'takeaway') return 'Pesanan takeaway siap';
   return 'Pesanan $w siap diantar';
 }
 

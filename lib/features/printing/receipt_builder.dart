@@ -78,7 +78,7 @@ List<RLine> buildReceipt({
   );
   final queue = order.queueNo;
   final hasQueue = queue != null && queue.isNotEmpty;
-  final type = hasQueue
+  final type = hasQueue || (order.customerName != null && order.tableId == null && order.type == OrderType.dineIn)
       ? (order.type == OrderType.takeaway ? 'Takeaway' : 'Makan di sini')
       : order.type == OrderType.takeaway
       ? 'Takeaway'
@@ -91,6 +91,10 @@ List<RLine> buildReceipt({
   if (hasQueue) {
     center('NOMOR ANTRIAN', bold: true);
     center('>>> $queue <<<', bold: true);
+    add(line);
+  } else if (order.customerName != null && order.tableId == null) {
+    center('ATAS NAMA', bold: true);
+    center('>>> ${order.customerName} <<<', bold: true);
     add(line);
   }
   add('No   : ${order.number}');
@@ -170,9 +174,10 @@ List<RLine> buildKitchenSlip({
   final hasQueue = queue != null && queue.isNotEmpty;
   center('*** DAPUR ***', bold: true);
   if (addition) center('+ PESANAN TAMBAHAN +', bold: true);
-  if (hasQueue) {
-    center('NOMOR ANTRIAN', bold: true);
-    center('>>> $queue <<<', bold: true);
+  final byName = !hasQueue && order.customerName != null && order.tableId == null;
+  if (hasQueue || byName) {
+    center(hasQueue ? 'NOMOR ANTRIAN' : 'ATAS NAMA', bold: true);
+    center('>>> ${hasQueue ? queue : order.customerName} <<<', bold: true);
     if (order.source.isOnline) {
       center('${order.source.label.toUpperCase()} ${order.externalNo ?? ''}'.trim(), bold: true);
     } else if (order.type == OrderType.takeaway) {

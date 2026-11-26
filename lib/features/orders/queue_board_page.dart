@@ -221,7 +221,7 @@ class _QueueBoardPageState extends ConsumerState<QueueBoardPage> {
               child: Padding(
                 padding: const EdgeInsets.all(6),
                 child: Text(
-                  o.queueNo ?? '-',
+                  o.queueNo ?? o.customerName ?? '-',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,

@@ -148,16 +148,17 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     ),
                   ],
                 ),
-                if (o.externalNo != null || o.queueNo != null) ...[
+                if (o.externalNo != null || o.callLabel != null) ...[
                   const SizedBox(height: 10),
                   if (o.externalNo != null)
                     Text(
                       'No. pesanan ${o.source.label}: ${o.externalNo}',
                       style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700),
                     ),
-                  if (o.queueNo != null)
+                  if (o.callLabel != null)
                     Text(
-                      'Nomor antrean ${o.queueNo} · ${o.type == OrderType.takeaway ? 'Takeaway' : 'Makan di sini'}',
+                      '${o.queueNo != null ? 'Nomor antrean ${o.queueNo}' : 'Atas nama ${o.customerName}'}'
+                      ' · ${o.type == OrderType.takeaway ? 'Takeaway' : 'Makan di sini'}',
                       style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.muted),
                     ),
                 ],
@@ -333,7 +334,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 (o) =>
                     o.number.toLowerCase().contains(q) ||
                     (o.externalNo ?? '').toLowerCase().contains(q) ||
-                    (o.queueNo ?? '').toLowerCase() == q,
+                    (o.queueNo ?? '').toLowerCase() == q ||
+                    (o.customerName ?? '').toLowerCase().contains(q),
               )
               .toList();
 
@@ -553,7 +555,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           TextField(
             onChanged: (v) => setState(() => _search = v),
             decoration: const InputDecoration(
-              hintText: 'Cari no. order / no. pesanan online',
+              hintText: 'Cari no. order / no. online / atas nama',
               isDense: true,
               prefixIcon: Icon(Icons.search),
             ),
@@ -587,7 +589,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           Text(
                             '${o.payMethod?.label ?? '-'}'
                             '${o.source.isOnline ? ' • ${o.source.label} ${o.externalNo ?? ''}' : ''}'
-                            '${o.queueNo != null ? ' • No. ${o.queueNo}' : ''}'
+                            '${o.callLabel != null ? ' • ${o.callLabel}' : ''}'
                             '${o.status == OrderStatus.refunded ? ' • REFUND' : ''}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,

@@ -132,6 +132,7 @@ class Order {
     this.queueNo,
     this.source = OrderSource.walkin,
     this.externalNo,
+    this.customerName,
   });
 
   final String id;
@@ -156,6 +157,10 @@ class Order {
   final String? queueNo;
   final OrderSource source;
   final String? externalNo; // nomor pesanan di aplikasi online (GoFood dsb.)
+  final String? customerName; // dipanggil "atas nama ..." (foodcourt / takeaway)
+
+  /// Cara memanggil pelanggan: "No. 5" atau nama; null bila pesanan meja tanpa keduanya.
+  String? get callLabel => queueNo != null ? 'No. $queueNo' : customerName;
 
   int get subtotal => items.fold(0, (s, i) => s + i.total);
   int get _base => max(0, subtotal - discount);
@@ -208,6 +213,8 @@ class Order {
     OrderType? type,
     OrderSource? source,
     String? externalNo,
+    String? customerName,
+    bool clearCustomerName = false,
   }) => Order(
     id: id,
     number: number,
@@ -231,6 +238,7 @@ class Order {
     queueNo: queueNo ?? this.queueNo,
     source: source ?? this.source,
     externalNo: externalNo ?? this.externalNo,
+    customerName: clearCustomerName ? null : (customerName ?? this.customerName),
   );
 
   factory Order.fromMap(Map<String, dynamic> m) {
@@ -267,6 +275,7 @@ class Order {
       queueNo: _text(m['queueNo']),
       source: _byName(OrderSource.values, m['source'], OrderSource.walkin),
       externalNo: _text(m['externalNo']),
+      customerName: _text(m['customerName']),
     );
   }
 
@@ -334,6 +343,7 @@ class Order {
     'queueNo': queueNo,
     'source': source.name,
     if (externalNo != null) 'externalNo': externalNo,
+    if (customerName != null) 'customerName': customerName,
     'shiftId': shiftId,
     'refundedAt': refundedAt,
     'refundShiftId': refundShiftId,
